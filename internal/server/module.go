@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/capcom6/go-project-template/internal/server/docs"
+	"github.com/bit-issues/backend/internal/server/docs"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/health"
