@@ -30,19 +30,20 @@ type databaseConfig struct {
 	MaxIdleConns    int           `koanf:"max_idle_conns"`
 }
 
-type exampleConfig struct {
-	Example string `koanf:"example"`
+type jwtConfig struct {
+	Secret    string        `koanf:"secret"`
+	AccessTTL time.Duration `koanf:"access_ttl"`
+	Issuer    string        `koanf:"issuer"`
 }
 
 type Config struct {
 	HTTP     http           `koanf:"http"`
 	Database databaseConfig `koanf:"database"`
-
-	Example exampleConfig `koanf:"example"`
+	JWT      jwtConfig      `koanf:"jwt"`
 }
 
 func Default() Config {
-	//nolint:gosec // default values
+	//nolint:gosec,mnd // default values
 	return Config{
 		HTTP: http{
 			Address:     "127.0.0.1:3000",
@@ -55,15 +56,16 @@ func Default() Config {
 			},
 		},
 		Database: databaseConfig{
-			URL:             "mariadb://bit-issues:bit-issues@127.0.0.1:3306/bit-issues?charset=utf8mb4&parseTime=True&loc=UTC",
+			URL:             "mariadb://bit-issues:bit-issues@127.0.0.1:3306/bit-issues?charset=utf8mb4&parseTime=True&loc=UTC&clientFoundRows=true",
 			ConnMaxIdleTime: 0,
 			ConnMaxLifetime: 0,
 			MaxOpenConns:    0,
 			MaxIdleConns:    0,
 		},
-
-		Example: exampleConfig{
-			Example: "example",
+		JWT: jwtConfig{
+			Secret:    "secret",
+			AccessTTL: time.Minute * 15,
+			Issuer:    "bitissues.dev",
 		},
 	}
 }
