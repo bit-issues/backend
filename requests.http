@@ -1,0 +1,107 @@
+@baseURL=http://localhost:3000/api/v1
+
+###
+# Register a new admin user
+POST {{baseURL}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "securePass123"
+}
+
+###
+# Login with admin credentials
+# @name adminLogin
+@adminAccessToken={{adminLogin.response.body.$.access_token}}
+POST {{baseURL}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "securePass123"
+}
+
+###
+# Register a new user
+# @name register
+@email={{register.response.body.$.email}}
+POST {{baseURL}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "user{{$randomInt 10 100}}@example.com",
+  "password": "securePass123"
+}
+
+###
+# Login with user credentials
+# @name login
+@accessToken={{login.response.body.$.access_token}}
+POST {{baseURL}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "securePass123"
+}
+
+###
+# Change password (requires authentication)
+POST {{baseURL}}/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "old_password": "securePass123",
+  "new_password": "newStrongPass456"
+}
+
+###
+# List all users (admin only)
+# Requires admin JWT token in Authorization header
+# Optional query parameters: status (pending/active/blocked), role (admin/user), limit, offset
+GET {{baseURL}}/admin/users?status=pending
+Authorization: Bearer {{adminAccessToken}}
+
+###
+# Update user status/role (admin only)
+# Requires admin JWT token in Authorization header
+PATCH {{baseURL}}/admin/users/1
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "status": "active",
+  "role": "user"
+}
+
+###
+# Example: Activate a pending user
+PATCH {{baseURL}}/admin/users/2
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "status": "active"
+}
+
+###
+# Example: Block a user
+PATCH {{baseURL}}/admin/users/3
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "status": "blocked"
+}
+
+###
+# Example: Promote user to admin
+PATCH {{baseURL}}/admin/users/4
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "role": "admin"
+}

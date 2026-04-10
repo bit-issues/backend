@@ -1,7 +1,10 @@
 package server
 
 import (
+	"github.com/bit-issues/backend/internal/server/admin/users"
+	"github.com/bit-issues/backend/internal/server/auth"
 	"github.com/bit-issues/backend/internal/server/docs"
+	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/health"
@@ -27,6 +30,12 @@ func Module() fx.Option {
 		fx.Supply(docs.SwaggerInfo),
 
 		fx.Provide(
+			fx.Annotate(users.NewHandler, fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(auth.NewHandler, fx.ResultTags(`group:"handlers"`)),
+			fx.Private,
+		),
+
+		fx.Provide(
 			health.NewHandler,
 			openapi.NewHandler,
 			fx.Private,
@@ -42,7 +51,10 @@ func Module() fx.Option {
 					v1 := app.Group("/api/v1")
 					openapiHandler.Register(v1.Group("/docs"))
 
-					v1.Use(validation.Middleware)
+					v1.Use(
+						validation.Middleware,
+						jwtauth.ErrorsHandler(),
+					)
 
 					for _, h := range handlers {
 						h.Register(v1)
