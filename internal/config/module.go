@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/bit-issues/backend/internal/example"
+	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
 	"github.com/go-core-fx/sqlfx"
@@ -37,9 +37,11 @@ func Module() fx.Option {
 				}
 			},
 		),
-		fx.Provide(func(cfg Config) example.Config {
-			return example.Config{
-				Example: cfg.Example.Example,
+		fx.Provide(func(cfg Config) jwt.Config {
+			return jwt.Config{
+				Secret:    cfg.JWT.Secret,
+				AccessTTL: cfg.JWT.AccessTTL,
+				Issuer:    cfg.JWT.Issuer,
 			}
 		}),
 	)

@@ -5,8 +5,9 @@ import (
 
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
-	"github.com/bit-issues/backend/internal/example"
+	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/server"
+	"github.com/bit-issues/backend/internal/users"
 	"github.com/go-core-fx/bunfx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/goosefx"
@@ -47,7 +48,8 @@ func Run(version healthfx.Version) {
 		//
 		// BUSINESS MODULES
 		fx.Supply(version),
-		example.Module(),
+		jwt.Module(),
+		users.Module(),
 		//
 		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {
 			lc.Append(fx.Hook{
