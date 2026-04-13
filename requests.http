@@ -26,6 +26,7 @@ Content-Type: application/json
 # Register a new user
 # @name register
 @email={{register.response.body.$.email}}
+@userID={{register.response.body.$.id}}
 POST {{baseURL}}/auth/register
 Content-Type: application/json
 
@@ -67,7 +68,7 @@ Authorization: Bearer {{adminAccessToken}}
 ###
 # Update user status/role (admin only)
 # Requires admin JWT token in Authorization header
-PATCH {{baseURL}}/admin/users/1
+PATCH {{baseURL}}/admin/users/{{userID}}
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -105,3 +106,66 @@ Authorization: Bearer {{adminAccessToken}}
 {
   "role": "admin"
 }
+
+###
+# List all projects (authenticated users)
+# Optional query parameters: limit (max 100), offset
+GET {{baseURL}}/projects?limit=20&offset=0
+Authorization: Bearer {{accessToken}}
+
+###
+# Get project by ID (authenticated users)
+# Returns detailed information about a specific project
+GET {{baseURL}}/projects/my-new-project
+Authorization: Bearer {{accessToken}}
+
+###
+# Create a new project (admin only)
+# Requires admin JWT token in Authorization header
+POST {{baseURL}}/projects
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "name": "My New Project",
+  "repo_url": "https://bitbucket.org/company/repo.git"
+}
+
+###
+# Update a project (admin only)
+# Requires admin JWT token in Authorization header
+# All fields are optional - only provided fields will be updated
+PATCH {{baseURL}}/projects/my-new-project
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "name": "Updated Project Name",
+  "repo_url": "https://bitbucket.org/company/new-repo.git"
+}
+
+###
+# Update only the project name (admin only)
+PATCH {{baseURL}}/projects/my-new-project
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "name": "New Project Name"
+}
+
+###
+# Update only the repository URL (admin only)
+PATCH {{baseURL}}/projects/my-new-project
+Content-Type: application/json
+Authorization: Bearer {{adminAccessToken}}
+
+{
+  "repo_url": "https://bitbucket.org/company/updated-repo.git"
+}
+
+###
+# Delete a project (admin only)
+# WARNING: This permanently deletes the project and all associated tasks, comments, and attachments
+DELETE {{baseURL}}/projects/my-new-project
+Authorization: Bearer {{adminAccessToken}}
