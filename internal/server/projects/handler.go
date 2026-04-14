@@ -46,7 +46,6 @@ func (h *Handler) Register(r fiber.Router) {
 	projects := r.Group(
 		"/projects",
 		h.errorsHandler,
-		jwtauth.New(h.jwtSvc, h.usersSvc),
 	)
 
 	projects.Get("/", h.list)

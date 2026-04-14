@@ -35,7 +35,6 @@ func (h *Handler) Register(r fiber.Router) {
 	auth.Post("/login", validation.DecorateWithBodyEx(h.Validator, h.handleLogin))
 	auth.Post(
 		"/change-password",
-		jwtauth.New(h.jwtSvc, h.usersSvc),
 		validation.DecorateWithBodyEx(h.Validator, h.handleChangePassword),
 	)
 }
