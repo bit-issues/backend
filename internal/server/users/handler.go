@@ -34,15 +34,15 @@ func NewHandler(usersSvc *users.Service, jwtSvc *jwt.Service, validate *validato
 
 func (h *Handler) Register(r fiber.Router) {
 	admin := r.Group(
-		"/admin/users",
+		"/users",
 		h.errorsHandler,
 		jwtauth.WithRole(users.RoleAdmin),
 	)
 
-	// GET /admin/users - list all users with optional filters
+	// GET /users - list all users with optional filters
 	admin.Get("/", h.handleList)
 
-	// PATCH /admin/users/{id} - update user status/role
+	// PATCH /users/{id} - update user status/role
 	admin.Patch("/:id", validation.DecorateWithBodyEx(h.Validator, h.handleUpdate))
 }
 
@@ -58,12 +58,12 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Param			role	query		users.Role				false	"Filter by role"
 //	@Param			limit	query		int						false	"Page limit"	default(20)
 //	@Param			offset	query		int						false	"Page offset"	default(0)
-//	@Success		200		{object}	UserListResponse		"Users list"
+//	@Success		200		{object}	ListResponse			"Users list"
 //	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
 //	@Failure		403		{object}	fiberfx.ErrorResponse	"Forbidden"
-//	@Router			/admin/users [get]
+//	@Router			/users [get]
 func (h *Handler) handleList(c *fiber.Ctx) error {
-	filter := defaultAdminUserFilter()
+	filter := defaultListFilter()
 
 	if err := h.QueryParserValidator(c, &filter); err != nil {
 		return fmt.Errorf("failed to parse query: %w", err)
@@ -82,12 +82,12 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 	}
 
 	// Convert to response DTOs
-	items := make([]UserResponse, 0, len(usersList))
+	items := make([]GetResponse, 0, len(usersList))
 	for _, u := range usersList {
-		items = append(items, toUserResponse(&u))
+		items = append(items, toGetResponse(&u))
 	}
 
-	return c.JSON(UserListResponse{
+	return c.JSON(ListResponse{
 		Items: items,
 		Total: int(total),
 	})
@@ -102,14 +102,14 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id		path		int64					true	"User ID"
-//	@Param			request	body		UpdateUserRequest		true	"Update data"
-//	@Success		200		{object}	UserResponse			"Updated user"
+//	@Param			request	body		UpdateRequest			true	"Update data"
+//	@Success		200		{object}	GetResponse				"Updated user"
 //	@Failure		400		{object}	fiberfx.ErrorResponse	"Validation error"
 //	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
 //	@Failure		403		{object}	fiberfx.ErrorResponse	"Forbidden"
 //	@Failure		404		{object}	fiberfx.ErrorResponse	"User not found"
-//	@Router			/admin/users/{id} [patch]
-func (h *Handler) handleUpdate(c *fiber.Ctx, req *UpdateUserRequest) error {
+//	@Router			/users/{id} [patch]
+func (h *Handler) handleUpdate(c *fiber.Ctx, req *UpdateRequest) error {
 	// Parse user ID from path
 	idStr := c.Params("id")
 	userID, err := strconv.ParseInt(idStr, 10, 64)
@@ -140,7 +140,7 @@ func (h *Handler) handleUpdate(c *fiber.Ctx, req *UpdateUserRequest) error {
 		return fmt.Errorf("failed to fetch updated user: %w", err)
 	}
 
-	return c.JSON(toUserResponse(updatedUser))
+	return c.JSON(toGetResponse(updatedUser))
 }
 
 // errorsHandler converts service errors to HTTP errors.

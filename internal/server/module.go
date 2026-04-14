@@ -1,11 +1,11 @@
 package server
 
 import (
-	"github.com/bit-issues/backend/internal/server/admin/users"
 	"github.com/bit-issues/backend/internal/server/auth"
 	"github.com/bit-issues/backend/internal/server/docs"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/server/projects"
+	"github.com/bit-issues/backend/internal/server/users"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/health"
