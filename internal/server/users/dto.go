@@ -10,28 +10,28 @@ const (
 	defaultLimit = 20
 )
 
-// AdminUserFilter represents query parameters for filtering users.
+// ListFilter represents query parameters for filtering users.
 //
 //	@Description	Query parameters for filtering and paginating users list.
-type AdminUserFilter struct {
+type ListFilter struct {
 	Status *users.Status `query:"status" validate:"omitempty,oneof=pending active blocked" enums:"pending,active,blocked"`
 	Role   *users.Role   `query:"role"   validate:"omitempty,oneof=admin user"             enums:"admin,user"`
 	Limit  int           `query:"limit"  validate:"min=1,max=100"                                                         default:"20"`
 	Offset int           `query:"offset" validate:"min=0"                                                                 default:"0"`
 }
 
-// UpdateUserRequest represents admin request to update user status/role.
+// UpdateRequest represents admin request to update user status/role.
 //
 //	@Description	Admin can update user status (active/blocked/pending) and role (admin/user).
-type UpdateUserRequest struct {
+type UpdateRequest struct {
 	Status *users.Status `json:"status,omitempty" validate:"omitempty,oneof=pending active blocked" enums:"pending,active,blocked"`
 	Role   *users.Role   `json:"role,omitempty"   validate:"omitempty,oneof=admin user"             enums:"admin,user"`
 }
 
-// UserResponse represents user data in admin responses (without password).
+// GetResponse represents user data in admin responses (without password).
 //
 //	@Description	User data returned in admin API responses (password excluded).
-type UserResponse struct {
+type GetResponse struct {
 	ID        int64        `json:"id"         example:"42"`
 	Email     string       `json:"email"      example:"user@example.com"`
 	Role      users.Role   `json:"role"       example:"user"                 enums:"admin,user"`
@@ -40,16 +40,16 @@ type UserResponse struct {
 	UpdatedAt time.Time    `json:"updated_at" example:"2026-04-06T10:00:00Z"`
 }
 
-// UserListResponse represents paginated list of users.
+// ListResponse represents paginated list of users.
 //
 //	@Description	Paginated response containing users list and total count.
-type UserListResponse struct {
-	Items []UserResponse `json:"items"`
-	Total int            `json:"total" example:"42"`
+type ListResponse struct {
+	Items []GetResponse `json:"items"`
+	Total int           `json:"total" example:"42"`
 }
 
-func defaultAdminUserFilter() AdminUserFilter {
-	return AdminUserFilter{
+func defaultListFilter() ListFilter {
+	return ListFilter{
 		Status: nil,
 		Role:   nil,
 		Limit:  defaultLimit,
@@ -57,9 +57,9 @@ func defaultAdminUserFilter() AdminUserFilter {
 	}
 }
 
-// toUserResponse converts domain User to admin UserResponse.
-func toUserResponse(u *users.User) UserResponse {
-	return UserResponse{
+// toGetResponse converts domain User to admin UserResponse.
+func toGetResponse(u *users.User) GetResponse {
+	return GetResponse{
 		ID:        u.ID,
 		Email:     u.Email,
 		Role:      u.Role,

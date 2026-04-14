@@ -62,13 +62,13 @@ Authorization: Bearer {{accessToken}}
 # List all users (admin only)
 # Requires admin JWT token in Authorization header
 # Optional query parameters: status (pending/active/blocked), role (admin/user), limit, offset
-GET {{baseURL}}/admin/users?status=pending
+GET {{baseURL}}/users?status=pending
 Authorization: Bearer {{adminAccessToken}}
 
 ###
 # Update user status/role (admin only)
 # Requires admin JWT token in Authorization header
-PATCH {{baseURL}}/admin/users/{{userID}}
+PATCH {{baseURL}}/users/{{userID}}
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -79,7 +79,7 @@ Authorization: Bearer {{adminAccessToken}}
 
 ###
 # Example: Activate a pending user
-PATCH {{baseURL}}/admin/users/2
+PATCH {{baseURL}}/users/2
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -89,7 +89,7 @@ Authorization: Bearer {{adminAccessToken}}
 
 ###
 # Example: Block a user
-PATCH {{baseURL}}/admin/users/3
+PATCH {{baseURL}}/users/3
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
@@ -99,7 +99,7 @@ Authorization: Bearer {{adminAccessToken}}
 
 ###
 # Example: Promote user to admin
-PATCH {{baseURL}}/admin/users/4
+PATCH {{baseURL}}/users/4
 Content-Type: application/json
 Authorization: Bearer {{adminAccessToken}}
 
