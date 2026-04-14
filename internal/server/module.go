@@ -31,6 +31,11 @@ func Module() fx.Option {
 		fx.Supply(docs.SwaggerInfo),
 
 		fx.Provide(
+			fx.Annotate(jwtauth.New, fx.ResultTags(`name:"jwtauth"`)),
+			fx.Private,
+		),
+
+		fx.Provide(
 			fx.Annotate(users.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(auth.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(projects.NewHandler, fx.ResultTags(`group:"handlers"`)),
@@ -45,7 +50,7 @@ func Module() fx.Option {
 
 		fx.Invoke(
 			fx.Annotate(
-				func(handlers []handler.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
+				func(handlers []handler.Handler, jwtAuth fiber.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
 					// Health endpoint
 					healthHandler.Register(app)
 
@@ -55,6 +60,7 @@ func Module() fx.Option {
 
 					v1.Use(
 						validation.Middleware,
+						jwtAuth,
 						jwtauth.ErrorsHandler(),
 					)
 
@@ -62,7 +68,7 @@ func Module() fx.Option {
 						h.Register(v1)
 					}
 				},
-				fx.ParamTags(`group:"handlers"`),
+				fx.ParamTags(`group:"handlers"`, `name:"jwtauth"`),
 			),
 		),
 	)

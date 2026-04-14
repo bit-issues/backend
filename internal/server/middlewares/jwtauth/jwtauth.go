@@ -3,6 +3,7 @@ package jwtauth
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/users"
@@ -19,6 +20,10 @@ const (
 // New returns a middleware that validates JWT token and sets user info in context.
 func New(jwtSvc *jwt.Service, usersSvc *users.Service) fiber.Handler {
 	return keyauth.New(keyauth.Config{
+		Next: func(c *fiber.Ctx) bool {
+			path := strings.TrimRight(c.Path(), "/")
+			return path == "/api/v1/auth/login" || path == "/api/v1/auth/register"
+		},
 		Validator: func(c *fiber.Ctx, token string) (bool, error) {
 			claims, err := jwtSvc.ValidateToken(token)
 			if err != nil {

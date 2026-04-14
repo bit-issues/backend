@@ -36,7 +36,6 @@ func (h *Handler) Register(r fiber.Router) {
 	admin := r.Group(
 		"/admin/users",
 		h.errorsHandler,
-		jwtauth.New(h.jwtSvc, h.usersSvc),
 		jwtauth.WithRole(users.RoleAdmin),
 	)
 
