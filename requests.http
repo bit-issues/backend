@@ -169,3 +169,100 @@ Authorization: Bearer {{adminAccessToken}}
 # WARNING: This permanently deletes the project and all associated tasks, comments, and attachments
 DELETE {{baseURL}}/projects/my-new-project
 Authorization: Bearer {{adminAccessToken}}
+
+###
+# Tasks API
+
+###
+# List all tasks (authenticated users)
+# Optional query parameters: project, author, assignee, statuses, priorities, sort, limit, offset
+GET {{baseURL}}/tasks?limit=20&offset=0
+Authorization: Bearer {{accessToken}}
+
+###
+# List tasks with filters
+# Filter by project, status, priority, author, assignee, and date ranges
+GET {{baseURL}}/tasks?project=my-new-project&statuses=New,Open,In%20Progress&priorities=Major,Critical&sort=-priority
+Authorization: Bearer {{accessToken}}
+
+###
+# Get my tasks (tasks assigned to or created by current user)
+# Returns tasks sorted by created_at descending
+GET {{baseURL}}/tasks/me
+Authorization: Bearer {{accessToken}}
+
+###
+# Get task by ID
+GET {{baseURL}}/tasks/{{taskId}}
+Authorization: Bearer {{accessToken}}
+
+###
+# Create a new task
+# POST to /tasks
+# @name createTask
+@taskId={{createTask.response.body.$.id}}
+POST {{baseURL}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "project_slug": "my-new-project",
+  "title": "Implement user authentication",
+  "description": "# Overview\nAdd JWT-based authentication to the API.\n\n## Requirements\n- Login endpoint\n- Token validation middleware",
+  "priority": "Major",
+  "due_date": "2026-04-20",
+  "assignee_id": {{userID}}
+}
+
+###
+# Create a task with minimal data
+# @name createTask
+@taskId={{createTask.response.body.$.id}}
+POST {{baseURL}}/tasks
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "project_slug": "my-new-project",
+  "title": "Fix bug in task numbering"
+}
+
+###
+# Update a task
+PATCH {{baseURL}}/tasks/{{taskId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "title": "Implement user authentication (Updated)",
+  "description": "# Overview\nAdd JWT-based authentication to the API.\n\n## Requirements\n- Login endpoint\n- Token validation middleware\n- Logout endpoint",
+  "priority": "Critical",
+  "status": "In Progress",
+  "assignee_id": 1,
+  "due_date": "2026-04-18"
+}
+
+###
+# Update only the status of a task
+PATCH {{baseURL}}/tasks/{{taskId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "status": "Resolved"
+}
+
+###
+# Update only the due date (set to NULL to clear)
+PATCH {{baseURL}}/tasks/{{taskId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "due_date": ""
+}
+
+###
+# Delete a task (soft delete)
+DELETE {{baseURL}}/tasks/{{taskId}}
+Authorization: Bearer {{accessToken}}
