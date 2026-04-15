@@ -6,6 +6,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/projects"
+	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/go-core-fx/fiberfx/handler"
@@ -80,7 +81,7 @@ func (h *Handler) Register(r fiber.Router) {
 //
 // list retrieves a paginated list of all projects.
 func (h *Handler) list(c *fiber.Ctx) error {
-	query := PaginationQuery{
+	query := dto.PaginationQuery{
 		Limit:  0,
 		Offset: 0,
 	}

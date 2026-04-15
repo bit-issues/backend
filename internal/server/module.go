@@ -5,6 +5,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/docs"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/server/projects"
+	"github.com/bit-issues/backend/internal/server/tasks"
 	"github.com/bit-issues/backend/internal/server/users"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/handler"
@@ -39,6 +40,7 @@ func Module() fx.Option {
 			fx.Annotate(users.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(auth.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(projects.NewHandler, fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(tasks.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Private,
 		),
 

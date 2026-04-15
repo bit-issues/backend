@@ -57,12 +57,6 @@ func NewProjectListResponse(items []projects.Project, total int64) ProjectListRe
 	}
 }
 
-// PaginationQuery represents pagination query parameters.
-type PaginationQuery struct {
-	Limit  int `query:"limit"  validate:"omitempty,min=1,max=100" default:"20"`
-	Offset int `query:"offset" validate:"omitempty,min=0"         default:"0"`
-}
-
 // Conversion functions
 
 // toProjectInput converts a ProjectRequest DTO to a domain ProjectInput.
