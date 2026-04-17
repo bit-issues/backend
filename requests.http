@@ -266,3 +266,50 @@ Authorization: Bearer {{accessToken}}
 # Delete a task (soft delete)
 DELETE {{baseURL}}/tasks/{{taskId}}
 Authorization: Bearer {{accessToken}}
+
+###
+# Comments API
+
+###
+# Create a new comment on a task
+# @name createComment
+POST {{baseURL}}/tasks/{{taskId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "content": "This is a comment on the task"
+}
+
+###
+# Create another comment on the same task
+POST {{baseURL}}/tasks/{{taskId}}/comments
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "content": "Another comment with more details about the task"
+}
+
+###
+# Update a comment
+# Requires comment ID from createComment response
+@commentId={{createComment.response.body.$.id}}
+PUT {{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "content": "Updated comment content"
+}
+
+###
+# Delete a comment
+# Requires comment ID from createComment response
+DELETE {{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}
+Authorization: Bearer {{accessToken}}
+
+###
+# Get task with comments (comments are included in task details)
+GET {{baseURL}}/tasks/{{taskId}}
+Authorization: Bearer {{accessToken}}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -18,20 +19,24 @@ import (
 type Handler struct {
 	handler.Base
 
-	tasksSvc *tasks.Service
-	usersSvc *users.Service
+	tasksSvc    *tasks.Service
+	commentsSvc *comments.Service
+	usersSvc    *users.Service
 }
 
 // NewHandler creates a new Handler instance with the given dependencies.
 func NewHandler(
 	tasksSvc *tasks.Service,
+	commentsSvc *comments.Service,
 	usersSvc *users.Service,
 	validate *validator.Validate,
 ) handler.Handler {
 	return &Handler{
-		Base:     handler.Base{Validator: validate},
-		tasksSvc: tasksSvc,
-		usersSvc: usersSvc,
+		Base: handler.Base{Validator: validate},
+
+		tasksSvc:    tasksSvc,
+		commentsSvc: commentsSvc,
+		usersSvc:    usersSvc,
 	}
 }
 
@@ -55,6 +60,15 @@ func (h *Handler) Register(r fiber.Router) {
 		validation.DecorateWithBodyEx(h.Validator, h.patch),
 	)
 	tasks.Delete("/:id", h.delete)
+
+	comments := tasks.Group("/:task_id/comments")
+	comments.Post("/",
+		validation.DecorateWithBodyEx(h.Validator, h.createComment),
+	)
+	comments.Put("/:id",
+		validation.DecorateWithBodyEx(h.Validator, h.updateComment),
+	)
+	comments.Delete("/:id", h.deleteComment)
 }
 
 //	@Summary		List all tasks
@@ -100,7 +114,7 @@ func (h *Handler) list(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id	path		int64	true	"Task ID"
-//	@Success		200	{object}	TaskResponse
+//	@Success		200	{object}	TaskDetailsResponse
 //	@Failure		400	{object}	fiberfx.ErrorResponse
 //	@Failure		401	{object}	fiberfx.ErrorResponse
 //	@Failure		404	{object}	fiberfx.ErrorResponse
@@ -119,7 +133,12 @@ func (h *Handler) get(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
-	return c.JSON(toTaskResponse(task))
+	comments, err := h.commentsSvc.ListByTask(c.Context(), task.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get comments: %w", err)
+	}
+
+	return c.JSON(newTaskDetailsResponse(task, comments))
 }
 
 //	@Summary		Create a new task
@@ -129,7 +148,7 @@ func (h *Handler) get(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			request	body		TaskCreateRequest	true	"Task creation data"
-//	@Success		201		{object}	TaskResponse
+//	@Success		201		{object}	TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -152,7 +171,7 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(toTaskResponse(task))
+	return c.Status(fiber.StatusCreated).JSON(newTaskDetailsResponse(task, nil))
 }
 
 //	@Summary		Update a task
@@ -185,7 +204,7 @@ func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
 		return fmt.Errorf("failed to update task: %w", err)
 	}
 
-	return c.JSON(toTaskResponse(task))
+	return c.JSON(newTaskResponse(task))
 }
 
 //	@Summary		Delete a task
@@ -267,6 +286,14 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, err.Error())
 	case errors.Is(err, tasks.ErrProjectNotFound):
 		return fiber.NewError(fiber.StatusNotFound, err.Error())
+
+	case errors.Is(err, comments.ErrNotFound):
+		return fiber.NewError(fiber.StatusNotFound, err.Error())
+	case errors.Is(err, comments.ErrUnauthorized):
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
+	case errors.Is(err, comments.ErrValidationFailed):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+
 	default:
 		return err //nolint:wrapcheck // err is already wrapped
 	}
