@@ -1,6 +1,15 @@
 package users
 
-import "time"
+import (
+	"time"
+
+	"github.com/bit-issues/backend/internal/db"
+)
+
+const (
+	DefaultLimit = 20
+	MaxLimit     = 100
+)
 
 type Role string
 
@@ -64,4 +73,25 @@ func IsValidStatus(s Status) bool {
 		return true
 	}
 	return false
+}
+
+type pagination struct {
+}
+
+// DefaultLimit implements [db.DefaultPagination].
+func (p *pagination) DefaultLimit() int {
+	return DefaultLimit
+}
+
+// MaxLimit implements [db.DefaultPagination].
+func (p *pagination) MaxLimit() int {
+	return MaxLimit
+}
+
+var _ db.DefaultPagination = (*pagination)(nil)
+
+type Pagination = db.Pagination[*pagination]
+
+func NewPagination(limit, offset int) *Pagination {
+	return db.NewPagination[*pagination](limit, offset)
 }

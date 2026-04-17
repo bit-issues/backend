@@ -70,15 +70,14 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 	}
 
 	// Get users from service
-	usersList, err := h.usersSvc.List(c.Context(), filter.Status, filter.Role, filter.Limit, filter.Offset)
+	usersList, total, err := h.usersSvc.List(
+		c.Context(),
+		filter.Status,
+		filter.Role,
+		users.NewPagination(filter.Limit, filter.Offset),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to list users: %w", err)
-	}
-
-	// Get total count for pagination
-	total, err := h.usersSvc.Count(c.Context(), filter.Status, filter.Role)
-	if err != nil {
-		return fmt.Errorf("failed to count users: %w", err)
 	}
 
 	// Convert to response DTOs
@@ -89,7 +88,7 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 
 	return c.JSON(ListResponse{
 		Items: items,
-		Total: int(total),
+		Total: total,
 	})
 }
 

@@ -54,12 +54,8 @@ func (s *Service) Login(ctx context.Context, email, password string) (*User, err
 	return &user.User, nil
 }
 
-func (s *Service) List(ctx context.Context, status *Status, role *Role, limit, offset int) ([]User, error) {
-	return s.repo.List(ctx, status, role, limit, offset)
-}
-
-func (s *Service) Count(ctx context.Context, status *Status, role *Role) (int64, error) {
-	return s.repo.Count(ctx, status, role)
+func (s *Service) List(ctx context.Context, status *Status, role *Role, pagination *Pagination) ([]User, int, error) {
+	return s.repo.List(ctx, status, role, pagination)
 }
 
 func (s *Service) Update(ctx context.Context, id int64, update UserUpdate) error {
@@ -73,6 +69,15 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
 	}
 
 	return &user.User, nil
+}
+
+func (s *Service) IsAdmin(ctx context.Context, id int64) (bool, error) {
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return false, err
+	}
+
+	return user.Role == RoleAdmin, nil
 }
 
 func (s *Service) ChangePassword(ctx context.Context, id int64, oldPassword, newPassword string) error {

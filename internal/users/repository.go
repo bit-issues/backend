@@ -57,7 +57,12 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*UserWithPasswordHa
 	return model.toDomain(), nil
 }
 
-func (r *Repository) List(ctx context.Context, status *Status, role *Role, limit, offset int) ([]User, error) {
+func (r *Repository) List(
+	ctx context.Context,
+	status *Status,
+	role *Role,
+	pagination *Pagination,
+) ([]User, int, error) {
 	models := make([]userModel, 0)
 	query := r.db.NewSelect().Model(&models).OrderExpr("id DESC")
 
@@ -68,10 +73,11 @@ func (r *Repository) List(ctx context.Context, status *Status, role *Role, limit
 		query = query.Where("role = ?", *role)
 	}
 
-	query = query.Limit(limit).Offset(offset)
+	query = pagination.Apply(query)
 
-	if err := query.Scan(ctx); err != nil {
-		return nil, fmt.Errorf("failed to list users: %w", err)
+	total, err := query.ScanAndCount(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list users: %w", err)
 	}
 
 	users := make([]User, 0, len(models))
@@ -79,25 +85,7 @@ func (r *Repository) List(ctx context.Context, status *Status, role *Role, limit
 		users = append(users, model.toDomain().User)
 	}
 
-	return users, nil
-}
-
-func (r *Repository) Count(ctx context.Context, status *Status, role *Role) (int64, error) {
-	query := r.db.NewSelect().Model((*userModel)(nil))
-
-	if status != nil {
-		query = query.Where("status = ?", *status)
-	}
-	if role != nil {
-		query = query.Where("role = ?", *role)
-	}
-
-	count, err := query.Count(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count users: %w", err)
-	}
-
-	return int64(count), nil
+	return users, total, nil
 }
 
 func (r *Repository) UpdatePasswordHash(ctx context.Context, id int64, passwordHash string) error {
