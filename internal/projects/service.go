@@ -50,22 +50,8 @@ func (s *Service) GetBySlug(ctx context.Context, slug string) (*Project, error) 
 
 // List retrieves a paginated list of projects.
 // Projects are ordered by name ascending.
-func (s *Service) List(ctx context.Context, limit, offset int) ([]Project, error) {
-	if limit <= 0 {
-		limit = DefaultLimit // default
-	}
-	if limit > MaxLimit {
-		limit = MaxLimit // max
-	}
-	if offset < 0 {
-		offset = 0
-	}
-	return s.projects.List(ctx, limit, offset)
-}
-
-// Count returns the total number of projects.
-func (s *Service) Count(ctx context.Context) (int64, error) {
-	return s.projects.Count(ctx)
+func (s *Service) List(ctx context.Context, pagination *Pagination) ([]Project, int, error) {
+	return s.projects.List(ctx, pagination)
 }
 
 // Update modifies an existing project with the provided update data.

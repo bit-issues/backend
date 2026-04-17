@@ -53,14 +53,14 @@ func (r *Repository) GetBySlug(ctx context.Context, slug string) (*Project, erro
 
 // List retrieves a paginated list of projects, ordered by name ascending.
 // Returns the list of projects and no error if successful.
-func (r *Repository) List(ctx context.Context, limit, offset int) ([]Project, error) {
+func (r *Repository) List(ctx context.Context, pagination *Pagination) ([]Project, int, error) {
 	models := make([]projectModel, 0)
-	query := r.db.NewSelect().Model(&models).OrderExpr("name ASC")
 
-	query = query.Limit(limit).Offset(offset)
-
-	if err := query.Scan(ctx); err != nil {
-		return nil, fmt.Errorf("failed to list projects: %w", err)
+	query := r.db.NewSelect().Model(&models).OrderBy("name", bun.OrderAsc)
+	query = pagination.Apply(query)
+	total, err := query.ScanAndCount(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list projects: %w", err)
 	}
 
 	projects := make([]Project, 0, len(models))
@@ -68,16 +68,7 @@ func (r *Repository) List(ctx context.Context, limit, offset int) ([]Project, er
 		projects = append(projects, *model.toDomain())
 	}
 
-	return projects, nil
-}
-
-// Count returns the total number of projects in the database.
-func (r *Repository) Count(ctx context.Context) (int64, error) {
-	count, err := r.db.NewSelect().Model((*projectModel)(nil)).Count(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count projects: %w", err)
-	}
-	return int64(count), nil
+	return projects, total, nil
 }
 
 // Update modifies an existing project with the provided update data.
