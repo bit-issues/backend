@@ -6,7 +6,6 @@ import (
 
 	"github.com/bit-issues/backend/internal/projects"
 	"go.uber.org/zap"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -62,32 +61,9 @@ func (s *Service) List(
 	filter TaskFilter,
 	sort string,
 	pagination *Pagination,
-) ([]Task, int64, error) {
-	var tasks []Task
-	var total int64
-
-	g, ctx := errgroup.WithContext(ctx)
-	g.Go(func() error {
-		var err error
-		tasks, err = s.tasks.List(ctx, filter, sort, pagination)
-		return err
-	})
-	g.Go(func() error {
-		var err error
-		total, err = s.tasks.Count(ctx, filter)
-		return err
-	})
-
-	if err := g.Wait(); err != nil {
-		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
-	}
-
-	return tasks, total, nil
+) ([]Task, int, error) {
+	return s.tasks.List(ctx, filter, sort, pagination)
 }
-
-// func (s *Service) ListByUser(ctx context.Context, userID int64, sort string, limit, offset int) ([]Task, int64, error) {
-
-// }
 
 // Update modifies an existing task with the provided data.
 // Returns the updated task or an error if not found or validation fails.

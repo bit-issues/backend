@@ -106,7 +106,7 @@ type TaskResponse struct {
 //	@Description	Paginated list of tasks with total count.
 type TaskListResponse struct {
 	Items []TaskResponse `json:"items"`
-	Total int64          `json:"total"`
+	Total int            `json:"total"`
 }
 
 // UserBrief represents a minimal user profile for task author/assignee.
@@ -154,7 +154,7 @@ func toTaskResponse(task *tasks.Task) TaskResponse {
 }
 
 // toTaskListResponse converts a list of domain Tasks to TaskListResponse DTO.
-func toTaskListResponse(items []tasks.Task, total int64) TaskListResponse {
+func toTaskListResponse(items []tasks.Task, total int) TaskListResponse {
 	return TaskListResponse{
 		Items: lo.Map(
 			items,

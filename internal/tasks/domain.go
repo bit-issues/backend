@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bit-issues/backend/internal/db"
 	"github.com/uptrace/bun"
 )
 
@@ -181,48 +182,6 @@ func (u TaskUpdate) Validate() error {
 	return nil
 }
 
-type Pagination struct {
-	limit  int
-	offset int
-}
-
-func NewPagination(limit, offset int) *Pagination {
-	return &Pagination{
-		limit:  limit,
-		offset: offset,
-	}
-}
-
-func (p *Pagination) Limit() int {
-	if p == nil {
-		return DefaultLimit
-	}
-
-	if p.limit <= 0 {
-		p.limit = DefaultLimit // default
-	}
-	if p.limit > MaxLimit {
-		p.limit = MaxLimit // max
-	}
-
-	return p.limit
-}
-
-func (p *Pagination) Offset() int {
-	if p == nil {
-		return 0
-	}
-
-	if p.offset < 0 {
-		p.offset = 0
-	}
-	return p.offset
-}
-
-func (p *Pagination) apply(query *bun.SelectQuery) *bun.SelectQuery {
-	return query.Limit(p.Limit()).Offset(p.Offset())
-}
-
 // TaskFilter contains filtering criteria for querying tasks.
 type TaskFilter struct {
 	ProjectSlug    *string
@@ -283,4 +242,25 @@ func (f TaskFilter) apply(query *bun.SelectQuery) *bun.SelectQuery {
 	}
 
 	return query
+}
+
+type pagination struct {
+}
+
+// DefaultLimit implements [db.DefaultPagination].
+func (p *pagination) DefaultLimit() int {
+	return DefaultLimit
+}
+
+// MaxLimit implements [db.DefaultPagination].
+func (p *pagination) MaxLimit() int {
+	return MaxLimit
+}
+
+var _ db.DefaultPagination = (*pagination)(nil)
+
+type Pagination = db.Pagination[*pagination]
+
+func NewPagination(limit, offset int) *Pagination {
+	return db.NewPagination[*pagination](limit, offset)
 }

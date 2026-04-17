@@ -87,7 +87,7 @@ func (r *Repository) List(
 	filter TaskFilter,
 	sort string,
 	pagination *Pagination,
-) ([]Task, error) {
+) ([]Task, int, error) {
 	models := make([]taskModel, 0)
 	query := r.db.NewSelect().Model(&models)
 
@@ -123,10 +123,11 @@ func (r *Repository) List(
 	}
 
 	// Apply pagination
-	query = pagination.apply(query)
+	query = pagination.Apply(query)
 
-	if err := query.Scan(ctx, &models); err != nil {
-		return nil, fmt.Errorf("failed to list tasks: %w", err)
+	total, err := query.ScanAndCount(ctx, &models)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
 
 	tasks := make([]Task, 0, len(models))
@@ -134,21 +135,7 @@ func (r *Repository) List(
 		tasks = append(tasks, *model.toDomain())
 	}
 
-	return tasks, nil
-}
-
-// Count returns the total number of tasks matching the given filter.
-func (r *Repository) Count(ctx context.Context, filter TaskFilter) (int64, error) {
-	query := r.db.NewSelect().Model((*taskModel)(nil))
-
-	// Apply the same filters as List
-	query = filter.apply(query)
-
-	count, err := query.Count(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count tasks: %w", err)
-	}
-	return int64(count), nil
+	return tasks, total, nil
 }
 
 // Update modifies an existing task with the provided update data.
