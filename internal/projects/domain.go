@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/bit-issues/backend/internal/db"
 )
 
 // Project represents the core business entity for a project.
@@ -97,4 +99,25 @@ func validateRepoURL(repoURL string) error {
 	}
 
 	return nil
+}
+
+type pagination struct {
+}
+
+// DefaultLimit implements [db.DefaultPagination].
+func (p *pagination) DefaultLimit() int {
+	return DefaultLimit
+}
+
+// MaxLimit implements [db.DefaultPagination].
+func (p *pagination) MaxLimit() int {
+	return MaxLimit
+}
+
+var _ db.DefaultPagination = (*pagination)(nil)
+
+type Pagination = db.Pagination[*pagination]
+
+func NewPagination(limit, offset int) *Pagination {
+	return db.NewPagination[*pagination](limit, offset)
 }

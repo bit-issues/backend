@@ -42,10 +42,10 @@ func NewProjectResponse(p *projects.Project) ProjectResponse {
 // ProjectListResponse represents the API response for a list of projects.
 type ProjectListResponse struct {
 	Items []ProjectResponse `json:"items"`
-	Total int64             `json:"total" example:"1"`
+	Total int               `json:"total" example:"1"`
 }
 
-func NewProjectListResponse(items []projects.Project, total int64) ProjectListResponse {
+func NewProjectListResponse(items []projects.Project, total int) ProjectListResponse {
 	return ProjectListResponse{
 		Items: lo.Map(
 			items,

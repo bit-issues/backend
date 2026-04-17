@@ -90,15 +90,9 @@ func (h *Handler) list(c *fiber.Ctx) error {
 	}
 
 	// Fetch projects from service
-	projectsList, err := h.projectsSvc.List(c.Context(), query.Limit, query.Offset)
+	projectsList, total, err := h.projectsSvc.List(c.Context(), projects.NewPagination(query.Limit, query.Offset))
 	if err != nil {
 		return fmt.Errorf("failed to list projects: %w", err)
-	}
-
-	// Get total count
-	total, err := h.projectsSvc.Count(c.Context())
-	if err != nil {
-		return fmt.Errorf("failed to count projects: %w", err)
 	}
 
 	return c.JSON(NewProjectListResponse(projectsList, total))
