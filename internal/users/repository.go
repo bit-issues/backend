@@ -57,6 +57,19 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*UserWithPasswordHa
 	return model.toDomain(), nil
 }
 
+func (r *Repository) IsAdminByID(ctx context.Context, id int64) (bool, error) {
+	query := r.db.NewSelect().Model((*userModel)(nil)).
+		Where("id = ?", id).
+		Where("role = ?", RoleAdmin)
+
+	isAdmin, err := query.Exists(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to check admin status: %w", err)
+	}
+
+	return isAdmin, nil
+}
+
 func (r *Repository) List(
 	ctx context.Context,
 	status *Status,
@@ -88,27 +101,6 @@ func (r *Repository) List(
 	return users, total, nil
 }
 
-func (r *Repository) UpdatePasswordHash(ctx context.Context, id int64, passwordHash string) error {
-	result, err := r.db.NewUpdate().
-		Model((*userModel)(nil)).
-		Set("password_hash = ?", passwordHash).
-		Where("id = ?", id).
-		Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to update user password hash: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-	if rows == 0 {
-		return ErrNotFound
-	}
-
-	return nil
-}
-
 func (r *Repository) Update(ctx context.Context, id int64, update UserUpdate) error {
 	if update.IsEmpty() {
 		return nil
@@ -126,6 +118,27 @@ func (r *Repository) Update(ctx context.Context, id int64, update UserUpdate) er
 	result, err := query.Exec(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+	if rows == 0 {
+		return ErrNotFound
+	}
+
+	return nil
+}
+
+func (r *Repository) UpdatePasswordHash(ctx context.Context, id int64, passwordHash string) error {
+	result, err := r.db.NewUpdate().
+		Model((*userModel)(nil)).
+		Set("password_hash = ?", passwordHash).
+		Where("id = ?", id).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to update user password hash: %w", err)
 	}
 
 	rows, err := result.RowsAffected()
