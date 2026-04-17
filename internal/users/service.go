@@ -72,12 +72,12 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
 }
 
 func (s *Service) IsAdmin(ctx context.Context, id int64) (bool, error) {
-	user, err := s.repo.GetByID(ctx, id)
+	isAdmin, err := s.repo.IsAdminByID(ctx, id)
 	if err != nil {
 		return false, err
 	}
 
-	return user.Role == RoleAdmin, nil
+	return isAdmin, nil
 }
 
 func (s *Service) ChangePassword(ctx context.Context, id int64, oldPassword, newPassword string) error {
