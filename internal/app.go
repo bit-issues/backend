@@ -3,6 +3,7 @@ package internal
 import (
 	"context"
 
+	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/bit-issues/backend/internal/jwt"
@@ -54,6 +55,7 @@ func Run(version healthfx.Version) {
 		users.Module(),
 		projects.Module(),
 		tasks.Module(),
+		comments.Module(),
 		//
 		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {
 			lc.Append(fx.Hook{

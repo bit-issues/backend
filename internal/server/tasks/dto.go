@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/samber/lo"
@@ -87,46 +88,28 @@ type TaskUpdateRequest struct {
 //
 //	@Description	Full task details with nested author and assignee information.
 type TaskResponse struct {
-	ID          int64      `json:"id"`
-	ProjectSlug string     `json:"project_slug"`
-	Number      int        `json:"number"`
-	Title       string     `json:"title"`
-	Description string     `json:"description,omitempty"`
-	Priority    string     `json:"priority"`
-	Status      string     `json:"status"`
-	Author      UserBrief  `json:"author"`
-	Assignee    *UserBrief `json:"assignee,omitempty"`
-	DueDate     *string    `json:"due_date,omitempty"`
-	CreatedAt   string     `json:"created_at"`
-	UpdatedAt   string     `json:"updated_at"`
+	ID          int64          `json:"id"`
+	ProjectSlug string         `json:"project_slug"`
+	Number      int            `json:"number"`
+	Title       string         `json:"title"`
+	Description string         `json:"description,omitempty"`
+	Priority    string         `json:"priority"`
+	Status      string         `json:"status"`
+	Author      dto.UserBrief  `json:"author"`
+	Assignee    *dto.UserBrief `json:"assignee,omitempty"`
+	DueDate     *string        `json:"due_date,omitempty"`
+	CreatedAt   string         `json:"created_at"`
+	UpdatedAt   string         `json:"updated_at"`
 }
 
-// TaskListResponse represents the API response for a list of tasks.
-//
-//	@Description	Paginated list of tasks with total count.
-type TaskListResponse struct {
-	Items []TaskResponse `json:"items"`
-	Total int            `json:"total"`
-}
-
-// UserBrief represents a minimal user profile for task author/assignee.
-//
-//	@Description	Minimal user information for task relationships.
-type UserBrief struct {
-	ID        int64  `json:"id"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
-	CreatedAt string `json:"created_at"`
-}
-
-// toTaskResponse converts a domain Task to a TaskResponse DTO.
+// newTaskResponse converts a domain Task to a TaskResponse DTO.
 // It requires fetching author and assignee from the users service.
-func toTaskResponse(task *tasks.Task) TaskResponse {
-	var assignee *UserBrief
+func newTaskResponse(task *tasks.Task) TaskResponse {
+	var assignee *dto.UserBrief
 	if task.AssigneeID != nil {
-		assignee = &UserBrief{
+		assignee = &dto.UserBrief{
 			ID:        *task.AssigneeID,
-			Email:     "", // Will be populated by service
+			Email:     "",
 			Role:      "",
 			CreatedAt: "",
 		}
@@ -140,17 +123,38 @@ func toTaskResponse(task *tasks.Task) TaskResponse {
 		Description: task.Description,
 		Priority:    string(task.Priority),
 		Status:      string(task.Status),
-		Author: UserBrief{
+		Author: dto.UserBrief{
 			ID:        task.AuthorID,
 			Email:     "",
 			Role:      "",
 			CreatedAt: "",
 		},
 		Assignee:  assignee,
-		DueDate:   nil,
+		DueDate:   task.DueDate,
 		CreatedAt: task.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: task.UpdatedAt.Format(time.RFC3339),
 	}
+}
+
+type TaskDetailsResponse struct {
+	TaskResponse
+
+	Comments []CommentResponse `json:"comments"`
+}
+
+func newTaskDetailsResponse(task *tasks.Task, comments []comments.Comment) *TaskDetailsResponse {
+	return &TaskDetailsResponse{
+		TaskResponse: newTaskResponse(task),
+		Comments:     toCommentsList(comments),
+	}
+}
+
+// TaskListResponse represents the API response for a list of tasks.
+//
+//	@Description	Paginated list of tasks with total count.
+type TaskListResponse struct {
+	Items []TaskResponse `json:"items"`
+	Total int            `json:"total"`
 }
 
 // toTaskListResponse converts a list of domain Tasks to TaskListResponse DTO.
@@ -159,35 +163,7 @@ func toTaskListResponse(items []tasks.Task, total int) TaskListResponse {
 		Items: lo.Map(
 			items,
 			func(t tasks.Task, _ int) TaskResponse {
-				var assignee *UserBrief
-				if t.AssigneeID != nil {
-					assignee = &UserBrief{
-						ID:        *t.AssigneeID,
-						Email:     "", // Will be populated by service
-						Role:      "",
-						CreatedAt: "",
-					}
-				}
-
-				return TaskResponse{
-					ID:          t.ID,
-					ProjectSlug: t.ProjectSlug,
-					Number:      t.Number,
-					Title:       t.Title,
-					Description: t.Description,
-					Priority:    string(t.Priority),
-					Status:      string(t.Status),
-					Author: UserBrief{
-						ID:        t.AuthorID,
-						Email:     "", // Will be populated by service
-						Role:      "",
-						CreatedAt: "",
-					},
-					Assignee:  assignee,
-					DueDate:   t.DueDate,
-					CreatedAt: t.CreatedAt.Format(time.RFC3339),
-					UpdatedAt: t.UpdatedAt.Format(time.RFC3339),
-				}
+				return newTaskResponse(&t)
 			},
 		),
 		Total: total,
