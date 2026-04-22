@@ -36,10 +36,21 @@ type jwtConfig struct {
 	Issuer    string        `koanf:"issuer"`
 }
 
+type storageConfig struct {
+	URL      string        `koanf:"url"`
+	LinksTTL time.Duration `koanf:"links_ttl"`
+}
+
+type attachmentsConfig struct {
+	MaxSize uint64 `koanf:"max_size"`
+}
+
 type Config struct {
-	HTTP     http           `koanf:"http"`
-	Database databaseConfig `koanf:"database"`
-	JWT      jwtConfig      `koanf:"jwt"`
+	HTTP        http              `koanf:"http"`
+	Database    databaseConfig    `koanf:"database"`
+	JWT         jwtConfig         `koanf:"jwt"`
+	Storage     storageConfig     `koanf:"storage"`
+	Attachments attachmentsConfig `koanf:"attachments"`
 }
 
 func Default() Config {
@@ -66,6 +77,13 @@ func Default() Config {
 			Secret:    "secret",
 			AccessTTL: time.Minute * 15,
 			Issuer:    "bitissues.dev",
+		},
+		Storage: storageConfig{
+			URL:      "s3://storage.bitissues.dev/attachments?endpoint=storage.bitissues.dev&region=us-east-1",
+			LinksTTL: time.Minute * 15,
+		},
+		Attachments: attachmentsConfig{
+			MaxSize: 10 * 1024 * 1024,
 		},
 	}
 }

@@ -3,14 +3,17 @@ package internal
 import (
 	"context"
 
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server"
+	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
+	"github.com/bit-issues/backend/pkg/miniofx"
 	"github.com/go-core-fx/bunfx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/goosefx"
@@ -43,11 +46,13 @@ func Run(version healthfx.Version) {
 		// telegofx.Module(true),
 		validatorfx.Module(),
 		// watermillfx.Module(),
+		miniofx.Module(),
 		//
 		// APP MODULES
 		config.Module(),
 		db.Module(),
 		server.Module(),
+		storage.Module(),
 		//
 		// BUSINESS MODULES
 		fx.Supply(version),
@@ -55,6 +60,7 @@ func Run(version healthfx.Version) {
 		users.Module(),
 		projects.Module(),
 		tasks.Module(),
+		attachments.Module(),
 		comments.Module(),
 		//
 		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {

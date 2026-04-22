@@ -313,3 +313,52 @@ Authorization: Bearer {{accessToken}}
 # Get task with comments (comments are included in task details)
 GET {{baseURL}}/tasks/{{taskId}}
 Authorization: Bearer {{accessToken}}
+
+###
+# Attachments API
+
+###
+# Initialize an attachment upload
+# @name initAttachmentUpload
+@attachmentId={{initAttachmentUpload.response.body.$.id}}
+@uploadURL={{initAttachmentUpload.response.body.$.upload_url}}
+POST {{baseURL}}/tasks/{{taskId}}/attachments
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "file_name": "LICENSE",
+  "size_bytes": 11358
+}
+
+###
+# Upload file using presigned URL
+# Note: Use the upload_url from the initAttachmentUpload response
+PUT {{uploadURL}}
+Content-Type: application/octet-stream
+
+< ./LICENSE
+
+###
+# Confirm attachment upload
+# Required after uploading - commits the attachment
+PUT {{baseURL}}/tasks/{{taskId}}/attachments/{{attachmentId}}/confirm
+Authorization: Bearer {{accessToken}}
+
+###
+# Get attachment download URL
+# @name getDownloadURL
+@downloadURL={{getDownloadURL.response.body.$.download_url}}
+GET {{baseURL}}/tasks/{{taskId}}/attachments/{{attachmentId}}/download
+Authorization: Bearer {{accessToken}}
+
+###
+# Download file using presigned URL
+# Note: Use the download_url from the download response
+GET {{downloadURL}}
+
+###
+# Delete an attachment
+# Requires attachment ID from initAttachmentUpload response
+DELETE {{baseURL}}/tasks/{{taskId}}/attachments/{{attachmentId}}
+Authorization: Bearer {{accessToken}}

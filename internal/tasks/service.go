@@ -49,6 +49,11 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 	return s.tasks.Create(ctx, input)
 }
 
+// Exists checks if a task with the given ID exists.
+func (s *Service) Exists(ctx context.Context, id int64) (bool, error) {
+	return s.tasks.Exists(ctx, id)
+}
+
 // GetByID retrieves a task by its global ID.
 func (s *Service) GetByID(ctx context.Context, id int64) (*Task, error) {
 	return s.tasks.GetByID(ctx, id)
