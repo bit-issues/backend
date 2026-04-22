@@ -67,10 +67,18 @@ func (r *Repository) Create(ctx context.Context, input TaskInput) (*Task, error)
 	return task, nil
 }
 
+func (r *Repository) Exists(ctx context.Context, id int64) (bool, error) {
+	ok, err := r.db.NewSelect().Model((*taskModel)(nil)).Where("id = ?", id).Exists(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to check task existence: %w", err)
+	}
+	return ok, nil
+}
+
 // GetByID retrieves a task by its global database ID.
 func (r *Repository) GetByID(ctx context.Context, id int64) (*Task, error) {
 	var model taskModel
-	if err := r.db.NewSelect().Model(&model).Where("id = ?", id).Where("deleted_at IS NULL").Scan(ctx); err != nil {
+	if err := r.db.NewSelect().Model(&model).Where("id = ?", id).Scan(ctx); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrNotFound
 		}
@@ -191,10 +199,9 @@ func (r *Repository) Update(ctx context.Context, id int64, update TaskUpdate) er
 	return nil
 }
 
-// Delete soft-deletes a task by setting its deleted_at timestamp.
+// Delete soft-deletes a task.
 func (r *Repository) Delete(ctx context.Context, id int64) error {
-	result, err := r.db.NewUpdate().Model((*taskModel)(nil)).
-		Set("deleted_at = NOW()").
+	result, err := r.db.NewDelete().Model((*taskModel)(nil)).
 		Where("id = ?", id).
 		Exec(ctx)
 	if err != nil {

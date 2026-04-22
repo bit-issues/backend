@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/tasks"
@@ -139,13 +140,19 @@ func newTaskResponse(task *tasks.Task) TaskResponse {
 type TaskDetailsResponse struct {
 	TaskResponse
 
-	Comments []CommentResponse `json:"comments"`
+	Comments    []CommentResponse    `json:"comments"`
+	Attachments []AttachmentResponse `json:"attachments"`
 }
 
-func newTaskDetailsResponse(task *tasks.Task, comments []comments.Comment) *TaskDetailsResponse {
+func newTaskDetailsResponse(
+	task *tasks.Task,
+	comments []comments.Comment,
+	attachmentList []attachments.AttachmentWithURL,
+) *TaskDetailsResponse {
 	return &TaskDetailsResponse{
 		TaskResponse: newTaskResponse(task),
 		Comments:     toCommentsList(comments),
+		Attachments:  toAttachmentsList(attachmentList),
 	}
 }
 

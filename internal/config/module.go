@@ -1,7 +1,9 @@
 package config
 
 import (
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/storage"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
 	"github.com/go-core-fx/sqlfx"
@@ -37,12 +39,27 @@ func Module() fx.Option {
 				}
 			},
 		),
-		fx.Provide(func(cfg Config) jwt.Config {
-			return jwt.Config{
-				Secret:    cfg.JWT.Secret,
-				AccessTTL: cfg.JWT.AccessTTL,
-				Issuer:    cfg.JWT.Issuer,
-			}
-		}),
+		fx.Provide(
+			func(cfg Config) jwt.Config {
+				return jwt.Config{
+					Secret:    cfg.JWT.Secret,
+					AccessTTL: cfg.JWT.AccessTTL,
+					Issuer:    cfg.JWT.Issuer,
+				}
+			},
+			func(cfg Config) storage.Config {
+				return storage.Config{
+					URL:      cfg.Storage.URL,
+					LinksTTL: cfg.Storage.LinksTTL,
+				}
+			},
+		),
+		fx.Provide(
+			func(cfg Config) attachments.Config {
+				return attachments.Config{
+					MaxSize: cfg.Attachments.MaxSize,
+				}
+			},
+		),
 	)
 }

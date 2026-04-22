@@ -1378,6 +1378,29 @@ const docTemplate = `{
                 }
             }
         },
+        "tasks.AttachmentResponse": {
+            "type": "object",
+            "properties": {
+                "download_url": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "uploaded_at": {
+                    "type": "string"
+                },
+                "uploaded_by": {
+                    "$ref": "#/definitions/dto.UserBrief"
+                }
+            }
+        },
         "tasks.CommentCreateRequest": {
             "description": "Comment creation request with content.",
             "type": "object",
@@ -1471,6 +1494,12 @@ const docTemplate = `{
             "properties": {
                 "assignee": {
                     "$ref": "#/definitions/dto.UserBrief"
+                },
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tasks.AttachmentResponse"
+                    }
                 },
                 "author": {
                     "$ref": "#/definitions/dto.UserBrief"

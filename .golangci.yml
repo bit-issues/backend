@@ -23,13 +23,12 @@ formatters:
     - goimports # checks if the code and import statements are formatted according to the 'goimports' command
     - golines # checks if code is formatted, and fixes long lines
     - swaggo # formats swaggo comments
-
     ## you may want to enable
     #- gci # checks if code and import statements are formatted, with additional rules
     #- gofmt # checks if the code is formatted according to 'gofmt' command
     #- gofumpt # enforces a stricter format than 'gofmt', while being backwards compatible
 
-  # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
+    # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
   settings:
     golines:
       # Target maximum line length.
@@ -118,7 +117,6 @@ linters:
     - wastedassign # finds wasted assignment statements
     - whitespace # detects leading and trailing whitespace
     - wrapcheck # checks that errors returned from external packages are wrapped
-
     ## you may want to enable
     #- arangolint # opinionated best practices for arangodb client
     #- decorder # checks declaration order and count of types, constants, variables and functions
@@ -155,7 +153,7 @@ linters:
     #- wsl # [too strict and mostly code is not more readable] whitespace linter forces you to use empty lines
     #- wsl_v5 # [too strict and mostly code is not more readable] add or remove empty lines
 
-  # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
+    # All settings can be found here https://github.com/golangci/golangci-lint/blob/HEAD/.golangci.reference.yml
   settings:
     cyclop:
       # The maximal code complexity to report.
@@ -196,7 +194,8 @@ linters:
           # Default: []
           deny:
             - pkg: github.com/golang/protobuf
-              desc: Use google.golang.org/protobuf instead, see https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
+              desc: Use google.golang.org/protobuf instead, see
+                https://developers.google.com/protocol-buffers/docs/reference/go/faq#modules
             - pkg: github.com/satori/go.uuid
               desc: Use github.com/google/uuid instead, satori's package is not maintained
             - pkg: github.com/gofrs/uuid$
@@ -262,6 +261,7 @@ linters:
         - ^github.com/go-telegram/bot/models.+$
         - ^github.com/gofiber/.+Config$
         - ^github.com/golang-jwt/jwt/v5.+Claims$
+        - ^github.com/minio/minio-go/.+Options$
         - ^github.com/mitchellh/mapstructure.DecoderConfig$
         - ^github.com/mymmrac/telego.+Params$
         - ^github.com/prometheus/client_golang/.+Opts$
@@ -395,7 +395,7 @@ linters:
     nolintlint:
       # Exclude following linters from requiring an explanation.
       # Default: []
-      allow-no-explanation: [funlen, gocognit, golines]
+      allow-no-explanation: [ funlen, gocognit, golines ]
       # Enable to require an explanation of nonzero length after each nolint directive.
       # Default: false
       require-explanation: true
@@ -475,20 +475,21 @@ linters:
     # Excluding configuration per-path, per-linter, per-text and per-source.
     rules:
       - source: "TODO"
-        linters: [godot]
+        linters: [ godot ]
       - text: "should have a package comment"
-        linters: [revive]
+        linters: [ revive ]
       - text: "avoid package names that conflict with Go standard library package names"
-        linters: [revive]
-      - text: 'exported \S+ \S+ should have comment( \(or a comment on this block\))? or be unexported'
-        linters: [revive]
-      - text: 'package comment should be of the form ".+"'
+        linters: [ revive ]
+      - text: "exported \\S+ \\S+ should have comment( \\(or a comment on this
+          block\\))? or be unexported"
+        linters: [ revive ]
+      - text: "package comment should be of the form \".+\""
         source: "// ?(nolint|TODO)"
-        linters: [revive]
-      - text: 'comment on exported \S+ \S+ should be of the form ".+"'
+        linters: [ revive ]
+      - text: "comment on exported \\S+ \\S+ should be of the form \".+\""
         source: "// ?(nolint|TODO)"
-        linters: [revive, staticcheck]
-      - path: '_test\.go'
+        linters: [ revive, staticcheck ]
+      - path: "_test\\.go"
         linters:
           - bodyclose
           - dupl

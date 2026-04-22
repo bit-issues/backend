@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/tasks"
@@ -19,24 +20,27 @@ import (
 type Handler struct {
 	handler.Base
 
-	tasksSvc    *tasks.Service
-	commentsSvc *comments.Service
-	usersSvc    *users.Service
+	tasksSvc       *tasks.Service
+	commentsSvc    *comments.Service
+	attachmentsSvc *attachments.Service
+	usersSvc       *users.Service
 }
 
 // NewHandler creates a new Handler instance with the given dependencies.
 func NewHandler(
 	tasksSvc *tasks.Service,
 	commentsSvc *comments.Service,
+	attachmentsSvc *attachments.Service,
 	usersSvc *users.Service,
 	validate *validator.Validate,
 ) handler.Handler {
 	return &Handler{
 		Base: handler.Base{Validator: validate},
 
-		tasksSvc:    tasksSvc,
-		commentsSvc: commentsSvc,
-		usersSvc:    usersSvc,
+		tasksSvc:       tasksSvc,
+		commentsSvc:    commentsSvc,
+		attachmentsSvc: attachmentsSvc,
+		usersSvc:       usersSvc,
 	}
 }
 
@@ -69,6 +73,12 @@ func (h *Handler) Register(r fiber.Router) {
 		validation.DecorateWithBodyEx(h.Validator, h.updateComment),
 	)
 	comments.Delete("/:id", h.deleteComment)
+
+	attachments := tasks.Group("/:task_id/attachments")
+	attachments.Post("/", validation.DecorateWithBodyEx(h.Validator, h.attachmentInitUpload))
+	attachments.Put("/:id/confirm", h.attachmentConfirmUpload)
+	attachments.Get("/:id/download", h.attachmentGetDownloadURL)
+	attachments.Delete("/:id", h.attachmentDelete)
 }
 
 //	@Summary		List all tasks
@@ -138,7 +148,12 @@ func (h *Handler) get(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get comments: %w", err)
 	}
 
-	return c.JSON(newTaskDetailsResponse(task, comments))
+	attachmentList, err := h.attachmentsSvc.ListByTask(c.Context(), task.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get attachments: %w", err)
+	}
+
+	return c.JSON(newTaskDetailsResponse(task, comments, attachmentList))
 }
 
 //	@Summary		Create a new task
@@ -171,7 +186,7 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(newTaskDetailsResponse(task, nil))
+	return c.Status(fiber.StatusCreated).JSON(newTaskDetailsResponse(task, nil, nil))
 }
 
 //	@Summary		Update a task
@@ -292,6 +307,19 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 	case errors.Is(err, comments.ErrUnauthorized):
 		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	case errors.Is(err, comments.ErrValidationFailed):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+
+	case errors.Is(err, attachments.ErrNotFound):
+		return fiber.NewError(fiber.StatusNotFound, err.Error())
+	case errors.Is(err, attachments.ErrValidationFailed):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	case errors.Is(err, attachments.ErrTaskNotFound):
+		return fiber.NewError(fiber.StatusNotFound, err.Error())
+	case errors.Is(err, attachments.ErrUnauthorized):
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
+	case errors.Is(err, attachments.ErrFileTooLarge):
+		return fiber.NewError(fiber.StatusRequestEntityTooLarge, err.Error())
+	case errors.Is(err, attachments.ErrNotUploaded):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 
 	default:
