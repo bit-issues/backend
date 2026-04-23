@@ -1047,7 +1047,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Admin can list all users with optional status filter and pagination.",
+                "description": "List all users with optional status filter.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1055,7 +1055,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Admin"
+                    "Admin",
+                    "Users"
                 ],
                 "summary": "List all users",
                 "parameters": [
@@ -1117,6 +1118,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Search active users by name. Accessible for all authorized users.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Search active users by name",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query",
+                        "name": "query",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Page offset",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Active users list",
+                        "schema": {
+                            "$ref": "#/definitions/dto.UserBriefList"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "patch": {
                 "security": [
@@ -1132,7 +1190,8 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "Admin"
+                    "Admin",
+                    "Users"
                 ],
                 "summary": "Update user",
                 "parameters": [
@@ -1267,6 +1326,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "role": {
                     "$ref": "#/definitions/users.Role"
                 },
@@ -1285,14 +1347,28 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
-                "email": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "integer"
                 },
+                "name": {
+                    "type": "string"
+                },
                 "role": {
                     "type": "string"
+                }
+            }
+        },
+        "dto.UserBriefList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.UserBrief"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -1657,6 +1733,10 @@ const docTemplate = `{
                 "id": {
                     "type": "integer",
                     "example": 42
+                },
+                "name": {
+                    "type": "string",
+                    "example": "user"
                 },
                 "role": {
                     "enum": [

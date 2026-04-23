@@ -7,4 +7,5 @@ var (
 	ErrEmailAlreadyUsed  = errors.New("email already used")
 	ErrInvalidCredential = errors.New("invalid credentials")
 	ErrNotActive         = errors.New("user is not active")
+	ErrEmptyQuery        = errors.New("empty query")
 )

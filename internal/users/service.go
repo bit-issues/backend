@@ -58,6 +58,14 @@ func (s *Service) List(ctx context.Context, status *Status, role *Role, paginati
 	return s.repo.List(ctx, status, role, pagination)
 }
 
+func (s *Service) Search(ctx context.Context, q string, pagination *Pagination) ([]User, int, error) {
+	if q == "" {
+		return nil, 0, ErrEmptyQuery
+	}
+
+	return s.repo.Search(ctx, q, pagination)
+}
+
 func (s *Service) Update(ctx context.Context, id int64, update UserUpdate) error {
 	return s.repo.Update(ctx, id, update)
 }

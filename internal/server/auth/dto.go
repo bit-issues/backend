@@ -36,6 +36,7 @@ type LoginResponse struct {
 type UserResponseDTO struct {
 	ID        int64        `json:"id"`
 	Email     string       `json:"email"`
+	Name      string       `json:"name"`
 	Role      users.Role   `json:"role"`
 	Status    users.Status `json:"status"`
 	CreatedAt time.Time    `json:"created_at"`
@@ -55,6 +56,7 @@ func toUserResponseDTO(u *users.User) UserResponseDTO {
 	return UserResponseDTO{
 		ID:        u.ID,
 		Email:     u.Email,
+		Name:      u.Name,
 		Role:      u.Role,
 		Status:    u.Status,
 		CreatedAt: u.CreatedAt,

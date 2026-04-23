@@ -59,7 +59,7 @@ func toConfirmResponse(attachment *attachments.Attachment, downloadURL string) A
 		UploadedAt:  attachment.UploadedAt.UTC().Format(time.RFC3339),
 		UploadedBy: dto.UserBrief{
 			ID:        attachment.UploadedBy,
-			Email:     "",
+			Name:      "",
 			Role:      "",
 			CreatedAt: "",
 		},
@@ -75,7 +75,7 @@ func toAttachmentResponse(item attachments.AttachmentWithURL) AttachmentResponse
 		DownloadURL: item.DownloadURL,
 		UploadedBy: dto.UserBrief{
 			ID:        item.UploadedBy,
-			Email:     "",
+			Name:      "",
 			Role:      "",
 			CreatedAt: "",
 		},

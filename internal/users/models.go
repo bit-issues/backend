@@ -1,6 +1,7 @@
 package users
 
 import (
+	"strings"
 	"time"
 
 	"github.com/go-core-fx/bunfx"
@@ -15,6 +16,7 @@ type userModel struct {
 
 	ID           int64  `bun:"id,pk,autoincrement"`
 	Email        string `bun:"email,notnull,unique"`
+	Name         string `bun:"name,notnull"`
 	PasswordHash string `bun:"password_hash,notnull"`
 	Role         Role   `bun:"role,notnull,default:'user'"`
 	Status       Status `bun:"status,notnull,default:'pending'"`
@@ -32,6 +34,7 @@ func newUserModel(u UserInput, passwordHash string) *userModel {
 
 		ID:           0,
 		Email:        u.Email,
+		Name:         emailUsername(u.Email),
 		PasswordHash: passwordHash,
 		Role:         u.Role,
 		Status:       StatusPending,
@@ -47,6 +50,7 @@ func (m *userModel) toDomain() *UserWithPasswordHash {
 		User: User{
 			ID:        m.ID,
 			Email:     m.Email,
+			Name:      m.Name,
 			Role:      m.Role,
 			Status:    m.Status,
 			CreatedAt: m.CreatedAt,
@@ -54,4 +58,12 @@ func (m *userModel) toDomain() *UserWithPasswordHash {
 		},
 		PasswordHash: m.PasswordHash,
 	}
+}
+
+func emailUsername(email string) string {
+	// Best-effort parsing; email is expected to contain '@' due to validation elsewhere.
+	if local, _, ok := strings.Cut(email, "@"); ok && local != "" {
+		return local
+	}
+	return email
 }
