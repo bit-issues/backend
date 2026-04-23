@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/uptrace/bun"
@@ -91,6 +92,36 @@ func (r *Repository) List(
 	total, err := query.ScanAndCount(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list users: %w", err)
+	}
+
+	users := make([]User, 0, len(models))
+	for _, model := range models {
+		users = append(users, model.toDomain().User)
+	}
+
+	return users, total, nil
+}
+
+func (r *Repository) Search(
+	ctx context.Context,
+	q string,
+	pagination *Pagination,
+) ([]User, int, error) {
+	// Escape LIKE metacharacters in user input so they are matched literally.
+	escaper := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+	pattern := escaper.Replace(strings.ToLower(q)) + "%"
+
+	models := make([]userModel, 0)
+	query := r.db.NewSelect().Model(&models).
+		Where("status = ?", StatusActive).
+		Where("name LIKE ?", pattern).
+		OrderBy("name", bun.OrderAsc)
+
+	query = pagination.Apply(query)
+
+	total, err := query.ScanAndCount(ctx)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to search users by name: %w", err)
 	}
 
 	users := make([]User, 0, len(models))

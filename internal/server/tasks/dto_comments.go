@@ -38,7 +38,7 @@ func toCommentResponse(comment *comments.Comment) CommentResponse {
 		ID: comment.ID,
 		Author: dto.UserBrief{
 			ID:        comment.AuthorID,
-			Email:     "",
+			Name:      "",
 			Role:      "",
 			CreatedAt: "",
 		},

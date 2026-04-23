@@ -110,7 +110,7 @@ func newTaskResponse(task *tasks.Task) TaskResponse {
 	if task.AssigneeID != nil {
 		assignee = &dto.UserBrief{
 			ID:        *task.AssigneeID,
-			Email:     "",
+			Name:      "",
 			Role:      "",
 			CreatedAt: "",
 		}
@@ -126,7 +126,7 @@ func newTaskResponse(task *tasks.Task) TaskResponse {
 		Status:      string(task.Status),
 		Author: dto.UserBrief{
 			ID:        task.AuthorID,
-			Email:     "",
+			Name:      "",
 			Role:      "",
 			CreatedAt: "",
 		},

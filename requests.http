@@ -66,6 +66,13 @@ GET {{baseURL}}/users?status=pending
 Authorization: Bearer {{adminAccessToken}}
 
 ###
+# Search active users by name (authenticated users)
+# Requires authentication JWT token in Authorization header
+# Query params: name=<prefix>, limit, offset
+GET {{baseURL}}/users/search?name=user
+Authorization: Bearer {{accessToken}}
+
+###
 # Update user status/role (admin only)
 # Requires admin JWT token in Authorization header
 PATCH {{baseURL}}/users/{{userID}}

@@ -19,7 +19,6 @@ require (
 	github.com/gosimple/slug v1.15.0
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/pressly/goose/v3 v3.27.0
-	github.com/prometheus/client_golang v1.23.2
 	github.com/samber/lo v1.52.0
 	github.com/swaggo/swag v1.16.6
 	github.com/uptrace/bun v1.2.18
@@ -79,6 +78,7 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/philhofer/fwd v1.2.0 // indirect
+	github.com/prometheus/client_golang v1.23.2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.19.2 // indirect

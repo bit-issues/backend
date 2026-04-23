@@ -41,6 +41,7 @@ type UserUpdate struct {
 type User struct {
 	ID        int64
 	Email     string
+	Name      string
 	Role      Role
 	Status    Status
 	CreatedAt time.Time

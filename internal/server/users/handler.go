@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/go-core-fx/fiberfx/handler"
@@ -33,24 +34,26 @@ func NewHandler(usersSvc *users.Service, jwtSvc *jwt.Service, validate *validato
 }
 
 func (h *Handler) Register(r fiber.Router) {
-	admin := r.Group(
+	group := r.Group(
 		"/users",
 		h.errorsHandler,
-		jwtauth.WithRole(users.RoleAdmin),
 	)
 
 	// GET /users - list all users with optional filters
-	admin.Get("/", h.handleList)
+	group.Get("/", jwtauth.WithRole(users.RoleAdmin), h.handleList)
+
+	// GET /users/search - search active users by name
+	group.Get("/search", h.handleSearch)
 
 	// PATCH /users/{id} - update user status/role
-	admin.Patch("/:id", validation.DecorateWithBodyEx(h.Validator, h.handleUpdate))
+	group.Patch("/:id", jwtauth.WithRole(users.RoleAdmin), validation.DecorateWithBodyEx(h.Validator, h.handleUpdate))
 }
 
 // handleList returns a paginated list of users with optional status filter.
 //
 //	@Summary		List all users
-//	@Description	Admin can list all users with optional status filter and pagination.
-//	@Tags			Admin
+//	@Description	List all users with optional status filter.
+//	@Tags			Admin, Users
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
@@ -80,23 +83,46 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list users: %w", err)
 	}
 
-	// Convert to response DTOs
-	items := make([]GetResponse, 0, len(usersList))
-	for _, u := range usersList {
-		items = append(items, toGetResponse(&u))
+	return c.JSON(toListResponse(usersList, total))
+}
+
+// handleSearch returns a paginated list of active users filtered by user name prefix.
+//
+//	@Summary		Search active users by name
+//	@Description	Search active users by name. Accessible for all authorized users.
+//	@Tags			Users
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			query	query		string					true	"Search query"
+//	@Param			limit	query		int						false	"Page limit"	default(20)
+//	@Param			offset	query		int						false	"Page offset"	default(0)
+//	@Success		200		{object}	dto.UserBriefList		"Active users list"
+//	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
+//	@Router			/users/search [get]
+func (h *Handler) handleSearch(c *fiber.Ctx) error {
+	query := defaultSearchQuery()
+	if err := h.QueryParserValidator(c, &query); err != nil {
+		return fmt.Errorf("failed to parse query: %w", err)
 	}
 
-	return c.JSON(ListResponse{
-		Items: items,
-		Total: total,
-	})
+	usersList, total, err := h.usersSvc.Search(
+		c.Context(),
+		query.Query,
+		users.NewPagination(query.Limit, query.Offset),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to search users: %w", err)
+	}
+
+	return c.JSON(dto.ToUserBriefList(usersList, total))
 }
 
 // handleUpdate updates user status and/or role by admin.
 //
 //	@Summary		Update user
 //	@Description	Admin can update user status (active/blocked/pending) and role (admin/user).
-//	@Tags			Admin
+//	@Tags			Admin, Users
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
@@ -158,6 +184,8 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
 	case errors.Is(err, users.ErrNotActive):
 		return fiber.NewError(fiber.StatusForbidden, err.Error())
+	case errors.Is(err, users.ErrEmptyQuery):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 
 	default:
 		return err //nolint:wrapcheck // err is already wrapped

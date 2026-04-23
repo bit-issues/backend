@@ -3,7 +3,9 @@ package users
 import (
 	"time"
 
+	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/users"
+	"github.com/samber/lo"
 )
 
 const (
@@ -34,6 +36,7 @@ type UpdateRequest struct {
 type GetResponse struct {
 	ID        int64        `json:"id"         example:"42"`
 	Email     string       `json:"email"      example:"user@example.com"`
+	Name      string       `json:"name"       example:"user"`
 	Role      users.Role   `json:"role"       example:"user"                 enums:"admin,user"`
 	Status    users.Status `json:"status"     example:"active"               enums:"pending,active,blocked"`
 	CreatedAt time.Time    `json:"created_at" example:"2026-04-06T10:00:00Z"`
@@ -46,6 +49,24 @@ type GetResponse struct {
 type ListResponse struct {
 	Items []GetResponse `json:"items"`
 	Total int           `json:"total" example:"42"`
+}
+
+// SearchQuery represents query parameters for searching users by name.
+type SearchQuery struct {
+	dto.PaginationQuery
+
+	Query string `query:"query" validate:"required,min=1,max=255"`
+}
+
+func defaultSearchQuery() SearchQuery {
+	return SearchQuery{
+		PaginationQuery: dto.PaginationQuery{
+			Limit:  defaultLimit,
+			Offset: 0,
+		},
+
+		Query: "",
+	}
 }
 
 func defaultListFilter() ListFilter {
@@ -62,9 +83,17 @@ func toGetResponse(u *users.User) GetResponse {
 	return GetResponse{
 		ID:        u.ID,
 		Email:     u.Email,
+		Name:      u.Name,
 		Role:      u.Role,
 		Status:    u.Status,
 		CreatedAt: u.CreatedAt,
 		UpdatedAt: u.UpdatedAt,
+	}
+}
+
+func toListResponse(items []users.User, total int) ListResponse {
+	return ListResponse{
+		Items: lo.Map(items, func(u users.User, _ int) GetResponse { return toGetResponse(&u) }),
+		Total: total,
 	}
 }
