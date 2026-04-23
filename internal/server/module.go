@@ -7,6 +7,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/projects"
 	"github.com/bit-issues/backend/internal/server/tasks"
 	"github.com/bit-issues/backend/internal/server/users"
+	"github.com/bit-issues/backend/web"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/health"
@@ -55,6 +56,9 @@ func Module() fx.Option {
 				func(handlers []handler.Handler, jwtAuth fiber.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
 					// Health endpoint
 					healthHandler.Register(app)
+
+					// Frontend
+					web.Register(app)
 
 					// Version 1 API group
 					v1 := app.Group("/api/v1")
