@@ -21,6 +21,8 @@ type TaskListQuery struct {
 	Assignee   *int64  `query:"assignee"   validate:"omitempty,min=0"`
 	Statuses   *string `query:"statuses"`
 	Priorities *string `query:"priorities"`
+	DueFrom    *string `query:"due_from"   validate:"omitempty,datetime=2006-01-02"`
+	DueTo      *string `query:"due_to"     validate:"omitempty,datetime=2006-01-02"`
 }
 
 func (q *TaskListQuery) toFilter() tasks.TaskFilter {
@@ -39,6 +41,18 @@ func (q *TaskListQuery) toFilter() tasks.TaskFilter {
 		)
 	}
 
+	var dueFrom *time.Time
+	if q.DueFrom != nil {
+		t := lo.Must(time.Parse(time.DateOnly, *q.DueFrom))
+		dueFrom = &t
+	}
+
+	var dueTo *time.Time
+	if q.DueTo != nil {
+		t := lo.Must(time.Parse(time.DateOnly, *q.DueTo))
+		dueTo = &t
+	}
+
 	return tasks.TaskFilter{
 		ProjectSlug:    q.Project,
 		AuthorID:       q.Author,
@@ -47,8 +61,8 @@ func (q *TaskListQuery) toFilter() tasks.TaskFilter {
 		Priorities:     priorities,
 		IncludeDeleted: false,
 
-		DueFrom:     nil,
-		DueTo:       nil,
+		DueFrom:     dueFrom,
+		DueTo:       dueTo,
 		CreatedFrom: nil,
 		CreatedTo:   nil,
 

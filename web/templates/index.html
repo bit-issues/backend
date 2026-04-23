@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bit Issues</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 text-slate-900">
+    <main class="mx-auto max-w-7xl p-6" x-data="taskDashboard()" x-init="init()">
+        <header class="mb-6 rounded bg-white p-4 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h1 class="text-2xl font-semibold">Task Dashboard</h1>
+
+                <div class="flex items-center gap-2" x-show="!$store.auth.token">
+                    <input class="rounded border px-2 py-1 text-sm" type="email" placeholder="Email" x-model="$store.auth.email">
+                    <input class="rounded border px-2 py-1 text-sm" type="password" placeholder="Password" x-model="$store.auth.password" @keydown.enter="loginAndLoad()">
+                    <button class="rounded bg-slate-900 px-3 py-1 text-sm text-white" @click="loginAndLoad()">Login</button>
+                </div>
+
+                <div class="flex items-center gap-2" x-show="$store.auth.token">
+                    <span class="text-sm text-slate-600" x-text="$store.auth.user ? $store.auth.user.email : 'Authenticated'"></span>
+                    <button class="rounded border px-3 py-1 text-sm" @click="$store.auth.logout(); tasks = []; total = 0; selectedTask = null; error = ''">Logout</button>
+                </div>
+            </div>
+            <p class="mt-2 text-sm text-red-600" x-show="$store.auth.error" x-text="$store.auth.error"></p>
+        </header>
+
+        <section class="mb-4 flex items-center justify-between gap-2">
+            <div class="flex gap-2">
+                <button class="rounded px-4 py-2" :class="view === 'tasks' ? 'bg-slate-900 text-white' : 'bg-white border'" @click="openTasks()">Tasks</button>
+                <button class="rounded px-4 py-2" x-show="$store.auth.user && $store.auth.user.role === 'admin'" :class="view === 'admin' ? 'bg-slate-900 text-white' : 'bg-white border'" @click="openAdmin()">Admin</button>
+                <button class="rounded px-4 py-2" x-show="view === 'tasks'" :class="scope === 'my' ? 'bg-slate-900 text-white' : 'bg-white border'" @click="scope = 'my'; offset = 0; fetchTasks()">My tasks</button>
+                <button class="rounded px-4 py-2" x-show="view === 'tasks'" :class="scope === 'all' ? 'bg-slate-900 text-white' : 'bg-white border'" @click="scope = 'all'; offset = 0; fetchTasks()">All tasks</button>
+            </div>
+            <button class="rounded bg-slate-900 px-4 py-2 text-white" x-show="view === 'tasks'" @click="openCreateForm()">New task</button>
+        </section>
+
+        <section class="mb-4 rounded bg-white p-4 shadow-sm" x-show="view === 'tasks'">
+            <div class="grid gap-3 md:grid-cols-7">
+                <label class="text-sm">
+                    <span class="mb-1 block text-slate-600">Statuses</span>
+                    <select x-model="filters.statuses" multiple class="h-28 w-full rounded border p-2">
+                        <template x-for="status in statusOptions" :key="status">
+                            <option :value="status" x-text="status"></option>
+                        </template>
+                    </select>
+                </label>
+
+                <label class="text-sm">
+                    <span class="mb-1 block text-slate-600">Priorities</span>
+                    <select x-model="filters.priorities" multiple class="h-28 w-full rounded border p-2">
+                        <template x-for="priority in priorityOptions" :key="priority">
+                            <option :value="priority" x-text="priority"></option>
+                        </template>
+                    </select>
+                </label>
+
+                <label class="text-sm">
+                    <span class="mb-1 block text-slate-600">Sort</span>
+                    <select x-model="sort" class="w-full rounded border p-2">
+                        <option value="-created_at">Newest first</option>
+                        <option value="created_at">Oldest first</option>
+                        <option value="priority">Priority asc</option>
+                        <option value="-priority">Priority desc</option>
+                    </select>
+                </label>
+
+                <label class="text-sm">
+                    <span class="mb-1 block text-slate-600">Due from</span>
+                    <input type="date" x-model="filters.dueFrom" class="w-full rounded border p-2">
+                </label>
+
+                <label class="text-sm">
+                    <span class="mb-1 block text-slate-600">Due to</span>
+                    <input type="date" x-model="filters.dueTo" class="w-full rounded border p-2">
+                </label>
+
+                <label class="text-sm">
+                    <span class="mb-1 block text-slate-600">Project</span>
+                    <select x-model="filters.project" class="w-full rounded border p-2">
+                        <option value="">All projects</option>
+                        <template x-for="project in projectOptions" :key="project.id">
+                            <option :value="project.id" x-text="project.name"></option>
+                        </template>
+                    </select>
+                </label>
+
+                <div class="flex items-end">
+                    <button class="w-full rounded bg-slate-900 px-4 py-2 text-white" @click="applyFilters()">Apply</button>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid gap-4 lg:grid-cols-3" x-show="view === 'tasks'">
+            <section class="rounded bg-white shadow-sm lg:col-span-2">
+                <div class="border-b px-4 py-3 text-sm text-slate-600">
+                    <span x-text="loading ? 'Loading...' : 'Total: ' + total + ' (offset ' + offset + ')'"></span>
+                    <span x-show="error" class="ml-3 text-red-600" x-text="error"></span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-sm">
+                        <thead class="bg-slate-50 text-left">
+                            <tr>
+                                <th class="px-4 py-2">ID</th>
+                                <th class="px-4 py-2">Project</th>
+                                <th class="px-4 py-2">Title</th>
+                                <th class="px-4 py-2">Status</th>
+                                <th class="px-4 py-2">Priority</th>
+                                <th class="px-4 py-2">Due date</th>
+                                <th class="px-4 py-2">Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="task in tasks" :key="task.id">
+                                <tr class="border-t">
+                                    <td class="px-4 py-2" x-text="task.id"></td>
+                                    <td class="px-4 py-2" x-text="task.project_slug"></td>
+                                    <td class="px-4 py-2">
+                                        <button class="text-blue-700 underline" x-text="task.title" @click="openTask(task.id)"></button>
+                                    </td>
+                                    <td class="px-4 py-2" x-text="task.status"></td>
+                                    <td class="px-4 py-2" x-text="task.priority"></td>
+                                    <td class="px-4 py-2" x-text="task.due_date || '-' "></td>
+                                    <td class="px-4 py-2" x-text="task.updated_at"></td>
+                                </tr>
+                            </template>
+                            <tr x-show="!loading && tasks.length === 0">
+                                <td colspan="7" class="px-4 py-8 text-center text-slate-500">No tasks found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex items-center justify-end gap-2 border-t px-4 py-3">
+                    <button class="rounded border px-3 py-1 text-sm" @click="prevPage()">Prev</button>
+                    <button class="rounded border px-3 py-1 text-sm" @click="nextPage()">Next</button>
+                </div>
+            </section>
+
+            <section class="rounded bg-white p-4 shadow-sm">
+                <h2 class="mb-3 text-lg font-semibold">Task details</h2>
+                <div x-show="!selectedTask" class="text-sm text-slate-500">Select a task from the table.</div>
+
+                <div x-show="selectedTask" class="space-y-3">
+                    <div>
+                        <p class="text-sm text-slate-500">Title</p>
+                        <p class="font-medium" x-text="selectedTask?.title"></p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Description</p>
+                        <p class="text-sm" x-text="selectedTask?.description || '-' "></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <select x-model="selectedStatus" class="w-full rounded border p-2 text-sm">
+                            <template x-for="status in statusOptions" :key="status">
+                                <option :value="status" x-text="status"></option>
+                            </template>
+                        </select>
+                        <button class="rounded border px-3 py-2 text-sm" @click="updateStatus()">Set</button>
+                    </div>
+                    <button class="w-full rounded border px-3 py-2 text-sm" @click="openEditForm()">Edit task</button>
+
+                    <div class="border-t pt-3">
+                        <p class="mb-2 text-sm font-medium">Comments</p>
+                        <div class="mb-3 max-h-48 space-y-2 overflow-y-auto">
+                            <template x-for="comment in (selectedTask?.comments || [])" :key="comment.id">
+                                <div class="rounded border p-2 text-sm">
+                                    <p x-text="comment.content"></p>
+                                    <p class="text-xs text-slate-500" x-text="comment.updated_at"></p>
+                                </div>
+                            </template>
+                        </div>
+                        <textarea x-model="newComment" class="mb-2 w-full rounded border p-2 text-sm" rows="3" placeholder="Add comment"></textarea>
+                        <button class="rounded bg-slate-900 px-3 py-2 text-sm text-white" @click="addComment()">Add comment</button>
+                    </div>
+
+                    <div class="border-t pt-3">
+                        <p class="mb-2 text-sm font-medium">Attachments</p>
+                        <div class="mb-2 flex gap-2">
+                            <input type="file" class="w-full text-sm" @change="selectFile($event)">
+                            <button class="rounded border px-3 py-2 text-sm" @click="uploadAttachment()">Upload</button>
+                        </div>
+                        <p class="mb-2 text-xs text-slate-500" x-show="uploadStatus" x-text="uploadStatus"></p>
+                        <div class="space-y-2">
+                            <template x-for="attachment in (selectedTask?.attachments || [])" :key="attachment.id">
+                                <div class="rounded border p-2 text-sm">
+                                    <a :href="attachment.download_url" class="text-blue-700 underline" target="_blank" x-text="attachment.file_name"></a>
+                                    <p class="text-xs text-slate-500" x-text="attachment.uploaded_at"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="rounded bg-white shadow-sm" x-show="view === 'admin'">
+            <div class="border-b px-4 py-3">
+                <div class="flex gap-2">
+                    <button class="rounded px-3 py-1 text-sm" :class="adminSection === 'users' ? 'bg-slate-900 text-white' : 'border'" @click="openUsersAdmin()">Users</button>
+                    <button class="rounded px-3 py-1 text-sm" :class="adminSection === 'projects' ? 'bg-slate-900 text-white' : 'border'" @click="openProjectsAdmin()">Projects</button>
+                </div>
+            </div>
+            <div x-show="adminSection === 'users'">
+            <div class="border-b px-4 py-3 text-sm text-slate-600">
+                <span x-text="'Total users: ' + usersTotal + ' (offset ' + usersOffset + ')'"></span>
+                <span x-show="usersError" class="ml-3 text-red-600" x-text="usersError"></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-left">
+                        <tr>
+                            <th class="px-4 py-2">ID</th>
+                            <th class="px-4 py-2">Email</th>
+                            <th class="px-4 py-2">Role</th>
+                            <th class="px-4 py-2">Status</th>
+                            <th class="px-4 py-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="user in users" :key="user.id">
+                            <tr class="border-t">
+                                <td class="px-4 py-2" x-text="user.id"></td>
+                                <td class="px-4 py-2" x-text="user.email"></td>
+                                <td class="px-4 py-2">
+                                    <select x-model="user.role" class="rounded border p-1">
+                                        <option value="user">user</option>
+                                        <option value="admin">admin</option>
+                                    </select>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <select x-model="user.status" class="rounded border p-1">
+                                        <option value="pending">pending</option>
+                                        <option value="active">active</option>
+                                        <option value="blocked">blocked</option>
+                                    </select>
+                                </td>
+                                <td class="px-4 py-2">
+                                    <button class="rounded border px-3 py-1 text-sm" @click="updateUser(user)">Save</button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex items-center justify-end gap-2 border-t px-4 py-3">
+                <button class="rounded border px-3 py-1 text-sm" @click="prevUsersPage()">Prev</button>
+                <button class="rounded border px-3 py-1 text-sm" @click="nextUsersPage()">Next</button>
+            </div>
+            </div>
+
+            <div x-show="adminSection === 'projects'">
+            <div class="border-b px-4 py-3 text-sm text-slate-600">
+                <div class="flex items-center justify-between">
+                    <span x-text="'Total projects: ' + projectsTotal + ' (offset ' + projectsOffset + ')'"></span>
+                    <button class="rounded border px-3 py-1 text-sm" @click="openCreateProjectForm()">New project</button>
+                </div>
+                <span x-show="projectsError" class="ml-3 text-red-600" x-text="projectsError"></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-left">
+                        <tr>
+                            <th class="px-4 py-2">ID</th>
+                            <th class="px-4 py-2">Name</th>
+                            <th class="px-4 py-2">Repo URL</th>
+                            <th class="px-4 py-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="project in adminProjects" :key="project.id">
+                            <tr class="border-t">
+                                <td class="px-4 py-2" x-text="project.id"></td>
+                                <td class="px-4 py-2" x-text="project.name"></td>
+                                <td class="px-4 py-2" x-text="project.repo_url"></td>
+                                <td class="px-4 py-2">
+                                    <div class="flex gap-2">
+                                        <button class="rounded border px-3 py-1 text-sm" @click="openEditProjectForm(project)">Edit</button>
+                                        <button class="rounded border px-3 py-1 text-sm" @click="deleteProject(project.id)">Delete</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex items-center justify-end gap-2 border-t px-4 py-3">
+                <button class="rounded border px-3 py-1 text-sm" @click="prevProjectsPage()">Prev</button>
+                <button class="rounded border px-3 py-1 text-sm" @click="nextProjectsPage()">Next</button>
+            </div>
+            </div>
+        </section>
+
+        <div x-show="formOpen" class="fixed inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
+            <div class="w-full max-w-lg rounded bg-white p-4 shadow-lg">
+                <h3 class="mb-3 text-lg font-semibold" x-text="editTaskId ? 'Edit task' : 'New task'"></h3>
+                <form class="space-y-3" @submit.prevent="submitTaskForm()">
+                    <label class="block text-sm" x-show="!editTaskId">
+                        <span class="mb-1 block text-slate-600">Project slug</span>
+                        <select x-model="taskForm.project_slug" class="w-full rounded border p-2" required>
+                            <option value="">Select project</option>
+                            <template x-for="project in projectOptions" :key="project.id">
+                                <option :value="project.id" x-text="project.name"></option>
+                            </template>
+                        </select>
+                    </label>
+
+                    <label class="block text-sm">
+                        <span class="mb-1 block text-slate-600">Title</span>
+                        <input x-model="taskForm.title" class="w-full rounded border p-2" required>
+                    </label>
+
+                    <label class="block text-sm">
+                        <span class="mb-1 block text-slate-600">Description</span>
+                        <textarea x-model="taskForm.description" class="w-full rounded border p-2" rows="3"></textarea>
+                    </label>
+
+                    <label class="block text-sm">
+                        <span class="mb-1 block text-slate-600">Priority</span>
+                        <select x-model="taskForm.priority" class="w-full rounded border p-2">
+                            <template x-for="priority in priorityOptions" :key="priority">
+                                <option :value="priority" x-text="priority"></option>
+                            </template>
+                        </select>
+                    </label>
+
+                    <label class="block text-sm">
+                        <span class="mb-1 block text-slate-600">Due date</span>
+                        <input type="date" x-model="taskForm.due_date" class="w-full rounded border p-2">
+                    </label>
+
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="rounded border px-3 py-2 text-sm" @click="formOpen = false">Cancel</button>
+                        <button type="submit" class="rounded bg-slate-900 px-3 py-2 text-sm text-white">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div x-show="projectFormOpen" class="fixed inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
+            <div class="w-full max-w-lg rounded bg-white p-4 shadow-lg">
+                <h3 class="mb-3 text-lg font-semibold" x-text="editProjectID ? 'Edit project' : 'New project'"></h3>
+                <form class="space-y-3" @submit.prevent="submitProjectForm()">
+                    <label class="block text-sm">
+                        <span class="mb-1 block text-slate-600">Name</span>
+                        <input x-model="projectForm.name" class="w-full rounded border p-2" required>
+                    </label>
+                    <label class="block text-sm">
+                        <span class="mb-1 block text-slate-600">Repo URL</span>
+                        <input x-model="projectForm.repo_url" class="w-full rounded border p-2" required>
+                    </label>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" class="rounded border px-3 py-2 text-sm" @click="projectFormOpen = false">Cancel</button>
+                        <button type="submit" class="rounded bg-slate-900 px-3 py-2 text-sm text-white">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
