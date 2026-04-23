@@ -1,18 +1,1312 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bit Issues</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 </head>
 
-<body>
-    <main>
-        <h1>Bit Issues MVP frontend</h1>
-        <p>Embedded frontend is ready.</p>
+<body class="bg-gray-50 min-h-screen">
+  <div id="app">
+    <!-- Navigation -->
+    <nav v-if="isAuthenticated" class="bg-white shadow-sm border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-14">
+          <div class="flex items-center space-x-8">
+            <a href="#" @click.prevent="navigate('dashboard')" class="text-sm font-medium"
+              :class="currentRoute === 'dashboard' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'">Dashboard</a>
+            <a href="#" @click.prevent="navigate('projects')" class="text-sm font-medium"
+              :class="currentRoute.startsWith('projects') ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'">Projects</a>
+            <a v-if="user?.role === 'admin'" href="#" @click.prevent="navigate('admin')" class="text-sm font-medium"
+              :class="currentRoute === 'admin' ? 'text-indigo-600' : 'text-gray-500 hover:text-gray-700'">Admin</a>
+          </div>
+          <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-600">{{ user?.email }}</span>
+            <button @click="logout" class="text-sm text-gray-500 hover:text-gray-700">Logout</button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+      <!-- Login View -->
+      <div v-if="!isAuthenticated && currentView === 'login'" class="max-w-md mx-auto">
+        <div class="bg-white shadow rounded-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6">Sign In</h2>
+          <form @submit.prevent="handleLogin">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input v-model="loginForm.email" type="email" required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Password</label>
+                <input v-model="loginForm.password" type="password" required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+              </div>
+              <div v-if="loginError" class="text-sm text-red-600">{{ loginError }}</div>
+              <button type="submit" :disabled="loginLoading"
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                {{ loginLoading ? 'Signing in...' : 'Sign In' }}
+              </button>
+            </div>
+          </form>
+          <div class="mt-4 text-center text-sm">
+            <a href="#" @click.prevent="navigate('register')" class="text-indigo-600 hover:text-indigo-500">Don't have
+              an account? Register</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Register View -->
+      <div v-if="!isAuthenticated && currentView === 'register'" class="max-w-md mx-auto">
+        <div class="bg-white shadow rounded-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6">Register</h2>
+          <form @submit.prevent="handleRegister">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Email</label>
+                <input v-model="registerForm.email" type="email" required
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700">Password</label>
+                <input v-model="registerForm.password" type="password" required minlength="8"
+                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+              </div>
+              <div v-if="registerError" class="text-sm text-red-600">{{ registerError }}</div>
+              <button type="submit" :disabled="registerLoading"
+                class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                {{ registerLoading ? 'Registering...' : 'Register' }}
+              </button>
+            </div>
+          </form>
+          <div class="mt-4 text-center text-sm">
+            <a href="#" @click.prevent="navigate('login')" class="text-indigo-600 hover:text-indigo-500">Already have an
+              account? Sign In</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard View -->
+      <div v-if="isAuthenticated && currentView === 'dashboard'">
+        <div class="mb-6 flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <button @click="showCreateTaskModal = true"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">New Task</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="border-b border-gray-200 mb-6">
+          <nav class="-mb-px flex space-x-8">
+            <button @click="dashboardTab = 'me'" class="py-4 px-1 border-b-2 font-medium text-sm"
+              :class="dashboardTab === 'me' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'">My
+              Tasks</button>
+            <button @click="dashboardTab = 'all'" class="py-4 px-1 border-b-2 font-medium text-sm"
+              :class="dashboardTab === 'all' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'">All
+              Tasks</button>
+          </nav>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white shadow rounded-lg p-4 mb-6">
+          <div class="flex flex-wrap gap-4">
+            <select v-model="taskFilters.project" @change="loadTasks"
+              class="rounded-md border-gray-300 text-sm px-3 py-2 border">
+              <option value="">All Projects</option>
+              <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+            <select v-model="taskFilters.status" @change="loadTasks"
+              class="rounded-md border-gray-300 text-sm px-3 py-2 border">
+              <option value="">All Statuses</option>
+              <option value="New">New</option>
+              <option value="Open">Open</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
+              <option value="Closed">Closed</option>
+              <option value="Reopened">Reopened</option>
+            </select>
+            <select v-model="taskFilters.priority" @change="loadTasks"
+              class="rounded-md border-gray-300 text-sm px-3 py-2 border">
+              <option value="">All Priorities</option>
+              <option value="Trivial">Trivial</option>
+              <option value="Minor">Minor</option>
+              <option value="Major">Major</option>
+              <option value="Critical">Critical</option>
+              <option value="Blocker">Blocker</option>
+            </select>
+            <select v-model="taskFilters.sort" @change="loadTasks"
+              class="rounded-md border-gray-300 text-sm px-3 py-2 border">
+              <option value="created_at">Newest First</option>
+              <option value="-created_at">Oldest First</option>
+              <option value="-priority">Priority (High-Low)</option>
+              <option value="priority">Priority (Low-High)</option>
+              <option value="-updated_at">Recently Updated</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Task List -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="task in tasks" :key="task.id" @click="navigate('task/' + task.id)"
+                class="hover:bg-gray-50 cursor-pointer">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ task.project_slug }}-{{ task.number }}</div>
+                  <div class="text-sm text-gray-500 truncate max-w-xs">{{ task.title }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.project_slug }}</td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    :class="getStatusClass(task.status)">{{ task.status }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.priority }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.assignee?.email || 'Unassigned' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(task.created_at) }}</td>
+              </tr>
+              <tr v-if="tasks.length === 0">
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">No tasks found</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-4 flex justify-between items-center">
+          <button @click="taskPagination.offset -= taskPagination.limit; loadTasks()"
+            :disabled="taskPagination.offset === 0"
+            class="px-4 py-2 border rounded-md text-sm disabled:opacity-50">Previous</button>
+          <span class="text-sm text-gray-600">Showing {{ tasks.length }} of {{ taskPagination.total }}</span>
+          <button @click="taskPagination.offset += taskPagination.limit; loadTasks()"
+            :disabled="taskPagination.offset + taskPagination.limit >= taskPagination.total"
+            class="px-4 py-2 border rounded-md text-sm disabled:opacity-50">Next</button>
+        </div>
+      </div>
+
+      <!-- Projects View -->
+      <div v-if="isAuthenticated && currentView === 'projects'">
+        <div class="mb-6 flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-gray-900">Projects</h1>
+          <button v-if="user?.role === 'admin'" @click="showCreateProjectModal = true"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">New Project</button>
+        </div>
+
+        <!-- Project List -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="project in projects" :key="project.id"
+            class="bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+            @click="navigate('projects/' + project.id)">
+            <h3 class="text-lg font-semibold text-gray-900">{{ project.name }}</h3>
+            <p class="text-sm text-gray-500 mt-1">{{ project.id }}</p>
+            <p class="text-sm text-gray-500 mt-2">{{ formatDate(project.created_at) }}</p>
+          </div>
+        </div>
+        <div v-if="projects.length === 0" class="text-center text-gray-500 py-8">No projects found</div>
+      </div>
+
+      <!-- Project Tasks View -->
+      <div v-if="isAuthenticated && currentView.startsWith('projects/')">
+        <div class="mb-6">
+          <button @click="navigate('projects')" class="text-indigo-600 hover:text-indigo-500 text-sm">← Back to
+            Projects</button>
+        </div>
+        <div class="mb-6 flex justify-between items-center">
+          <h1 class="text-2xl font-bold text-gray-900">{{ currentProject?.name || 'Project' }}</h1>
+          <button @click="showCreateTaskModal = true"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">New Task</button>
+        </div>
+
+        <!-- Task List -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="task in projectTasks" :key="task.id" @click="navigate('task/' + task.id)"
+                class="hover:bg-gray-50 cursor-pointer">
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-900">{{ task.project_slug }}-{{ task.number }}</div>
+                  <div class="text-sm text-gray-500 truncate max-w-xs">{{ task.title }}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                    :class="getStatusClass(task.status)">{{ task.status }}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.priority }}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ task.assignee?.email || 'Unassigned' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(task.created_at) }}</td>
+              </tr>
+              <tr v-if="projectTasks.length === 0">
+                <td colspan="5" class="px-6 py-4 text-center text-gray-500">No tasks in this project</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Task Detail View -->
+      <div v-if="isAuthenticated && currentView.startsWith('task/')">
+        <div class="mb-6">
+          <button @click="goBack" class="text-indigo-600 hover:text-indigo-500 text-sm">← Back</button>
+        </div>
+
+        <div v-if="loadingTask" class="text-center py-8 text-gray-500">Loading...</div>
+
+        <div v-if="task" class="grid gap-6 lg:grid-cols-3">
+          <!-- Task Details -->
+          <div class="lg:col-span-2">
+            <div class="bg-white shadow rounded-lg p-6">
+              <div class="flex justify-between items-start mb-4">
+                <div>
+                  <h1 class="text-xl font-bold text-gray-900">{{ task.project_slug }}-{{ task.number }}</h1>
+                  <h2 class="text-lg text-gray-700 mt-1">{{ task.title }}</h2>
+                </div>
+                <div class="flex space-x-2">
+                  <button @click="showEditTaskModal = true"
+                    class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">Edit</button>
+                  <button @click="deleteTask"
+                    class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm hover:bg-red-200">Delete</button>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap gap-4 mb-6">
+                <span class="px-3 py-1 rounded-full text-sm font-medium" :class="getStatusClass(task.status)">{{
+                  task.status }}</span>
+                <span class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">{{ task.priority }}</span>
+                <span v-if="task.due_date" class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Due: {{
+                  task.due_date }}</span>
+              </div>
+
+              <div v-if="task.description" class="prose max-w-none">
+                <p class="text-gray-700 whitespace-pre-wrap">{{ task.description }}</p>
+              </div>
+
+              <!-- Edit Task Form -->
+              <div v-if="showEditTaskModal" class="mt-6 pt-6 border-t">
+                <h3 class="text-lg font-semibold mb-4">Edit Task</h3>
+                <div class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Title</label>
+                    <input v-model="editTaskForm.title" type="text"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Description</label>
+                    <textarea v-model="editTaskForm.description" rows="3"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"></textarea>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Status</label>
+                      <select v-model="editTaskForm.status"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                        <option value="New">New</option>
+                        <option value="Open">Open</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Reopened">Reopened</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Priority</label>
+                      <select v-model="editTaskForm.priority"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                        <option value="Trivial">Trivial</option>
+                        <option value="Minor">Minor</option>
+                        <option value="Major">Major</option>
+                        <option value="Critical">Critical</option>
+                        <option value="Blocker">Blocker</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Assignee</label>
+                    <select v-model="editTaskForm.assignee_id"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                      <option :value="null">Unassigned</option>
+                      <option v-for="u in allUsers" :key="u.id" :value="u.id">{{ u.email }}</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700">Due Date</label>
+                    <input v-model="editTaskForm.due_date" type="date"
+                      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                  </div>
+                  <div class="flex space-x-2">
+                    <button @click="saveTaskEdit" :disabled="savingTask"
+                      class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50">Save</button>
+                    <button @click="showEditTaskModal = false"
+                      class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Comments -->
+            <div class="bg-white shadow rounded-lg p-6 mt-6">
+              <h3 class="text-lg font-semibold mb-4">Comments</h3>
+
+              <!-- Comment List -->
+              <div class="space-y-4 mb-6">
+                <div v-for="comment in task.comments" :key="comment.id" class="border-b pb-4">
+                  <div class="flex justify-between items-start">
+                    <div class="text-sm font-medium text-gray-900">User #{{ comment.author.id }}</div>
+                    <button v-if="comment.author.id === user?.id" @click="deleteComment(comment.id)"
+                      class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                  </div>
+                  <p class="text-sm text-gray-700 mt-1">{{ comment.content }}</p>
+                  <div class="text-xs text-gray-500 mt-2">{{ formatDate(comment.created_at) }}</div>
+                </div>
+                <div v-if="!task.comments || task.comments.length === 0" class="text-gray-500 text-sm">No comments yet
+                </div>
+              </div>
+
+              <!-- Add Comment -->
+              <form @submit.prevent="addComment" class="space-y-3">
+                <textarea v-model="newComment" placeholder="Add a comment..." rows="2" required
+                  class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"></textarea>
+                <button type="submit" :disabled="addingComment"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50">Add
+                  Comment</button>
+              </form>
+            </div>
+
+            <!-- Attachments -->
+            <div class="bg-white shadow rounded-lg p-6 mt-6">
+              <h3 class="text-lg font-semibold mb-4">Attachments</h3>
+
+              <!-- Attachment List -->
+              <div class="space-y-2 mb-6">
+                <div v-for="att in task.attachments" :key="att.id"
+                  class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                  <div>
+                    <div class="text-sm font-medium text-gray-900">{{ att.file_name }}</div>
+                    <div class="text-xs text-gray-500">{{ formatBytes(att.size_bytes) }}</div>
+                  </div>
+                  <div class="flex space-x-2">
+                    <a :href="att.download_url" target="_blank"
+                      class="text-indigo-600 hover:text-indigo-800 text-sm">Download</a>
+                    <button @click="deleteAttachment(att.id)"
+                      class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                  </div>
+                </div>
+                <div v-if="!task.attachments || task.attachments.length === 0" class="text-gray-500 text-sm">No
+                  attachments</div>
+              </div>
+
+              <!-- Upload File -->
+              <form @submit.prevent="uploadAttachment" enctype="multipart/form-data" class="space-y-3">
+                <input type="file" @change="handleFileSelect"
+                  class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+                <button type="submit" :disabled="uploadingAttachment || !selectedFile"
+                  class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50">Upload</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="lg:col-span-1">
+            <div class="bg-white shadow rounded-lg p-6">
+              <h3 class="text-lg font-semibold mb-4">Details</h3>
+              <dl class="space-y-4">
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Project</dt>
+                  <dd class="text-sm text-gray-900">{{ task.project_slug }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Author</dt>
+                  <dd class="text-sm text-gray-900">User #{{ task.author.id }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Assignee</dt>
+                  <dd class="text-sm text-gray-900">{{ task.assignee?.email || 'Unassigned' }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Created</dt>
+                  <dd class="text-sm text-gray-900">{{ formatDate(task.created_at) }}</dd>
+                </div>
+                <div>
+                  <dt class="text-sm font-medium text-gray-500">Updated</dt>
+                  <dd class="text-sm text-gray-900">{{ formatDate(task.updated_at) }}</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin View -->
+      <div v-if="isAuthenticated && currentView === 'admin' && user?.role === 'admin'">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Admin</h1>
+
+        <!-- Tabs -->
+        <div class="border-b border-gray-200 mb-6">
+          <nav class="-mb-px flex space-x-8">
+            <button @click="adminTab = 'users'" class="py-4 px-1 border-b-2 font-medium text-sm"
+              :class="adminTab === 'users' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'">Users</button>
+            <button @click="adminTab = 'projects'" class="py-4 px-1 border-b-2 font-medium text-sm"
+              :class="adminTab === 'projects' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'">Projects</button>
+          </nav>
+        </div>
+
+        <!-- Users Tab -->
+        <div v-if="adminTab === 'users'">
+          <!-- Filters -->
+          <div class="bg-white shadow rounded-lg p-4 mb-6">
+            <div class="flex flex-wrap gap-4">
+              <select v-model="userFilters.status" @change="loadUsers"
+                class="rounded-md border-gray-300 text-sm px-3 py-2 border">
+                <option value="">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+                <option value="blocked">Blocked</option>
+              </select>
+              <select v-model="userFilters.role" @change="loadUsers"
+                class="rounded-md border-gray-300 text-sm px-3 py-2 border">
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- User List -->
+          <div class="bg-white shadow rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="u in userList" :key="u.id">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ u.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ u.email }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      :class="u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'">{{
+                      u.role }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      :class="getUserStatusClass(u.status)">{{ u.status }}</span>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(u.created_at) }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <button v-if="showEditUserModal !== u.id" @click="openEditUserModal(u)"
+                      class="text-indigo-600 hover:text-indigo-800 text-sm">Edit</button>
+                    <div v-else class="flex space-x-2">
+                      <select v-model="editUserForm.status" class="rounded text-xs px-1 py-1 border">
+                        <option value="pending">Pending</option>
+                        <option value="active">Active</option>
+                        <option value="blocked">Blocked</option>
+                      </select>
+                      <select v-model="editUserForm.role" class="rounded text-xs px-1 py-1 border">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                      <button @click="saveUserEdit" class="text-green-600 hover:text-green-800 text-xs">Save</button>
+                      <button @click="showEditUserModal = null"
+                        class="text-gray-600 hover:text-gray-800 text-xs">Cancel</button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Projects Tab (Admin) -->
+        <div v-if="adminTab === 'projects'">
+          <div class="mb-4 flex justify-end">
+            <button @click="showCreateProjectModal = true"
+              class="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700">New Project</button>
+          </div>
+
+          <!-- Project List -->
+          <div class="bg-white shadow rounded-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Repository
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created
+                  </th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="p in projects" :key="p.id">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ p.id }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ p.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ p.repo_url }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(p.created_at) }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <button @click="editProject(p)"
+                      class="text-indigo-600 hover:text-indigo-800 text-sm mr-2">Edit</button>
+                    <button @click="deleteProject(p.id)" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </main>
-    <script src="/static/js/app.js"></script>
+
+    <!-- Create Task Modal -->
+    <div v-if="showCreateTaskModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="showCreateTaskModal = false">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Create Task</h3>
+        <form @submit.prevent="createTask" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Project</label>
+            <select v-model="createTaskForm.project_slug" required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+              <option value="">Select Project</option>
+              <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Title</label>
+            <input v-model="createTaskForm.title" type="text" required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Description</label>
+            <textarea v-model="createTaskForm.description" rows="3"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border"></textarea>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Priority</label>
+              <select v-model="createTaskForm.priority"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                <option value="Trivial">Trivial</option>
+                <option value="Minor">Minor</option>
+                <option value="Major">Major</option>
+                <option value="Critical">Critical</option>
+                <option value="Blocker">Blocker</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">Assignee</label>
+              <select v-model="createTaskForm.assignee_id"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+                <option :value="null">Unassigned</option>
+                <option v-for="u in allUsers" :key="u.id" :value="u.id">{{ u.email }}</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Due Date</label>
+            <input v-model="createTaskForm.due_date" type="date"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+          </div>
+          <div class="flex space-x-2">
+            <button type="submit" :disabled="creatingTask"
+              class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50">Create</button>
+            <button type="button" @click="showCreateTaskModal = false"
+              class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Create Project Modal -->
+    <div v-if="showCreateProjectModal"
+      class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="showCreateProjectModal = false">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">{{ editingProject ? 'Edit Project' : 'Create Project' }}</h3>
+        <form @submit.prevent="saveProject" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Name</label>
+            <input v-model="projectForm.name" type="text" required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Repository URL</label>
+            <input v-model="projectForm.repo_url" type="url" required
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-3 py-2 border">
+          </div>
+          <div class="flex space-x-2">
+            <button type="submit" :disabled="savingProject"
+              class="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-50">Save</button>
+            <button type="button" @click="closeProjectModal"
+              class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const { createApp, ref, computed, watch, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const API_BASE = '/api/v1';
+
+        // State
+        const currentView = ref('login');
+        const currentRoute = ref('');
+        const isAuthenticated = ref(false);
+        const user = ref(null);
+        const token = ref(localStorage.getItem('token'));
+
+        // Auth forms
+        const loginForm = ref({ email: '', password: '' });
+        const registerForm = ref({ email: '', password: '' });
+        const loginError = ref('');
+        const registerError = ref('');
+        const loginLoading = ref(false);
+        const registerLoading = ref(false);
+
+        // Dashboard
+        const dashboardTab = ref('me');
+        const tasks = ref([]);
+        const taskFilters = ref({ project: '', status: '', priority: '', sort: 'created_at' });
+        const taskPagination = ref({ limit: 20, offset: 0, total: 0 });
+
+        // Projects
+        const projects = ref([]);
+        const currentProject = ref(null);
+        const projectTasks = ref([]);
+
+        // Task detail
+        const task = ref(null);
+        const loadingTask = ref(false);
+        const showEditTaskModal = ref(false);
+        const editTaskForm = ref({});
+        const savingTask = ref(false);
+        const newComment = ref('');
+        const addingComment = ref(false);
+        const selectedFile = ref(null);
+        const uploadingAttachment = ref(false);
+
+        // Admin
+        const adminTab = ref('users');
+        const allUsers = ref([]);  // For assignee dropdown
+        const userList = ref([]);
+        const userFilters = ref({ status: '', role: '' });
+        const showEditUserModal = ref(null);
+        const editUserForm = ref({ status: '', role: '' });
+
+        // Modals
+        const showCreateTaskModal = ref(false);
+        const creatingTask = ref(false);
+        const createTaskForm = ref({ project_slug: '', title: '', description: '', priority: 'Minor', assignee_id: null, due_date: '' });
+
+        const showCreateProjectModal = ref(false);
+        const editingProject = ref(null);
+        const projectForm = ref({ name: '', repo_url: '' });
+        const savingProject = ref(false);
+
+        // Navigation
+        const navigate = (view) => {
+          window.location.hash = view;
+        };
+
+        const goBack = () => {
+          window.history.back();
+        };
+
+        const parseRoute = () => {
+          const hash = window.location.hash.slice(1) || 'login';
+
+          if (hash === 'login' || hash === 'register') {
+            currentView.value = hash;
+            currentRoute.value = hash;
+          } else if (hash === 'dashboard') {
+            currentView.value = 'dashboard';
+            currentRoute.value = 'dashboard';
+            loadTasks();
+          } else if (hash === 'projects') {
+            currentView.value = 'projects';
+            currentRoute.value = 'projects';
+            loadProjects();
+          } else if (hash.startsWith('projects/')) {
+            const slug = hash.split('/')[1];
+            currentView.value = hash;
+            currentRoute.value = 'projects/' + slug;
+            loadProject(slug);
+          } else if (hash.startsWith('task/')) {
+            const id = hash.split('/')[1];
+            currentView.value = hash;
+            currentRoute.value = 'task/' + id;
+            loadTask(id);
+          } else if (hash === 'admin') {
+            currentView.value = 'admin';
+            currentRoute.value = 'admin';
+            if (user.value?.role === 'admin') {
+              loadUsers();
+              loadProjects();
+            }
+          } else {
+            currentView.value = token.value ? 'dashboard' : 'login';
+            currentRoute.value = token.value ? 'dashboard' : 'login';
+          }
+        };
+
+        // Auth
+        const handleLogin = async () => {
+          loginLoading.value = true;
+          loginError.value = '';
+          try {
+            const res = await fetch(API_BASE + '/auth/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(loginForm.value)
+            });
+            if (!res.ok) {
+              const err = await res.json();
+              throw new Error(err.message || 'Login failed');
+            }
+            const data = await res.json();
+            token.value = data.access_token;
+            user.value = data.user;
+            localStorage.setItem('token', data.access_token);
+            isAuthenticated.value = true;
+            navigate('dashboard');
+          } catch (e) {
+            loginError.value = e.message;
+          } finally {
+            loginLoading.value = false;
+          }
+        };
+
+        const handleRegister = async () => {
+          registerLoading.value = true;
+          registerError.value = '';
+          try {
+            const res = await fetch(API_BASE + '/auth/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(registerForm.value)
+            });
+            if (!res.ok) {
+              const err = await res.json();
+              throw new Error(err.message || 'Registration failed');
+            }
+            navigate('login');
+          } catch (e) {
+            registerError.value = e.message;
+          } finally {
+            registerLoading.value = false;
+          }
+        };
+
+        const logout = () => {
+          token.value = null;
+          user.value = null;
+          localStorage.removeItem('token');
+          isAuthenticated.value = false;
+          navigate('login');
+        };
+
+        const authHeaders = () => ({
+          'Authorization': 'Bearer ' + token.value,
+          'Content-Type': 'application/json'
+        });
+
+        // Tasks
+        const loadTasks = async () => {
+          const endpoint = dashboardTab.value === 'me' ? '/tasks/me' : '/tasks';
+          let url = API_BASE + endpoint + '?';
+
+          if (taskFilters.value.project) url += 'project=' + taskFilters.value.project + '&';
+          if (taskFilters.value.status) url += 'statuses=' + taskFilters.value.status + '&';
+          if (taskFilters.value.priority) url += 'priorities=' + taskFilters.value.priority + '&';
+          if (taskFilters.value.sort) url += 'sort=' + taskFilters.value.sort + '&';
+          url += 'limit=' + taskPagination.value.limit + '&offset=' + taskPagination.value.offset;
+
+          try {
+            const res = await fetch(url, { headers: authHeaders() });
+            const data = await res.json();
+            tasks.value = data.items;
+            taskPagination.value.total = data.total;
+          } catch (e) {
+            console.error('Failed to load tasks:', e);
+          }
+        };
+
+        const loadTask = async (id) => {
+          loadingTask.value = true;
+          try {
+            const res = await fetch(API_BASE + '/tasks/' + id, { headers: authHeaders() });
+            task.value = await res.json();
+            editTaskForm.value = {
+              title: task.value.title,
+              description: task.value.description || '',
+              status: task.value.status,
+              priority: task.value.priority,
+              assignee_id: task.value.assignee?.id,
+              due_date: task.value.due_date || ''
+            };
+            // Load all users for assignee dropdown
+            const usersRes = await fetch(API_BASE + '/users?limit=100&status=active', { headers: authHeaders() });
+            const usersData = await usersRes.json();
+            allUsers.value = usersData.items;
+          } catch (e) {
+            console.error('Failed to load task:', e);
+          } finally {
+            loadingTask.value = false;
+          }
+        };
+
+        const createTask = async () => {
+          creatingTask.value = true;
+          try {
+            const res = await fetch(API_BASE + '/tasks', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify(createTaskForm.value)
+            });
+            if (res.ok) {
+              showCreateTaskModal.value = false;
+              createTaskForm.value = { project_slug: '', title: '', description: '', priority: 'Minor', assignee_id: null, due_date: '' };
+              loadTasks();
+            }
+          } catch (e) {
+            console.error('Failed to create task:', e);
+          } finally {
+            creatingTask.value = false;
+          }
+        };
+
+        const saveTaskEdit = async () => {
+          savingTask.value = true;
+          try {
+            const res = await fetch(API_BASE + '/tasks/' + task.value.id, {
+              method: 'PATCH',
+              headers: authHeaders(),
+              body: JSON.stringify(editTaskForm.value)
+            });
+            if (res.ok) {
+              task.value = await res.json();
+              showEditTaskModal.value = false;
+              loadTasks();
+            }
+          } catch (e) {
+            console.error('Failed to save task:', e);
+          } finally {
+            savingTask.value = false;
+          }
+        };
+
+        const deleteTask = async () => {
+          if (!confirm('Are you sure you want to delete this task?')) return;
+          try {
+            await fetch(API_BASE + '/tasks/' + task.value.id, {
+              method: 'DELETE',
+              headers: authHeaders()
+            });
+            navigate('dashboard');
+            loadTasks();
+          } catch (e) {
+            console.error('Failed to delete task:', e);
+          }
+        };
+
+        // Comments
+        const addComment = async () => {
+          addingComment.value = true;
+          try {
+            const res = await fetch(API_BASE + '/tasks/' + task.value.id + '/comments', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({ content: newComment.value })
+            });
+            if (res.ok) {
+              await loadTask(task.value.id);
+              newComment.value = '';
+            }
+          } catch (e) {
+            console.error('Failed to add comment:', e);
+          } finally {
+            addingComment.value = false;
+          }
+        };
+
+        const deleteComment = async (commentId) => {
+          if (!confirm('Delete this comment?')) return;
+          try {
+            await fetch(API_BASE + '/tasks/' + task.value.id + '/comments/' + commentId, {
+              method: 'DELETE',
+              headers: authHeaders()
+            });
+            await loadTask(task.value.id);
+          } catch (e) {
+            console.error('Failed to delete comment:', e);
+          }
+        };
+
+        // Attachments
+        const handleFileSelect = (e) => {
+          selectedFile.value = e.target.files[0];
+        };
+
+        const getContentType = (file) => {
+          const types = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.xls': 'application/vnd.ms-excel',
+            '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.txt': 'text/plain',
+            '.md': 'text/markdown',
+            '.json': 'application/json',
+            '.xml': 'application/xml',
+            '.html': 'text/html',
+            '.css': 'text/css',
+            '.js': 'application/javascript',
+          };
+          const ext = '.' + file.name.split('.').pop().toLowerCase();
+          return types[ext] || 'application/octet-stream';
+        };
+
+        const uploadAttachment = async () => {
+          if (!selectedFile.value) return;
+          uploadingAttachment.value = true;
+          try {
+            // Step 1: Init upload - get presigned upload URL from backend
+            const initRes = await fetch(API_BASE + '/tasks/' + task.value.id + '/attachments', {
+              method: 'POST',
+              headers: authHeaders(),
+              body: JSON.stringify({
+                file_name: selectedFile.value.name,
+                size_bytes: selectedFile.value.size
+              })
+            });
+            if (!initRes.ok) {
+              throw new Error('Failed to initialize upload');
+            }
+            const initData = await initRes.json();
+
+            // Step 2: PUT the actual file to the presigned URL with real content type
+            const contentType = getContentType(selectedFile.value);
+            const uploadRes = await fetch(initData.upload_url, {
+              method: 'PUT',
+              body: selectedFile.value,
+              headers: { 'Content-Type': contentType }
+            });
+            if (!uploadRes.ok) {
+              throw new Error('Failed to upload file to storage');
+            }
+
+            // Step 3: Confirm upload is complete
+            await fetch(API_BASE + '/tasks/' + task.value.id + '/attachments/' + initData.id + '/confirm', {
+              method: 'PUT',
+              headers: authHeaders()
+            });
+
+            await loadTask(task.value.id);
+            selectedFile.value = null;
+          } catch (e) {
+            console.error('Failed to upload attachment:', e);
+            alert('Failed to upload attachment: ' + e.message);
+          } finally {
+            uploadingAttachment.value = false;
+          }
+        };
+
+        const deleteAttachment = async (attId) => {
+          if (!confirm('Delete this attachment?')) return;
+          try {
+            await fetch(API_BASE + '/tasks/' + task.value.id + '/attachments/' + attId, {
+              method: 'DELETE',
+              headers: authHeaders()
+            });
+            await loadTask(task.value.id);
+          } catch (e) {
+            console.error('Failed to delete attachment:', e);
+          }
+        };
+
+        // Projects
+        const loadProjects = async () => {
+          try {
+            const res = await fetch(API_BASE + '/projects', { headers: authHeaders() });
+            const data = await res.json();
+            projects.value = data.items;
+          } catch (e) {
+            console.error('Failed to load projects:', e);
+          }
+        };
+
+        const loadProject = async (slug) => {
+          try {
+            const res = await fetch(API_BASE + '/projects/' + slug, { headers: authHeaders() });
+            currentProject.value = await res.json();
+
+            // Load project tasks
+            const tasksRes = await fetch(API_BASE + '/tasks?project=' + slug, { headers: authHeaders() });
+            const tasksData = await tasksRes.json();
+            projectTasks.value = tasksData.items;
+          } catch (e) {
+            console.error('Failed to load project:', e);
+          }
+        };
+
+        const editProject = (p) => {
+          editingProject.value = p;
+          projectForm.value = { name: p.name, repo_url: p.repo_url };
+          showCreateProjectModal.value = true;
+        };
+
+        const saveProject = async () => {
+          savingProject.value = true;
+          try {
+            if (editingProject.value) {
+              await fetch(API_BASE + '/projects/' + editingProject.value.id, {
+                method: 'PATCH',
+                headers: authHeaders(),
+                body: JSON.stringify(projectForm.value)
+              });
+            } else {
+              await fetch(API_BASE + '/projects', {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(projectForm.value)
+              });
+            }
+            showCreateProjectModal.value = false;
+            loadProjects();
+            closeProjectModal();
+          } catch (e) {
+            console.error('Failed to save project:', e);
+          } finally {
+            savingProject.value = false;
+          }
+        };
+
+        const deleteProject = async (slug) => {
+          if (!confirm('Delete this project?')) return;
+          try {
+            await fetch(API_BASE + '/projects/' + slug, {
+              method: 'DELETE',
+              headers: authHeaders()
+            });
+            loadProjects();
+          } catch (e) {
+            console.error('Failed to delete project:', e);
+          }
+        };
+
+        const closeProjectModal = () => {
+          editingProject.value = null;
+          projectForm.value = { name: '', repo_url: '' };
+        };
+
+        // Admin Users
+        const loadUsers = async () => {
+          let url = API_BASE + '/users?';
+          if (userFilters.value.status) url += 'status=' + userFilters.value.status + '&';
+          if (userFilters.value.role) url += 'role=' + userFilters.value.role + '&';
+
+          try {
+            const res = await fetch(url, { headers: authHeaders() });
+            const data = await res.json();
+            userList.value = data.items;
+            // Also update all users list for assignee dropdown
+            const allRes = await fetch(API_BASE + '/users?limit=100', { headers: authHeaders() });
+            const allData = await allRes.json();
+            allUsers.value = allData.items;
+          } catch (e) {
+            console.error('Failed to load users:', e);
+          }
+        };
+
+        const openEditUserModal = (u) => {
+          showEditUserModal.value = u.id;
+          editUserForm.value = { status: u.status, role: u.role };
+        };
+
+        const saveUserEdit = async () => {
+          try {
+            await fetch(API_BASE + '/users/' + showEditUserModal.value, {
+              method: 'PATCH',
+              headers: authHeaders(),
+              body: JSON.stringify(editUserForm.value)
+            });
+            showEditUserModal.value = null;
+            loadUsers();
+          } catch (e) {
+            console.error('Failed to save user:', e);
+          }
+        };
+
+        // Watchers
+        watch(dashboardTab, () => {
+          taskPagination.value.offset = 0;
+          loadTasks();
+        });
+
+        watch(currentView, (newView) => {
+          if (newView === 'dashboard' || newView.startsWith('projects/')) {
+            loadProjects();
+          }
+        });
+
+        // Utils
+        const getStatusClass = (status) => {
+          const classes = {
+            'New': 'bg-blue-100 text-blue-800',
+            'Open': 'bg-green-100 text-green-800',
+            'In Progress': 'bg-yellow-100 text-yellow-800',
+            'Resolved': 'bg-gray-100 text-gray-800',
+            'Closed': 'bg-gray-100 text-gray-600',
+            'Reopened': 'bg-purple-100 text-purple-800'
+          };
+          return classes[status] || 'bg-gray-100 text-gray-800';
+        };
+
+        const getUserStatusClass = (status) => {
+          const classes = {
+            'pending': 'bg-yellow-100 text-yellow-800',
+            'active': 'bg-green-100 text-green-800',
+            'blocked': 'bg-red-100 text-red-800'
+          };
+          return classes[status] || 'bg-gray-100 text-gray-800';
+        };
+
+        const formatDate = (date) => {
+          if (!date) return '';
+          return new Date(date).toLocaleDateString();
+        };
+
+        const formatBytes = (bytes) => {
+          if (!bytes) return '0 B';
+          const sizes = ['B', 'KB', 'MB', 'GB'];
+          const i = Math.floor(Math.log(bytes) / Math.log(1024));
+          return (bytes / Math.pow(1024, i)).toFixed(1) + ' ' + sizes[i];
+        };
+
+        // Init
+        onMounted(() => {
+          if (token.value) {
+            isAuthenticated.value = true;
+          }
+          window.addEventListener('hashchange', parseRoute);
+          parseRoute();
+        });
+
+        return {
+          currentView,
+          currentRoute,
+          isAuthenticated,
+          user,
+          navigate,
+          goBack,
+          loginForm,
+          registerForm,
+          loginError,
+          registerError,
+          loginLoading,
+          registerLoading,
+          handleLogin,
+          handleRegister,
+          logout,
+          dashboardTab,
+          tasks,
+          taskFilters,
+          taskPagination,
+          loadTasks,
+          projects,
+          currentProject,
+          projectTasks,
+          task,
+          loadingTask,
+          showEditTaskModal,
+          editTaskForm,
+          savingTask,
+          newComment,
+          addingComment,
+          selectedFile,
+          uploadingAttachment,
+          loadTask,
+          createTask,
+          saveTaskEdit,
+          deleteTask,
+          addComment,
+          deleteComment,
+          handleFileSelect,
+          uploadAttachment,
+          deleteAttachment,
+          adminTab,
+          allUsers,
+          userList,
+          userFilters,
+          showEditUserModal,
+          editUserForm,
+          loadUsers,
+          openEditUserModal,
+          saveUserEdit,
+          showCreateTaskModal,
+          creatingTask,
+          createTaskForm,
+          showCreateProjectModal,
+          editingProject,
+          projectForm,
+          savingProject,
+          editProject,
+          saveProject,
+          deleteProject,
+          closeProjectModal,
+          getStatusClass,
+          getUserStatusClass,
+          formatDate,
+          formatBytes
+        };
+      }
+    }).mount('#app');
+  </script>
 </body>
 
 </html>
