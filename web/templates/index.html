@@ -143,8 +143,8 @@
             </select>
             <select v-model="taskFilters.sort" @change="loadTasks"
               class="rounded-md border-gray-300 text-sm px-3 py-2 border">
-              <option value="created_at">Newest First</option>
-              <option value="-created_at">Oldest First</option>
+              <option value="-created_at">Newest First</option>
+              <option value="created_at">Oldest First</option>
               <option value="-priority">Priority (High-Low)</option>
               <option value="priority">Priority (Low-High)</option>
               <option value="-updated_at">Recently Updated</option>
@@ -656,7 +656,7 @@
     <!-- Create Project Modal -->
     <div v-if="showCreateProjectModal"
       class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
-      @click.self="showCreateProjectModal = false">
+      @click.self="closeProjectModal">
       <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 class="text-lg font-semibold mb-4">{{ editingProject ? 'Edit Project' : 'Create Project' }}</h3>
         <form @submit.prevent="saveProject" class="space-y-4">
@@ -754,9 +754,19 @@
         };
 
         const parseRoute = () => {
-          const hash = window.location.hash.slice(1) || 'login';
+          const hash = window.location.hash.slice(1) || (token.value ? 'dashboard' : 'login');
+          const publicRoute = hash === 'login' || hash === 'register';
 
-          if (hash === 'login' || hash === 'register') {
+          if (!token.value && !publicRoute) {
+            navigate('login');
+            return;
+          }
+          if (token.value && publicRoute) {
+            navigate('dashboard');
+            return;
+          }
+
+          if (publicRoute) {
             currentView.value = hash;
             currentRoute.value = hash;
           } else if (hash === 'dashboard') {
@@ -1140,6 +1150,7 @@
         };
 
         const closeProjectModal = () => {
+          showCreateProjectModal.value = false;
           editingProject.value = null;
           projectForm.value = { name: '', repo_url: '' };
         };
