@@ -29,7 +29,7 @@ func (r *Repository) Create(ctx context.Context, input UserInput, passwordHash s
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return &model.toDomain().User, nil
+	return model.toDomain(), nil
 }
 
 func (r *Repository) GetByEmail(ctx context.Context, email string) (*UserWithPasswordHash, error) {
@@ -42,7 +42,10 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*UserWithPas
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
-	return model.toDomain(), nil
+	return &UserWithPasswordHash{
+		User:         *model.toDomain(),
+		PasswordHash: model.PasswordHash,
+	}, nil
 }
 
 func (r *Repository) GetByID(ctx context.Context, id int64) (*UserWithPasswordHash, error) {
@@ -55,7 +58,10 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*UserWithPasswordHa
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
-	return model.toDomain(), nil
+	return &UserWithPasswordHash{
+		User:         *model.toDomain(),
+		PasswordHash: model.PasswordHash,
+	}, nil
 }
 
 func (r *Repository) IsAdminByID(ctx context.Context, id int64) (bool, error) {
@@ -96,7 +102,7 @@ func (r *Repository) List(
 
 	users := make([]User, 0, len(models))
 	for _, model := range models {
-		users = append(users, model.toDomain().User)
+		users = append(users, *model.toDomain())
 	}
 
 	return users, total, nil
@@ -126,10 +132,32 @@ func (r *Repository) Search(
 
 	users := make([]User, 0, len(models))
 	for _, model := range models {
-		users = append(users, model.toDomain().User)
+		users = append(users, *model.toDomain())
 	}
 
 	return users, total, nil
+}
+
+// GetByIDs retrieves multiple users by their IDs in a single query.
+// Returns a map of user ID to User. Users that are not found are omitted from the map.
+func (r *Repository) GetByIDs(ctx context.Context, ids []int64) (map[int64]User, error) {
+	if len(ids) == 0 {
+		return make(map[int64]User), nil
+	}
+
+	models := make([]userModel, 0, len(ids))
+	query := r.db.NewSelect().Model(&models).Where("id IN (?)", bun.List(ids))
+
+	if err := query.Scan(ctx); err != nil {
+		return nil, fmt.Errorf("failed to get users by IDs: %w", err)
+	}
+
+	result := make(map[int64]User, len(models))
+	for _, model := range models {
+		result[model.ID] = *model.toDomain()
+	}
+
+	return result, nil
 }
 
 func (r *Repository) Update(ctx context.Context, id int64, update UserUpdate) error {

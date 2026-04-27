@@ -41,22 +41,19 @@ func newUserModel(u UserInput, passwordHash string) *userModel {
 	}
 }
 
-func (m *userModel) toDomain() *UserWithPasswordHash {
+func (m *userModel) toDomain() *User {
 	if m == nil {
 		return nil
 	}
 
-	return &UserWithPasswordHash{
-		User: User{
-			ID:        m.ID,
-			Email:     m.Email,
-			Name:      m.Name,
-			Role:      m.Role,
-			Status:    m.Status,
-			CreatedAt: m.CreatedAt,
-			UpdatedAt: m.UpdatedAt,
-		},
-		PasswordHash: m.PasswordHash,
+	return &User{
+		ID:        m.ID,
+		Email:     m.Email,
+		Name:      m.Name,
+		Role:      m.Role,
+		Status:    m.Status,
+		CreatedAt: m.CreatedAt,
+		UpdatedAt: m.UpdatedAt,
 	}
 }
 

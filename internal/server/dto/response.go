@@ -26,6 +26,23 @@ func ToUserBrief(u *users.User) UserBrief {
 	}
 }
 
+func ResolveUserBrief(id *int64, lookup map[int64]users.User) *UserBrief {
+	if id == nil {
+		return nil
+	}
+
+	if u, ok := lookup[*id]; ok {
+		return lo.ToPtr(ToUserBrief(&u))
+	}
+
+	return &UserBrief{
+		ID:        *id,
+		Name:      "",
+		Role:      "",
+		CreatedAt: "",
+	}
+}
+
 type UserBriefList struct {
 	Items []UserBrief `json:"items"`
 	Total int         `json:"total"`

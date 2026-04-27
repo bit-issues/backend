@@ -813,7 +813,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskResponse"
+                            "$ref": "#/definitions/tasks.TaskDetailsResponse"
                         }
                     },
                     "400": {
