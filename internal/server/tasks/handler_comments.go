@@ -1,12 +1,15 @@
 package tasks
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
+	"github.com/bit-issues/backend/internal/users"
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 //	@Summary		Create a new comment on a task
@@ -47,7 +50,14 @@ func (h *Handler) createComment(c *fiber.Ctx, req *CommentCreateRequest) error {
 		return fmt.Errorf("failed to create comment: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(toCommentResponse(comment))
+	// Fetch user for author enrichment (best-effort)
+	usersMap, err := h.fetchUsersForComments(c.Context(), []comments.Comment{*comment})
+	if err != nil {
+		h.logger.Error("failed to fetch users for comment", zap.Int64("comment_id", comment.ID), zap.Error(err))
+		usersMap = make(map[int64]users.User)
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(toCommentResponse(comment, usersMap))
 }
 
 //	@Summary		Update a comment
@@ -94,7 +104,15 @@ func (h *Handler) updateComment(c *fiber.Ctx, req *CommentUpdateRequest) error {
 		return fmt.Errorf("failed to update comment: %w", err)
 	}
 
-	return c.JSON(toCommentResponse(comment))
+	// Fetch user for author enrichment (best-effort)
+	usersMap, err := h.fetchUsersForComments(c.Context(), []comments.Comment{*comment})
+	if err != nil {
+		// Log error but continue with ID-only author stub
+		// The comment was successfully updated, don't fail the request due to user lookup failure
+		usersMap = make(map[int64]users.User)
+	}
+
+	return c.JSON(toCommentResponse(comment, usersMap))
 }
 
 //	@Summary		Delete a comment
@@ -136,4 +154,31 @@ func (h *Handler) deleteComment(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+// fetchUsersForComments collects unique user IDs from comments and fetches them in a single batch call.
+func (h *Handler) fetchUsersForComments(
+	ctx context.Context,
+	items []comments.Comment,
+) (map[int64]users.User, error) {
+	idSet := make(map[int64]struct{})
+	for _, c := range items {
+		idSet[c.AuthorID] = struct{}{}
+	}
+
+	if len(idSet) == 0 {
+		return make(map[int64]users.User), nil
+	}
+
+	ids := make([]int64, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
+
+	usersMap, err := h.usersSvc.LookupByIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch users: %w", err)
+	}
+
+	return usersMap, nil
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/dto"
+	"github.com/bit-issues/backend/internal/users"
 )
 
 // CommentCreateRequest represents the request body for creating a new comment.
@@ -33,15 +34,12 @@ type CommentResponse struct {
 }
 
 // toCommentResponse converts a domain Comment to an API response.
-func toCommentResponse(comment *comments.Comment) CommentResponse {
+// It enriches the author field from the pre-fetched users map.
+// If the user is not found, only the ID is populated (stub).
+func toCommentResponse(comment *comments.Comment, usersMap map[int64]users.User) CommentResponse {
 	return CommentResponse{
-		ID: comment.ID,
-		Author: dto.UserBrief{
-			ID:        comment.AuthorID,
-			Name:      "",
-			Role:      "",
-			CreatedAt: "",
-		},
+		ID:        comment.ID,
+		Author:    *dto.ResolveUserBrief(&comment.AuthorID, usersMap),
 		Content:   comment.Content,
 		CreatedAt: comment.CreatedAt.UTC().Format(time.RFC3339),
 		UpdatedAt: comment.UpdatedAt.UTC().Format(time.RFC3339),
@@ -49,10 +47,10 @@ func toCommentResponse(comment *comments.Comment) CommentResponse {
 }
 
 // toCommentsList converts a list of comments to an API response.
-func toCommentsList(items []comments.Comment) []CommentResponse {
+func toCommentsList(items []comments.Comment, usersMap map[int64]users.User) []CommentResponse {
 	comments := make([]CommentResponse, 0, len(items))
 	for _, item := range items {
-		comments = append(comments, toCommentResponse(&item))
+		comments = append(comments, toCommentResponse(&item, usersMap))
 	}
 
 	return comments

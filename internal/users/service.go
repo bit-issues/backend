@@ -79,6 +79,16 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
 	return &user.User, nil
 }
 
+// LookupByIDs retrieves multiple users by their IDs in a single query.
+// Returns a map of user ID to User. Users that are not found are omitted from the map.
+func (s *Service) LookupByIDs(ctx context.Context, ids []int64) (map[int64]User, error) {
+	if len(ids) == 0 {
+		return make(map[int64]User), nil
+	}
+
+	return s.repo.GetByIDs(ctx, ids)
+}
+
 func (s *Service) IsAdmin(ctx context.Context, id int64) (bool, error) {
 	isAdmin, err := s.repo.IsAdminByID(ctx, id)
 	if err != nil {

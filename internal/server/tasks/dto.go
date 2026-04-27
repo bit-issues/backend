@@ -8,6 +8,7 @@ import (
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/users"
 	"github.com/samber/lo"
 )
 
@@ -104,18 +105,9 @@ type TaskResponse struct {
 }
 
 // newTaskResponse converts a domain Task to a TaskResponse DTO.
-// It requires fetching author and assignee from the users service.
-func newTaskResponse(task *tasks.Task) TaskResponse {
-	var assignee *dto.UserBrief
-	if task.AssigneeID != nil {
-		assignee = &dto.UserBrief{
-			ID:        *task.AssigneeID,
-			Name:      "",
-			Role:      "",
-			CreatedAt: "",
-		}
-	}
-
+// It enriches author and assignee fields from the pre-fetched users map.
+// If a user is not found in the map, only the ID is populated (stub).
+func newTaskResponse(task *tasks.Task, usersMap map[int64]users.User) TaskResponse {
 	return TaskResponse{
 		ID:          task.ID,
 		ProjectSlug: task.ProjectSlug,
@@ -124,16 +116,11 @@ func newTaskResponse(task *tasks.Task) TaskResponse {
 		Description: task.Description,
 		Priority:    string(task.Priority),
 		Status:      string(task.Status),
-		Author: dto.UserBrief{
-			ID:        task.AuthorID,
-			Name:      "",
-			Role:      "",
-			CreatedAt: "",
-		},
-		Assignee:  assignee,
-		DueDate:   task.DueDate,
-		CreatedAt: task.CreatedAt.Format(time.RFC3339),
-		UpdatedAt: task.UpdatedAt.Format(time.RFC3339),
+		Author:      *dto.ResolveUserBrief(&task.AuthorID, usersMap),
+		Assignee:    dto.ResolveUserBrief(task.AssigneeID, usersMap),
+		DueDate:     task.DueDate,
+		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   task.UpdatedAt.Format(time.RFC3339),
 	}
 }
 
@@ -146,13 +133,14 @@ type TaskDetailsResponse struct {
 
 func newTaskDetailsResponse(
 	task *tasks.Task,
+	usersMap map[int64]users.User,
 	comments []comments.Comment,
 	attachmentList []attachments.AttachmentWithURL,
 ) *TaskDetailsResponse {
 	return &TaskDetailsResponse{
-		TaskResponse: newTaskResponse(task),
-		Comments:     toCommentsList(comments),
-		Attachments:  toAttachmentsList(attachmentList),
+		TaskResponse: newTaskResponse(task, usersMap),
+		Comments:     toCommentsList(comments, usersMap),
+		Attachments:  toAttachmentsList(attachmentList, usersMap),
 	}
 }
 
@@ -165,12 +153,12 @@ type TaskListResponse struct {
 }
 
 // toTaskListResponse converts a list of domain Tasks to TaskListResponse DTO.
-func toTaskListResponse(items []tasks.Task, total int) TaskListResponse {
-	return TaskListResponse{
+func toTaskListResponse(items []tasks.Task, usersMap map[int64]users.User, total int) *TaskListResponse {
+	return &TaskListResponse{
 		Items: lo.Map(
 			items,
 			func(t tasks.Task, _ int) TaskResponse {
-				return newTaskResponse(&t)
+				return newTaskResponse(&t, usersMap)
 			},
 		),
 		Total: total,

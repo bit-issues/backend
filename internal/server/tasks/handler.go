@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strconv"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 )
 
 // Handler handles HTTP requests for task-related endpoints.
@@ -24,6 +26,8 @@ type Handler struct {
 	commentsSvc    *comments.Service
 	attachmentsSvc *attachments.Service
 	usersSvc       *users.Service
+
+	logger *zap.Logger
 }
 
 // NewHandler creates a new Handler instance with the given dependencies.
@@ -32,6 +36,7 @@ func NewHandler(
 	commentsSvc *comments.Service,
 	attachmentsSvc *attachments.Service,
 	usersSvc *users.Service,
+	logger *zap.Logger,
 	validate *validator.Validate,
 ) handler.Handler {
 	return &Handler{
@@ -41,6 +46,8 @@ func NewHandler(
 		commentsSvc:    commentsSvc,
 		attachmentsSvc: attachmentsSvc,
 		usersSvc:       usersSvc,
+
+		logger: logger,
 	}
 }
 
@@ -114,7 +121,12 @@ func (h *Handler) list(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list tasks: %w", err)
 	}
 
-	return c.JSON(toTaskListResponse(taskList, total))
+	response, err := h.prepareListResponse(c.Context(), taskList, total)
+	if err != nil {
+		return fmt.Errorf("failed to prepare list response: %w", err)
+	}
+
+	return c.JSON(response)
 }
 
 //	@Summary		Get task by ID
@@ -143,17 +155,12 @@ func (h *Handler) get(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
-	comments, err := h.commentsSvc.ListByTask(c.Context(), task.ID)
+	response, err := h.prepareDetailsResponse(c.Context(), task)
 	if err != nil {
-		return fmt.Errorf("failed to get comments: %w", err)
+		return fmt.Errorf("failed to prepare details response: %w", err)
 	}
 
-	attachmentList, err := h.attachmentsSvc.ListByTask(c.Context(), task.ID)
-	if err != nil {
-		return fmt.Errorf("failed to get attachments: %w", err)
-	}
-
-	return c.JSON(newTaskDetailsResponse(task, comments, attachmentList))
+	return c.JSON(response)
 }
 
 //	@Summary		Create a new task
@@ -186,7 +193,12 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(newTaskDetailsResponse(task, nil, nil))
+	response, err := h.prepareDetailsResponse(c.Context(), task)
+	if err != nil {
+		return fmt.Errorf("failed to prepare details response: %w", err)
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
 //	@Summary		Update a task
@@ -197,7 +209,7 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 //	@Security		BearerAuth
 //	@Param			id		path		int64				true	"Task ID"
 //	@Param			request	body		TaskUpdateRequest	true	"Task update data"
-//	@Success		200		{object}	TaskResponse
+//	@Success		200		{object}	TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -219,7 +231,12 @@ func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
 		return fmt.Errorf("failed to update task: %w", err)
 	}
 
-	return c.JSON(newTaskResponse(task))
+	response, err := h.prepareDetailsResponse(c.Context(), task)
+	if err != nil {
+		return fmt.Errorf("failed to prepare details response: %w", err)
+	}
+
+	return c.JSON(response)
 }
 
 //	@Summary		Delete a task
@@ -283,7 +300,79 @@ func (h *Handler) myTasks(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list tasks: %w", err)
 	}
 
-	return c.JSON(toTaskListResponse(taskList, total))
+	response, err := h.prepareListResponse(c.Context(), taskList, total)
+	if err != nil {
+		return fmt.Errorf("failed to prepare list response: %w", err)
+	}
+
+	return c.JSON(response)
+}
+
+// fetchUsersForTasks collects unique user IDs from tasks and fetches them in a single batch call.
+func (h *Handler) fetchUsersForTasks(ctx context.Context, tasks []tasks.Task) (map[int64]users.User, error) {
+	// Collect unique user IDs
+	idSet := make(map[int64]struct{})
+	for _, t := range tasks {
+		idSet[t.AuthorID] = struct{}{}
+		if t.AssigneeID != nil {
+			idSet[*t.AssigneeID] = struct{}{}
+		}
+	}
+
+	if len(idSet) == 0 {
+		return make(map[int64]users.User), nil
+	}
+
+	// Convert set to slice
+	ids := make([]int64, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
+
+	// Batch fetch users
+	usersMap, err := h.usersSvc.LookupByIDs(ctx, ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch users: %w", err)
+	}
+
+	return usersMap, nil
+}
+
+func (h *Handler) prepareListResponse(
+	ctx context.Context,
+	tasks []tasks.Task,
+	total int,
+) (*TaskListResponse, error) {
+	// Fetch users for author and assignee enrichment
+	usersMap, err := h.fetchUsersForTasks(ctx, tasks)
+	if err != nil {
+		return nil, err
+	}
+
+	return toTaskListResponse(tasks, usersMap, total), nil
+}
+
+func (h *Handler) prepareDetailsResponse(
+	ctx context.Context,
+	task *tasks.Task,
+) (*TaskDetailsResponse, error) {
+	comments, err := h.commentsSvc.ListByTask(ctx, task.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comments: %w", err)
+	}
+
+	attachmentList, err := h.attachmentsSvc.ListByTask(ctx, task.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attachments: %w", err)
+	}
+
+	// Fetch users for author and assignee enrichment
+	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task})
+	if err != nil {
+		return nil, err
+	}
+
+	return newTaskDetailsResponse(task, usersMap, comments, attachmentList), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.
