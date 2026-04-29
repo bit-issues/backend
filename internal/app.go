@@ -2,78 +2,49 @@ package internal
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/bit-issues/backend/internal/attachments"
-	"github.com/bit-issues/backend/internal/comments"
-	"github.com/bit-issues/backend/internal/config"
-	"github.com/bit-issues/backend/internal/db"
-	"github.com/bit-issues/backend/internal/jwt"
-	"github.com/bit-issues/backend/internal/projects"
-	"github.com/bit-issues/backend/internal/server"
-	"github.com/bit-issues/backend/internal/storage"
-	"github.com/bit-issues/backend/internal/tasks"
-	"github.com/bit-issues/backend/internal/users"
-	"github.com/bit-issues/backend/pkg/miniofx"
-	"github.com/go-core-fx/bunfx"
-	"github.com/go-core-fx/fiberfx"
-	"github.com/go-core-fx/goosefx"
+	"github.com/bit-issues/backend/internal/commands"
 	"github.com/go-core-fx/healthfx"
-	"github.com/go-core-fx/logger"
-	"github.com/go-core-fx/sqlfx"
-	"github.com/go-core-fx/validatorfx"
-	"go.uber.org/fx"
-	"go.uber.org/zap"
+	"github.com/samber/lo"
+	"github.com/urfave/cli/v3"
 )
 
 func Run(version healthfx.Version) {
-	fx.New(
-		// CORE MODULES
-		logger.Module(),
-		logger.WithFxDefaultLogger(),
-		// badgerfx.Module(),
-		bunfx.Module(),
-		// cachefx.Module(),
-		fiberfx.Module(),
-		// gocqlfx.Module(),
-		// gocqlxfx.Module(),
-		sqlfx.Module(),
-		goosefx.Module(),
-		// gormfx.Module(),
-		healthfx.Module(),
-		// openrouterfx.Module(),
-		// redisfx.Module(),
-		// sqlxfx.Module(),
-		// telegofx.Module(true),
-		validatorfx.Module(),
-		// watermillfx.Module(),
-		miniofx.Module(),
-		//
-		// APP MODULES
-		config.Module(),
-		db.Module(),
-		server.Module(),
-		storage.Module(),
-		//
-		// BUSINESS MODULES
-		fx.Supply(version),
-		jwt.Module(),
-		users.Module(),
-		projects.Module(),
-		tasks.Module(),
-		attachments.Module(),
-		comments.Module(),
-		//
-		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {
-			lc.Append(fx.Hook{
-				OnStart: func(_ context.Context) error {
-					logger.Info("app started")
+	app := &cli.Command{
+		Name:           "backend",
+		Usage:          "BitIssues Backend",
+		Description:    `BitIssues Backend`,
+		Version:        version.Version,
+		DefaultCommand: "serve",
+		Flags:          []cli.Flag{},
+		Commands: []*cli.Command{
+			{
+				Name:        "serve",
+				Usage:       "Start the HTTP server",
+				Description: `Start the HTTP server`,
+				Action: func(ctx context.Context, _ *cli.Command) error {
+					if err := commands.Serve(ctx, version); err != nil {
+						return fmt.Errorf("serve: %w", err)
+					}
 					return nil
 				},
-				OnStop: func(_ context.Context) error {
-					logger.Info("app stopped")
-					return nil
-				},
-			})
-		}),
-	).Run()
+			},
+		},
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+
+	if err := app.Run(ctx, os.Args); err != nil {
+		exitCode := 1
+		if exitErr, ok := lo.ErrorsAs[cli.ExitCoder](err); ok {
+			exitCode = exitErr.ExitCode()
+		}
+		stop()
+		os.Exit(exitCode)
+	}
+	stop()
 }
