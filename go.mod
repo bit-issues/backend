@@ -23,6 +23,7 @@ require (
 	github.com/swaggo/swag v1.16.6
 	github.com/uptrace/bun v1.2.18
 	github.com/uptrace/bun/dialect/mysqldialect v1.2.18
+	github.com/urfave/cli/v3 v3.8.0
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.27.1
 	golang.org/x/crypto v0.50.0
