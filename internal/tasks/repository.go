@@ -168,6 +168,9 @@ func (r *Repository) Update(ctx context.Context, id int64, update TaskUpdate) er
 	if update.Status != nil {
 		query = query.Set("status = ?", *update.Status)
 	}
+	if update.Kind != nil {
+		query = query.Set("kind = ?", *update.Kind)
+	}
 	if update.AssigneeID != nil {
 		if *update.AssigneeID == 0 {
 			query = query.Set("assignee_id = NULL")
