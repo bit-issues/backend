@@ -69,6 +69,7 @@ type TaskCreateRequest struct {
 	Title       string  `json:"title"                 validate:"required,max=255"`
 	Description string  `json:"description,omitempty" validate:"max=10000"`
 	Priority    string  `json:"priority,omitempty"    validate:"omitempty,oneof=Trivial Minor Major Critical Blocker"`
+	Kind        string  `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"`
 	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=1"`
 	DueDate     *string `json:"due_date,omitempty"    validate:"omitempty,datetime=2006-01-02"`
 }
@@ -82,6 +83,7 @@ type TaskUpdateRequest struct {
 	Description *string `json:"description,omitempty" validate:"omitempty,max=10000"`
 	Priority    *string `json:"priority,omitempty"    validate:"omitempty,oneof=Trivial Minor Major Critical Blocker"            default:"Minor"`
 	Status      *string `json:"status,omitempty"      validate:"omitempty,oneof=New Open 'In Progress' Resolved Closed Reopened"`
+	Kind        *string `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"                   default:"Task"`
 	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=0"`
 	DueDate     *string `json:"due_date,omitempty"    validate:"omitzero,datetime=2006-01-02"`
 }
@@ -97,6 +99,7 @@ type TaskResponse struct {
 	Description string         `json:"description,omitempty"`
 	Priority    string         `json:"priority"`
 	Status      string         `json:"status"`
+	Kind        string         `json:"kind,omitempty"`
 	Author      dto.UserBrief  `json:"author"`
 	Assignee    *dto.UserBrief `json:"assignee,omitempty"`
 	DueDate     *string        `json:"due_date,omitempty"`
@@ -116,6 +119,7 @@ func newTaskResponse(task *tasks.Task, usersMap map[int64]users.User) TaskRespon
 		Description: task.Description,
 		Priority:    string(task.Priority),
 		Status:      string(task.Status),
+		Kind:        string(task.Kind),
 		Author:      *dto.ResolveUserBrief(&task.AuthorID, usersMap),
 		Assignee:    dto.ResolveUserBrief(task.AssigneeID, usersMap),
 		DueDate:     task.DueDate,
@@ -183,11 +187,18 @@ func (req TaskUpdateRequest) toTaskUpdate() tasks.TaskUpdate {
 		status = &s
 	}
 
+	var kind *tasks.Kind
+	if req.Kind != nil {
+		k := tasks.Kind(*req.Kind)
+		kind = &k
+	}
+
 	return tasks.TaskUpdate{
 		Title:       req.Title,
 		Description: req.Description,
 		Priority:    priority,
 		Status:      status,
+		Kind:        kind,
 		AssigneeID:  req.AssigneeID,
 		DueDate:     req.DueDate,
 	}
@@ -196,12 +207,15 @@ func (req TaskUpdateRequest) toTaskUpdate() tasks.TaskUpdate {
 // toTaskCreateInput converts a TaskCreateRequest DTO to a domain TaskInput.
 func (req TaskCreateRequest) toTaskInput(authorID int64) tasks.TaskInput {
 	priority := tasks.Priority(req.Priority)
+	kind := tasks.Kind(req.Kind)
 
 	return tasks.TaskInput{
 		ProjectSlug: req.ProjectSlug,
 		Title:       req.Title,
 		Description: req.Description,
 		Priority:    lo.CoalesceOrEmpty(priority, tasks.PriorityMinor),
+		Status:      tasks.StatusNew, // API always creates as "New"
+		Kind:        lo.CoalesceOrEmpty(kind, tasks.KindTask),
 		AuthorID:    authorID,
 		AssigneeID:  req.AssigneeID,
 		DueDate:     req.DueDate,

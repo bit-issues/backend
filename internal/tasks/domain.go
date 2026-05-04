@@ -33,6 +33,32 @@ func (p Priority) IsValid() bool {
 	}
 }
 
+// Kind represents the type of task, matching BitBucket values.
+type Kind string
+
+// Kind constants.
+const (
+	KindBug         Kind = "Bug"
+	KindEnhancement Kind = "Enhancement"
+	KindTask        Kind = "Task"
+	KindProposal    Kind = "Proposal"
+)
+
+// IsValid checks if the kind value is one of the allowed constants.
+func (k Kind) IsValid() bool {
+	switch k {
+	case KindBug, KindEnhancement, KindTask, KindProposal:
+		return true
+	default:
+		return false
+	}
+}
+
+// String returns the string representation of Kind.
+func (k Kind) String() string {
+	return string(k)
+}
+
 // Status represents task lifecycle states, matching BitBucket values.
 type Status string
 
@@ -65,6 +91,7 @@ type Task struct {
 	Description string
 	Priority    Priority
 	Status      Status
+	Kind        Kind
 	AuthorID    int64
 	AssigneeID  *int64
 	DueDate     *string
@@ -79,6 +106,8 @@ type TaskInput struct {
 	Title       string
 	Description string
 	Priority    Priority
+	Status      Status
+	Kind        Kind
 	AuthorID    int64
 	AssigneeID  *int64
 	DueDate     *string // YYYY-MM-DD format
@@ -105,6 +134,16 @@ func (i TaskInput) Validate() error {
 	// Validate priority
 	if !i.Priority.IsValid() {
 		return fmt.Errorf("%w: invalid priority value", ErrValidationFailed)
+	}
+
+	// Validate status
+	if !i.Status.IsValid() {
+		return fmt.Errorf("%w: invalid status value", ErrValidationFailed)
+	}
+
+	// Validate kind
+	if !i.Kind.IsValid() {
+		return fmt.Errorf("%w: invalid kind value", ErrValidationFailed)
 	}
 
 	// AuthorID must be positive
@@ -134,6 +173,7 @@ type TaskUpdate struct {
 	Description *string
 	Priority    *Priority
 	Status      *Status
+	Kind        *Kind
 	AssigneeID  *int64  // nil=unchanged, 0=set to NULL, value=set to ID
 	DueDate     *string // nil=unchanged, ""=set to NULL, value=set date string
 }
@@ -144,6 +184,7 @@ func (u TaskUpdate) IsEmpty() bool {
 		u.Description == nil &&
 		u.Priority == nil &&
 		u.Status == nil &&
+		u.Kind == nil &&
 		u.AssigneeID == nil &&
 		u.DueDate == nil
 }
@@ -167,6 +208,10 @@ func (u TaskUpdate) Validate() error {
 
 	if u.Status != nil && !u.Status.IsValid() {
 		return fmt.Errorf("%w: invalid status value", ErrValidationFailed)
+	}
+
+	if u.Kind != nil && !u.Kind.IsValid() {
+		return fmt.Errorf("%w: invalid kind value", ErrValidationFailed)
 	}
 
 	if u.AssigneeID != nil && *u.AssigneeID < 0 {

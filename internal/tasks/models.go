@@ -21,6 +21,7 @@ type taskModel struct {
 	Description string     `bun:"description,type:text,nullzero"`
 	Priority    Priority   `bun:"priority,notnull,default:'Minor'"`
 	Status      Status     `bun:"status,notnull,default:'New'"`
+	Kind        Kind       `bun:"kind,nullzero"`
 	AuthorID    int64      `bun:"author_id,notnull"`
 	AssigneeID  *int64     `bun:"assignee_id,nullzero"`
 	DueDate     *time.Time `bun:"due_date,nullzero"`
@@ -40,6 +41,7 @@ func newTaskModel(input TaskInput, number int) *taskModel {
 		Description: input.Description,
 		Priority:    input.Priority,
 		Status:      StatusNew, // Always start as "New"
+		Kind:        input.Kind,
 		AuthorID:    input.AuthorID,
 		AssigneeID:  input.AssigneeID,
 		// Convert *string to *time.Time
@@ -72,6 +74,7 @@ func (m *taskModel) toDomain() *Task {
 		Description: m.Description,
 		Priority:    m.Priority,
 		Status:      m.Status,
+		Kind:        m.Kind,
 		AuthorID:    m.AuthorID,
 		AssigneeID:  m.AssigneeID,
 		// Convert *time.Time to *string (YYYY-MM-DD format)

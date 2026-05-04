@@ -1545,6 +1545,15 @@ const docTemplate = `{
                 "due_date": {
                     "type": "string"
                 },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "Bug",
+                        "Enhancement",
+                        "Task",
+                        "Proposal"
+                    ]
+                },
                 "priority": {
                     "type": "string",
                     "enum": [
@@ -1597,6 +1606,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "kind": {
+                    "type": "string"
                 },
                 "number": {
                     "type": "integer"
@@ -1655,6 +1667,9 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "kind": {
+                    "type": "string"
+                },
                 "number": {
                     "type": "integer"
                 },
@@ -1689,6 +1704,16 @@ const docTemplate = `{
                 },
                 "due_date": {
                     "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "default": "Task",
+                    "enum": [
+                        "Bug",
+                        "Enhancement",
+                        "Task",
+                        "Proposal"
+                    ]
                 },
                 "priority": {
                     "type": "string",
