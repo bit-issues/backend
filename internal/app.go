@@ -2,7 +2,6 @@ package internal
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -21,19 +20,7 @@ func Run(version healthfx.Version) {
 		Version:        version.Version,
 		DefaultCommand: "serve",
 		Flags:          []cli.Flag{},
-		Commands: []*cli.Command{
-			{
-				Name:        "serve",
-				Usage:       "Start the HTTP server",
-				Description: `Start the HTTP server`,
-				Action: func(ctx context.Context, _ *cli.Command) error {
-					if err := commands.Serve(ctx, version); err != nil {
-						return fmt.Errorf("serve: %w", err)
-					}
-					return nil
-				},
-			},
-		},
+		Commands:       commands.Commands(version),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

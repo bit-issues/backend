@@ -60,6 +60,35 @@ func newTaskModel(input TaskInput, number int) *taskModel {
 	}
 }
 
+// newTaskImport creates a new taskModel for import with explicit values.
+func newTaskImport(input Task) *taskModel {
+	return &taskModel{
+		BaseModel:   schema.BaseModel{},
+		TimedModel:  bunfx.TimedModel{CreatedAt: input.CreatedAt, UpdatedAt: input.UpdatedAt},
+		ID:          0,
+		ProjectSlug: input.ProjectSlug,
+		Number:      input.Number,
+		Title:       input.Title,
+		Description: input.Description,
+		Priority:    input.Priority,
+		Status:      input.Status,
+		Kind:        input.Kind,
+		AuthorID:    input.AuthorID,
+		AssigneeID:  input.AssigneeID,
+		DueDate: func() *time.Time {
+			if input.DueDate != nil {
+				t, err := time.Parse(time.DateOnly, *input.DueDate)
+				if err != nil {
+					return nil
+				}
+				return &t
+			}
+			return nil
+		}(),
+		DeletedAt: nil,
+	}
+}
+
 // toDomain converts the database model to a domain Task entity.
 // Returns nil if the model is nil.
 func (m *taskModel) toDomain() *Task {

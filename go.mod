@@ -6,6 +6,7 @@ require (
 	github.com/go-core-fx/bunfx v0.0.2-0.20260409044649-8812f14d88ce
 	github.com/go-core-fx/config v0.1.0
 	github.com/go-core-fx/fiberfx v0.5.0
+	github.com/go-core-fx/fxutil v0.0.1
 	github.com/go-core-fx/goosefx v0.0.1
 	github.com/go-core-fx/healthfx v0.0.2-0.20260109013230-f7729a0a06bc
 	github.com/go-core-fx/logger v0.0.1
@@ -25,7 +26,7 @@ require (
 	github.com/uptrace/bun/dialect/mysqldialect v1.2.18
 	github.com/urfave/cli/v3 v3.8.0
 	go.uber.org/fx v1.24.0
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.50.0
 )
 
@@ -43,7 +44,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
-	github.com/go-core-fx/fxutil v0.0.0-20251027105421-acea37162eb9 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.6 // indirect

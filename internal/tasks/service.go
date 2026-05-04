@@ -49,6 +49,16 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 	return s.tasks.Create(ctx, input)
 }
 
+// Import creates a task with explicit number, timestamps, and kind for import.
+// Bypasses auto-number generation and allows preserving original metadata.
+func (s *Service) Import(
+	ctx context.Context,
+	input Task,
+) (*Task, error) {
+	// Create task with import-specific data
+	return s.tasks.Import(ctx, input)
+}
+
 // Exists checks if a task with the given ID exists.
 func (s *Service) Exists(ctx context.Context, id int64) (bool, error) {
 	return s.tasks.Exists(ctx, id)
