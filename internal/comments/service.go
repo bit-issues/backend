@@ -46,6 +46,15 @@ func (s *Service) Create(ctx context.Context, input CommentInput) (*Comment, err
 	return s.comments.Create(ctx, input)
 }
 
+// Import creates a comment with explicit timestamps for import.
+func (s *Service) Import(
+	ctx context.Context,
+	input Comment,
+) (*Comment, error) {
+	// Create comment with import-specific data
+	return s.comments.Import(ctx, input)
+}
+
 // GetByID retrieves a comment by its ID.
 func (s *Service) GetByID(ctx context.Context, id int64) (*Comment, error) {
 	return s.comments.GetByID(ctx, id)

@@ -30,6 +30,20 @@ func (r *Repository) Create(ctx context.Context, input CommentInput) (*Comment, 
 	return model.toDomain(), nil
 }
 
+// Import creates a comment with explicit timestamps for import.
+func (r *Repository) Import(
+	ctx context.Context,
+	input Comment,
+) (*Comment, error) {
+	model := newCommentImport(input)
+
+	if _, err := r.db.NewInsert().Model(model).Returning("*").Exec(ctx); err != nil {
+		return nil, fmt.Errorf("failed to insert comment for import: %w", err)
+	}
+
+	return model.toDomain(), nil
+}
+
 // GetByID retrieves a comment by its ID.
 func (r *Repository) GetByID(ctx context.Context, id int64) (*Comment, error) {
 	var model commentModel

@@ -1,4 +1,4 @@
-package commands
+package serve
 
 import (
 	"context"
@@ -22,11 +22,26 @@ import (
 	"github.com/go-core-fx/logger"
 	"github.com/go-core-fx/sqlfx"
 	"github.com/go-core-fx/validatorfx"
+	"github.com/urfave/cli/v3"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
-func Serve(ctx context.Context, version healthfx.Version) error {
+func Command(version healthfx.Version) *cli.Command {
+	return &cli.Command{
+		Name:        "serve",
+		Usage:       "Start the HTTP server",
+		Description: `Start the HTTP server`,
+		Action: func(ctx context.Context, _ *cli.Command) error {
+			if err := run(ctx, version); err != nil {
+				return fmt.Errorf("run: %w", err)
+			}
+			return nil
+		},
+	}
+}
+
+func run(ctx context.Context, version healthfx.Version) error {
 	app := fx.New(
 		// CORE MODULES
 		logger.Module(),

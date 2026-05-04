@@ -34,6 +34,19 @@ func newCommentModel(input CommentInput) *commentModel {
 	}
 }
 
+// newCommentImport creates a new commentModel for import with explicit timestamps.
+func newCommentImport(input Comment) *commentModel {
+	return &commentModel{
+		BaseModel:  bun.BaseModel{},
+		TimedModel: bunfx.TimedModel{CreatedAt: input.CreatedAt, UpdatedAt: input.UpdatedAt},
+		ID:         0,
+		TaskID:     input.TaskID,
+		AuthorID:   input.AuthorID,
+		Content:    input.Content,
+		DeletedAt:  input.DeletedAt,
+	}
+}
+
 // toDomain converts the database model to a domain Comment entity.
 // Returns nil if the model is nil.
 func (m *commentModel) toDomain() *Comment {

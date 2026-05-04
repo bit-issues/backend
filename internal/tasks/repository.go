@@ -67,6 +67,29 @@ func (r *Repository) Create(ctx context.Context, input TaskInput) (*Task, error)
 	return task, nil
 }
 
+// Import creates a task with explicit number, timestamps, and kind for import.
+// This bypasses auto-number generation and allows setting custom CreatedAt/UpdatedAt.
+func (r *Repository) Import(
+	ctx context.Context,
+	input Task,
+) (*Task, error) {
+	model := newTaskImport(input)
+
+	if _, err := r.db.NewInsert().Model(model).Exec(ctx); err != nil {
+		if db.IsUniqueViolation(err) {
+			return nil, fmt.Errorf(
+				"%w: task number %d already exists for project %s",
+				ErrValidationFailed,
+				input.Number,
+				input.ProjectSlug,
+			)
+		}
+		return nil, fmt.Errorf("failed to insert task for import: %w", err)
+	}
+
+	return model.toDomain(), nil
+}
+
 func (r *Repository) Exists(ctx context.Context, id int64) (bool, error) {
 	ok, err := r.db.NewSelect().Model((*taskModel)(nil)).Where("id = ?", id).Exists(ctx)
 	if err != nil {
