@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Все задачи — Bit Issues</title>
+
+    <link rel="stylesheet" href="/static/css/tailwind.css" />
+    <script defer src="/static/js/api.js"></script>
+    <script defer src="/static/js/app.js"></script>
+    <script defer src="/static/vendor/alpinejs/alpine.min.js"></script>
+
+    <style>
+      [x-cloak] { display: none !important; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900">
+    <div class="border-b bg-white">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <a href="/#/" class="text-sm font-semibold">Bit Issues</a>
+        <div class="flex items-center gap-2" x-data>
+          <a
+            href="/#/profile"
+            class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            x-show="$store.auth.token"
+            x-cloak
+          >
+            Профиль
+          </a>
+          <button
+            class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            x-show="$store.auth.token"
+            x-cloak
+            @click="$store.auth.logout()"
+          >
+            Выйти
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="mx-auto max-w-5xl px-4 py-6">
+      <div x-data="dashboardsPage('all')" x-init="init()">
+        <div class="mb-6">
+          <h1 class="text-lg font-semibold">Все задачи</h1>
+          <p class="mt-1 text-sm text-slate-600">Общий список задач по всем проектам</p>
+        </div>
+
+        <div class="rounded-xl border bg-white p-4 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-semibold">Все задачи</div>
+              <div class="mt-0.5 text-xs text-slate-500" x-text="paginationText(all)"></div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                @click="prevPage('all')"
+                :disabled="loading.all || !hasPrev(all)"
+              >
+                ←
+              </button>
+              <button
+                class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                @click="nextPage('all')"
+                :disabled="loading.all || !hasNext(all)"
+              >
+                →
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4" x-show="loading.all" x-cloak>
+            <div class="text-sm text-slate-600">Загрузка…</div>
+          </div>
+
+          <ul class="mt-4 divide-y" x-show="!loading.all" x-cloak>
+            <template x-for="t in all.items" :key="t.id">
+              <li class="py-3">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <a
+                      class="block truncate text-sm font-semibold underline decoration-slate-200 hover:decoration-slate-400"
+                      :href="`/#/tasks/${t.id}`"
+                      x-text="t.title"
+                    ></a>
+                    <div class="mt-0.5 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                      <span>
+                        <a
+                          x-show="t.project_slug"
+                          x-cloak
+                          class="underline decoration-slate-200 hover:decoration-slate-400"
+                          :href="projectTasksHref(t.project_slug)"
+                          x-text="t.project_slug"
+                          @click="onProjectLinkClick(t.project_slug)"
+                        ></a>
+                        <span x-text="t.project_slug ? (' #' + t.number) : ('#' + t.number)"></span>
+                      </span>
+                      <span x-text="t.status"></span>
+                      <span x-text="t.priority"></span>
+                      <span x-show="t.kind" x-cloak x-text="t.kind"></span>
+                      <span x-show="t.due_date" x-cloak x-text="'due: ' + t.due_date"></span>
+                    </div>
+                  </div>
+                  <div class="shrink-0 text-xs text-slate-500" x-text="formatDate(t.created_at)"></div>
+                </div>
+              </li>
+            </template>
+            <li class="py-3 text-sm text-slate-600" x-show="all.items.length === 0" x-cloak>Пока пусто.</li>
+          </ul>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+
