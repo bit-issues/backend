@@ -1,0 +1,10 @@
+/* Bit Issues overrides for markdown-text-editor (.markdown-editor-wrapper) */
+.task-markdown-field .markdown-editor-wrapper {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.task-markdown-field textarea.editor-textarea {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ожидание подтверждения — Bit Issues</title>
+
+    <link rel="stylesheet" href="/static/css/tailwind.css" />
+    <script defer src="/static/js/api.js"></script>
+    <script defer src="/static/js/app.js"></script>
+    <script defer src="/static/vendor/alpinejs/alpine.min.js"></script>
+
+    <style>
+      [x-cloak] { display: none !important; }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-50 text-slate-900">
+    <div class="border-b bg-white">
+      <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <a href="/#/" class="text-sm font-semibold">Bit Issues</a>
+        <div class="flex items-center gap-2" x-data>
+          <a
+            href="/#/profile"
+            class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            x-show="$store.auth.token"
+            x-cloak
+          >
+            Профиль
+          </a>
+          <button
+            class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            x-show="$store.auth.token"
+            x-cloak
+            @click="$store.auth.logout()"
+          >
+            Выйти
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <main class="mx-auto max-w-5xl px-4 py-6">
+      <div class="mx-auto max-w-md">
+        <div class="rounded-xl border bg-white p-6 shadow-sm">
+          <div class="mb-4">
+            <h1 class="text-lg font-semibold">Ожидание подтверждения</h1>
+            <p class="mt-1 text-sm text-slate-600">
+              Учётная запись создана и имеет статус <span class="font-medium">pending</span>.
+              Для работы с системой нужен статус <span class="font-medium">active</span>.
+            </p>
+          </div>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            Если вы только что зарегистрировались — дождитесь активации администратором и затем войдите.
+          </div>
+
+          <div class="mt-5 flex items-center justify-between gap-3">
+            <a
+              class="inline-flex items-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              href="/#/login"
+            >
+              Перейти ко входу
+            </a>
+            <a class="text-sm text-slate-600 underline" href="/#/register">Создать другой аккаунт</a>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
+
