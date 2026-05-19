@@ -1,0 +1,91 @@
+name: bit-issues_backend
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: on-failure
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      TZ: ${TIMEZONE:-UTC}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      DATABASE__URL: mariadb://bit-issues:bit-issues@mariadb:3306/bit-issues?charset=utf8mb4&parseTime=True&loc=Local&clientFoundRows=true
+      HTTP__ADDRESS: 0.0.0.0:3000
+      JWT__SECRET: ${JWT__SECRET:-secret}
+      STORAGE__URL: s3://bit-issues/uploads?endpoint=localhost:9000&region=us-east-1&insecure=true
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "localhost:host-gateway"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      TZ: ${TIMEZONE:-UTC}
+      MINIO_ROOT_USER: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      MINIO_REGION_NAME: ${AWS_REGION:-us-east-1}
+      MINIO_API_CORS_ALLOW_ORIGIN: "*"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "9000:9000"
+    volumes:
+      - minio-data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "waiting for minio..."
+        until (/usr/bin/mc alias set local http://minio:9000 "$${AWS_ACCESS_KEY_ID:-minioadmin}" "$${AWS_SECRET_ACCESS_KEY:-minioadmin}") >/dev/null 2>&1; do
+          sleep 1
+        done
+        /usr/bin/mc mb --ignore-existing local/bit-issues
+        echo "minio ready"
+    environment:
+      TZ: ${TIMEZONE:-UTC}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+
+  mariadb:
+    image: mariadb:lts
+    environment:
+      TZ: ${TIMEZONE:-UTC}
+      MARIADB_ROOT_PASSWORD: root
+      MARIADB_DATABASE: bit-issues
+      MARIADB_USER: bit-issues
+      MARIADB_PASSWORD: bit-issues
+      MARIADB_AUTO_UPGRADE: ON
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "healthcheck.sh",
+          "--su-mysql",
+          "--connect",
+          "--innodb_initialized",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mariadb-data:
+  minio-data:

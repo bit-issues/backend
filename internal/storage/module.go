@@ -22,6 +22,7 @@ func Module() fx.Option {
 			return miniofx.Config{
 				Endpoint: u.Query().Get("endpoint"),
 				Region:   u.Query().Get("region"),
+				Secure:   u.Query().Get("insecure") != "true",
 			}, nil
 		}),
 		fx.Provide(NewService),
