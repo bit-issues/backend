@@ -8,11 +8,9 @@ import (
 )
 
 func NewClient(config Config) (*minio.Client, error) {
-	endpoint := config.Endpoint
-
-	client, err := minio.New(endpoint, &minio.Options{
+	client, err := minio.New(config.Endpoint, &minio.Options{
 		Creds:  credentials.NewEnvAWS(),
-		Secure: true,
+		Secure: config.Secure,
 		Region: config.Region,
 	})
 	if err != nil {
