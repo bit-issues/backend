@@ -3,6 +3,7 @@ package storage
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 
 	"github.com/bit-issues/backend/pkg/miniofx"
 	"github.com/go-core-fx/logger"
@@ -19,10 +20,19 @@ func Module() fx.Option {
 				return miniofx.Config{}, fmt.Errorf("failed to parse storage URL: %w", err)
 			}
 
+			insecure := false
+			if raw := u.Query().Get("insecure"); raw != "" {
+				v, parseErr := strconv.ParseBool(raw)
+				if parseErr != nil {
+					return miniofx.Config{}, fmt.Errorf("invalid insecure query param: %w", parseErr)
+				}
+				insecure = v
+			}
+
 			return miniofx.Config{
 				Endpoint: u.Query().Get("endpoint"),
 				Region:   u.Query().Get("region"),
-				Secure:   u.Query().Get("insecure") != "true",
+				Secure:   !insecure,
 			}, nil
 		}),
 		fx.Provide(NewService),
