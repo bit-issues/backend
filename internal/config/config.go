@@ -31,9 +31,10 @@ type databaseConfig struct {
 }
 
 type jwtConfig struct {
-	Secret    string        `koanf:"secret"`
-	AccessTTL time.Duration `koanf:"access_ttl"`
-	Issuer    string        `koanf:"issuer"`
+	Secret     string        `koanf:"secret"`
+	AccessTTL  time.Duration `koanf:"access_ttl"`
+	RefreshTTL time.Duration `koanf:"refresh_ttl"`
+	Issuer     string        `koanf:"issuer"`
 }
 
 type storageConfig struct {
@@ -74,9 +75,10 @@ func Default() Config {
 			MaxIdleConns:    0,
 		},
 		JWT: jwtConfig{
-			Secret:    "secret",
-			AccessTTL: time.Minute * 15,
-			Issuer:    "bitissues.dev",
+			Secret:     "secret",
+			AccessTTL:  time.Minute * 15,
+			RefreshTTL: 7 * 24 * time.Hour,
+			Issuer:     "bitissues.dev",
 		},
 		Storage: storageConfig{
 			URL:      "s3://storage.bitissues.dev/attachments?endpoint=storage.bitissues.dev&region=us-east-1",

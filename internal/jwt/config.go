@@ -10,9 +10,10 @@ const (
 )
 
 type Config struct {
-	Secret    string
-	AccessTTL time.Duration
-	Issuer    string
+	Secret     string
+	AccessTTL  time.Duration
+	RefreshTTL time.Duration
+	Issuer     string
 }
 
 func (c Config) Validate() error {
@@ -26,6 +27,10 @@ func (c Config) Validate() error {
 
 	if c.AccessTTL <= 0 {
 		return fmt.Errorf("%w: access ttl must be positive", ErrInvalidConfig)
+	}
+
+	if c.RefreshTTL <= 0 {
+		return fmt.Errorf("%w: refresh ttl must be positive", ErrInvalidConfig)
 	}
 
 	return nil
