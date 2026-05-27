@@ -42,9 +42,10 @@ func Module() fx.Option {
 		fx.Provide(
 			func(cfg Config) jwt.Config {
 				return jwt.Config{
-					Secret:    cfg.JWT.Secret,
-					AccessTTL: cfg.JWT.AccessTTL,
-					Issuer:    cfg.JWT.Issuer,
+					Secret:     cfg.JWT.Secret,
+					AccessTTL:  cfg.JWT.AccessTTL,
+					RefreshTTL: cfg.JWT.RefreshTTL,
+					Issuer:     cfg.JWT.Issuer,
 				}
 			},
 			func(cfg Config) storage.Config {

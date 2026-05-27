@@ -13,13 +13,35 @@ Content-Type: application/json
 ###
 # Login with admin credentials
 # @name adminLogin
-@adminAccessToken={{adminLogin.response.body.$.access_token}}
+@adminRefreshToken={{adminLogin.response.body.$.refresh_token}}
 POST {{baseURL}}/auth/login
 Content-Type: application/json
 
 {
   "email": "admin@example.com",
   "password": "securePass123"
+}
+
+###
+# Refresh admin access token
+# Uses refresh_token from the login response
+# @name adminRefresh
+@adminAccessToken={{adminRefresh.response.body.$.access_token}}
+@adminRefreshToken={{adminRefresh.response.body.$.refresh_token}}
+POST {{baseURL}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{adminRefreshToken}}"
+}
+
+###
+# Logout admin (revokes refresh token)
+POST {{baseURL}}/auth/logout
+Content-Type: application/json
+
+{
+  "refresh_token": "{{adminRefreshToken}}"
 }
 
 ###
@@ -39,12 +61,35 @@ Content-Type: application/json
 # Login with user credentials
 # @name login
 @accessToken={{login.response.body.$.access_token}}
+@refreshToken={{login.response.body.$.refresh_token}}
 POST {{baseURL}}/auth/login
 Content-Type: application/json
 
 {
   "email": "{{email}}",
   "password": "securePass123"
+}
+
+###
+# Refresh user access token
+# Uses refresh_token from the login response
+# @name userRefresh
+@accessToken={{userRefresh.response.body.$.access_token}}
+@refreshToken={{userRefresh.response.body.$.refresh_token}}
+POST {{baseURL}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
+}
+
+###
+# Logout user (revokes refresh token)
+POST {{baseURL}}/auth/logout
+Content-Type: application/json
+
+{
+  "refresh_token": "{{refreshToken}}"
 }
 
 ###

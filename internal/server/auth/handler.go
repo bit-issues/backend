@@ -33,6 +33,8 @@ func (h *Handler) Register(r fiber.Router) {
 
 	auth.Post("/register", validation.DecorateWithBodyEx(h.Validator, h.handleRegister))
 	auth.Post("/login", validation.DecorateWithBodyEx(h.Validator, h.handleLogin))
+	auth.Post("/refresh", validation.DecorateWithBodyEx(h.Validator, h.handleRefresh))
+	auth.Post("/logout", validation.DecorateWithBodyEx(h.Validator, h.handleLogout))
 	auth.Post(
 		"/change-password",
 		validation.DecorateWithBodyEx(h.Validator, h.handleChangePassword),
@@ -82,15 +84,76 @@ func (h *Handler) handleLogin(c *fiber.Ctx, req *LoginRequest) error {
 		return fmt.Errorf("failed to login user: %w", err)
 	}
 
-	token, err := h.jwtSvc.GenerateToken(user)
+	accessToken, refreshToken, err := h.jwtSvc.GenerateTokenPair(c.Context(), user)
 	if err != nil {
-		return fmt.Errorf("failed to generate token: %w", err)
+		return fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
 	return c.JSON(LoginResponse{
-		AccessToken: token,
-		User:        toUserResponseDTO(user),
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         toUserResponseDTO(user),
 	})
+}
+
+// handleRefresh refreshes an access token using a refresh token.
+//
+//	@Summary		Refresh access token
+//	@Description	Validate refresh token and return a new access token and rotated refresh token.
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		RefreshRequest			true	"Refresh token payload"
+//	@Success		200		{object}	RefreshResponse			"Token pair refreshed"
+//	@Failure		401		{object}	fiberfx.ErrorResponse	"Invalid refresh token"
+//	@Failure		403		{object}	fiberfx.ErrorResponse	"Account not active"
+//	@Router			/auth/refresh [post]
+func (h *Handler) handleRefresh(c *fiber.Ctx, req *RefreshRequest) error {
+	userID, err := h.jwtSvc.ValidateRefreshToken(c.Context(), req.RefreshToken)
+	if err != nil {
+		return fmt.Errorf("failed to validate refresh token: %w", err)
+	}
+
+	user, err := h.usersSvc.GetByID(c.Context(), userID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "user not found")
+	}
+
+	if user.Status != users.StatusActive {
+		return fiber.NewError(fiber.StatusForbidden, "user is not active")
+	}
+
+	accessToken, refreshToken, err := h.jwtSvc.RotateTokenPair(c.Context(), req.RefreshToken, user)
+	if err != nil {
+		return fmt.Errorf("failed to rotate token pair: %w", err)
+	}
+
+	return c.JSON(RefreshResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
+}
+
+// handleLogout revokes a refresh token.
+//
+//	@Summary		Logout
+//	@Description	Invalidate a refresh token.
+//	@Tags			Authentication
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body	LogoutRequest	true	"Refresh token payload"
+//	@Success		204		"Refresh token revoked"
+//	@Router			/auth/logout [post]
+func (h *Handler) handleLogout(c *fiber.Ctx, req *LogoutRequest) error {
+	if err := h.jwtSvc.RevokeRefreshToken(c.Context(), req.RefreshToken); err != nil {
+		// If the token is already revoked or invalid, still return success
+		if errors.Is(err, jwt.ErrRefreshTokenRevoked) || errors.Is(err, jwt.ErrInvalidToken) {
+			return c.SendStatus(fiber.StatusNoContent)
+		}
+		return fmt.Errorf("failed to revoke refresh token: %w", err)
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
 }
 
 // handleChangePassword handles password change for authenticated user.
@@ -136,6 +199,17 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
 	case errors.Is(err, users.ErrNotActive):
 		return fiber.NewError(fiber.StatusForbidden, err.Error())
+	case errors.Is(err, users.ErrEmptyQuery):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+
+	case errors.Is(err, jwt.ErrInvalidConfig):
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	case errors.Is(err, jwt.ErrExpiredToken):
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	case errors.Is(err, jwt.ErrInvalidToken):
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	case errors.Is(err, jwt.ErrRefreshTokenRevoked):
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
 
 	default:
 		return err //nolint:wrapcheck // err is already wrapped

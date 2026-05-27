@@ -1,6 +1,8 @@
 package jwt
 
 import (
+	"time"
+
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -12,4 +14,11 @@ type Claims struct {
 	UserID int64        `json:"user_id"`
 	Role   users.Role   `json:"role"`
 	Status users.Status `json:"status"`
+}
+
+type Token struct {
+	UserID    int64
+	Value     string
+	ExpiresAt time.Time
+	Revoked   bool
 }

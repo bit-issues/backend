@@ -108,13 +108,25 @@ document.addEventListener("alpine:init", () => {
       this.user = data.user || null;
       this._setToken(token);
       this._setUser(this.user);
+      if (data.refresh_token) {
+        try { localStorage.setItem("refresh_token", data.refresh_token); } catch { }
+      }
     },
 
-    logout() {
+    async logout() {
+      try {
+        const rt = (() => { try { return localStorage.getItem("refresh_token"); } catch { return null; } })();
+        if (rt) {
+          await window.apiFetch("/auth/logout", { method: "POST", body: { refresh_token: rt } });
+        }
+      } catch {
+        // Best-effort — clear local state regardless
+      }
       this.token = null;
       this.user = null;
       this._clearToken();
       this._clearUser();
+      try { localStorage.removeItem("refresh_token"); } catch { }
       window.location.assign("/#/login");
     },
 
@@ -482,10 +494,7 @@ window.dashboardPage = function dashboardPage() {
         const { data } = await window.apiFetch("/projects");
         this.projects = (data && data.items) || [];
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить проекты");
       } finally {
         this.loading = false;
@@ -580,10 +589,7 @@ window.projectsPage = function projectsPage() {
           console.debug("projectsPage.load: enrichRecentFromProjects failed");
         }
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить проекты");
       } finally {
         this.loading = false;
@@ -727,10 +733,7 @@ window.projectTasksPage = function projectTasksPage() {
         this.items = (data && data.items) || [];
         this.total = (data && data.total) || 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить задачи");
       } finally {
         this.loading = false;
@@ -834,10 +837,7 @@ window.adminUsersPage = function adminUsersPage() {
         this.users = (data && data.items) || [];
         this.total = (data && data.total) || 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить пользователей");
       } finally {
         this.loading = false;
@@ -870,10 +870,7 @@ window.adminUsersPage = function adminUsersPage() {
         toastSuccess("Пользователь успешно обновлён");
         await this.load();
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось обновить пользователя");
       } finally {
         this.loading = false;
@@ -965,10 +962,7 @@ window.adminProjectsPage = function adminProjectsPage() {
         this.projects = (data && data.items) || [];
         this.total = (data && data.total) || 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить проекты");
       } finally {
         this.loading = false;
@@ -1096,10 +1090,7 @@ window.adminProjectsPage = function adminProjectsPage() {
         await this.load();
         this.closeProjectModal(true);
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         const defaultMessage = mode === "create" ? "Не удалось создать проект" : "Не удалось сохранить изменения";
         toastApiError(err, defaultMessage);
       } finally {
@@ -1146,10 +1137,7 @@ window.adminProjectsPage = function adminProjectsPage() {
         await this.load();
         this.closeDeleteModal(true);
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось удалить проект");
       } finally {
         this.deleteModal.saving = false;
@@ -1223,10 +1211,7 @@ window.profilePage = function profilePage() {
         toastSuccess("Пароль успешно изменён");
         this.form = { old_password: "", new_password: "", new_password2: "" };
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось сменить пароль");
       } finally {
         this.loading = false;
@@ -1352,10 +1337,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         this.created.items = (data && data.items) || [];
         this.created.total = (data && data.total) || 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить созданные задачи");
       } finally {
         this.loading.created = false;
@@ -1379,10 +1361,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         this.assigned.items = (data && data.items) || [];
         this.assigned.total = (data && data.total) || 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить назначенные задачи");
       } finally {
         this.loading.assigned = false;
@@ -1401,10 +1380,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         this.all.items = (data && data.items) || [];
         this.all.total = (data && data.total) || 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить задачи");
       } finally {
         this.loading.all = false;
@@ -1414,7 +1390,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
     paginationText(state) {
       const total = Number(state && state.total != null ? state.total : 0);
       const limit = Number(state && state.limit != null ? state.limit : 20);
-      const offset = Number(state && state.offset !=null ? state.offset : 0);
+      const offset = Number(state && state.offset != null ? state.offset : 0);
       if (!Number.isFinite(total) || total <= 0) return "0 задач";
       const from = Math.min(total, offset + 1);
       const to = Math.min(total, offset + limit);
@@ -1663,7 +1639,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         try {
           document.title = "Новая задача — Bit Issues";
         } catch {
-            console.debug("taskPage.init: failed to set document.title (create mode)");
+          console.debug("taskPage.init: failed to set document.title (create mode)");
         }
         this.$nextTick(() => this.refreshMarkdownEditors());
         return;
@@ -1802,10 +1778,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
           window.recordRecentProject(data.project_slug, data.project_slug);
         }
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось загрузить задачу");
       } finally {
         this.loading = false;
@@ -1960,10 +1933,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         toastSuccess("Задача успешно сохранена");
         window.location.assign(`/#/tasks/${encodeURIComponent(this.taskId)}`);
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         if (err && err.status) {
           toastApiError(err, "Не удалось сохранить");
         } else {
@@ -2014,10 +1984,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         this.assigneeSearch.total = (data && data.total) || 0;
       } catch (err) {
         if (seq !== this.assigneeSearch._requestSeq) return;
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось выполнить поиск");
         this.assigneeSearch.items = [];
         this.assigneeSearch.total = 0;
@@ -2066,10 +2033,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         this.assigneeSearch.items = [];
         this.assigneeSearch.total = 0;
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось назначить ответственного");
       } finally {
         this.assigneeSave.saving = false;
@@ -2095,10 +2059,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         toastSuccess("Ответственный успешно снят");
         await this.load();
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось снять ответственного");
       } finally {
         this.assigneeSave.saving = false;
@@ -2217,10 +2178,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
 
             okCount += 1;
           } catch (err) {
-            if (err && err.status === 401) {
-              Alpine.store("auth").logout();
-              return;
-            }
+            if (err && err.status === 401) return;
 
             const msg =
               (err && err.message ? String(err.message) : "") ||
@@ -2263,10 +2221,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
           toastApiError(null, `Не удалось загрузить файлы (ошибок: ${failed.length})`);
         }
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         if (err && err.status) {
           toastApiError(err, "Не удалось загрузить файлы");
         } else {
@@ -2325,10 +2280,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         this.closeAttachmentDeleteModal(true);
         await this.load();
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось удалить вложение");
       } finally {
         this.attachmentDeleteModal.saving = false;
@@ -2353,10 +2305,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         toastSuccess("Комментарий успешно добавлен");
         await this.load();
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось отправить комментарий");
       } finally {
         this.commentForm.saving = false;
@@ -2442,10 +2391,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         this.closeDeleteModal(true);
         await this.load();
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось удалить комментарий");
       } finally {
         this.deleteModal.saving = false;
@@ -2478,10 +2424,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         toastSuccess("Комментарий успешно сохранён");
         await this.load();
       } catch (err) {
-        if (err && err.status === 401) {
-          Alpine.store("auth").logout();
-          return;
-        }
+        if (err && err.status === 401) return;
         toastApiError(err, "Не удалось сохранить комментарий");
       } finally {
         this.commentEdit.saving = false;
@@ -2676,7 +2619,7 @@ window.taskPageFromLocation = function taskPageFromLocation() {
         // eslint-disable-next-line no-console
         console.error(err);
       } catch {
-          console.debug("SPA: failed to log render error");
+        console.debug("SPA: failed to log render error");
       }
     }
   };
