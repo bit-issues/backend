@@ -639,6 +639,11 @@ window.projectsPage = function projectsPage() {
   };
 };
 
+const TASK_STATUSES = ["New", "Open", "In Progress", "Resolved", "Closed", "Reopened"];
+const DEFAULT_STATUS_FILTERS = ["New", "Open", "In Progress", "Reopened"];
+
+window.TASK_STATUSES = TASK_STATUSES;
+
 window.projectTasksPage = function projectTasksPage() {
   return {
     projectSlug: "",
@@ -649,6 +654,7 @@ window.projectTasksPage = function projectTasksPage() {
     limit: 20,
     offset: 0,
     loading: false,
+    statusFilters: [...DEFAULT_STATUS_FILTERS],
     error: "",
 
     safeRepoUrl(raw) {
@@ -663,6 +669,29 @@ window.projectTasksPage = function projectTasksPage() {
       } catch {
         return "";
       }
+    },
+
+    toggleStatus(status) {
+      const idx = this.statusFilters.indexOf(status);
+      if (idx >= 0) this.statusFilters.splice(idx, 1);
+      else this.statusFilters.push(status);
+      this.offset = 0;
+      this.loadTasks();
+    },
+
+    isStatusActive(status) {
+      return this.statusFilters.includes(status);
+    },
+
+    hasActiveFilters() {
+      if (this.statusFilters.length !== DEFAULT_STATUS_FILTERS.length) return true;
+      return DEFAULT_STATUS_FILTERS.some(s => !this.statusFilters.includes(s));
+    },
+
+    clearFilters() {
+      this.statusFilters = [...DEFAULT_STATUS_FILTERS];
+      this.offset = 0;
+      this.loadTasks();
     },
 
     init() {
@@ -728,6 +757,9 @@ window.projectTasksPage = function projectTasksPage() {
         params.set("project", this.projectSlug);
         params.set("limit", String(this.limit || 20));
         params.set("offset", String(this.offset || 0));
+        if (this.statusFilters.length > 0 && this.statusFilters.length < TASK_STATUSES.length) {
+          params.set("statuses", this.statusFilters.join(","));
+        }
 
         const { data } = await window.apiFetch(`/tasks?${params.toString()}`);
         this.items = (data && data.items) || [];
@@ -1231,9 +1263,42 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
       all: false,
     },
 
+    statusFilters: [...DEFAULT_STATUS_FILTERS],
+
     created: { items: [], total: 0, limit: 20, offset: 0 },
     assigned: { items: [], total: 0, limit: 20, offset: 0 },
     all: { items: [], total: 0, limit: 20, offset: 0 },
+
+    toggleStatus(status) {
+      const idx = this.statusFilters.indexOf(status);
+      if (idx >= 0) this.statusFilters.splice(idx, 1);
+      else this.statusFilters.push(status);
+      this._resetOffsets();
+      if (this.section === "personal") this.loadPersonal();
+      else this.loadAll();
+    },
+
+    isStatusActive(status) {
+      return this.statusFilters.includes(status);
+    },
+
+    hasActiveFilters() {
+      if (this.statusFilters.length !== DEFAULT_STATUS_FILTERS.length) return true;
+      return DEFAULT_STATUS_FILTERS.some(s => !this.statusFilters.includes(s));
+    },
+
+    clearFilters() {
+      this.statusFilters = [...DEFAULT_STATUS_FILTERS];
+      this._resetOffsets();
+      if (this.section === "personal") this.loadPersonal();
+      else this.loadAll();
+    },
+
+    _resetOffsets() {
+      this.created.offset = 0;
+      this.assigned.offset = 0;
+      this.all.offset = 0;
+    },
 
     init() {
       if (!Alpine.store("auth").token) {
@@ -1263,8 +1328,12 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
           this.assigned.limit = v;
           this.all.limit = v;
         }
+        const statuses = url.searchParams.get("statuses");
+        if (statuses && statuses.trim()) {
+          this.statusFilters = statuses.split(",").filter(s => TASK_STATUSES.includes(s));
+        }
       } catch {
-        console.debug("dashboardsPage: failed to parse URL params (limit)");
+        console.debug("dashboardsPage: failed to parse URL params (limit/statuses)");
       }
     },
 
@@ -1332,6 +1401,9 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         params.set("author", String(userId));
         params.set("limit", String(this.created.limit || 20));
         params.set("offset", String(this.created.offset || 0));
+        if (this.statusFilters.length > 0 && this.statusFilters.length < TASK_STATUSES.length) {
+          params.set("statuses", this.statusFilters.join(","));
+        }
 
         const { data } = await window.apiFetch(`/tasks?${params.toString()}`);
         this.created.items = (data && data.items) || [];
@@ -1356,6 +1428,9 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         params.set("assignee", String(userId));
         params.set("limit", String(this.assigned.limit || 20));
         params.set("offset", String(this.assigned.offset || 0));
+        if (this.statusFilters.length > 0 && this.statusFilters.length < TASK_STATUSES.length) {
+          params.set("statuses", this.statusFilters.join(","));
+        }
 
         const { data } = await window.apiFetch(`/tasks?${params.toString()}`);
         this.assigned.items = (data && data.items) || [];
@@ -1375,6 +1450,9 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         const params = this._commonQueryParams();
         params.set("limit", String(this.all.limit || 20));
         params.set("offset", String(this.all.offset || 0));
+        if (this.statusFilters.length > 0 && this.statusFilters.length < TASK_STATUSES.length) {
+          params.set("statuses", this.statusFilters.join(","));
+        }
 
         const { data } = await window.apiFetch(`/tasks?${params.toString()}`);
         this.all.items = (data && data.items) || [];

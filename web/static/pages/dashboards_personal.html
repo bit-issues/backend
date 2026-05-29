@@ -46,6 +46,27 @@
           <p class="mt-1 text-sm text-slate-600">Созданные мной и назначенные на меня задачи</p>
         </div>
 
+        <div class="mb-4">
+          <div class="text-xs font-medium text-slate-500 mb-1.5">Статус</div>
+          <div class="flex flex-wrap gap-1.5">
+            <template x-for="s in window.TASK_STATUSES" :key="s">
+              <button
+                class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+                :class="isStatusActive(s) ? 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-200'"
+                @click="toggleStatus(s)"
+                x-text="s"
+              ></button>
+            </template>
+            <button
+              x-show="hasActiveFilters()"
+              class="rounded-full px-3 py-1 text-xs font-medium text-rose-600 ring-1 ring-rose-200 hover:bg-rose-50"
+              @click="clearFilters()"
+            >
+              Сбросить
+            </button>
+          </div>
+        </div>
+
         <div class="grid gap-4 lg:grid-cols-2">
           <div class="rounded-xl border bg-white p-4 shadow-sm">
             <div class="flex flex-wrap items-center justify-between gap-3">
