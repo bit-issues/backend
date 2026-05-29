@@ -37,6 +37,27 @@ func newAttachmentModel(input AttachmentInput, storageKey string) *attachmentMod
 	}
 }
 
+func newAttachmentImport(
+	taskID int64,
+	fileName, storageKey string,
+	sizeBytes uint64,
+	uploadedBy int64,
+) *attachmentModel {
+	return &attachmentModel{
+		BaseModel: schema.BaseModel{},
+		ID:        0,
+
+		TaskID:     taskID,
+		FileName:   sanitizeFileName(fileName),
+		StorageKey: storageKey,
+		SizeBytes:  sizeBytes,
+		Status:     string(StatusUploaded),
+		UploadedBy: uploadedBy,
+		UploadedAt: time.Now().UTC(),
+		DeletedAt:  nil,
+	}
+}
+
 func (m *attachmentModel) toDomain() *Attachment {
 	if m == nil {
 		return nil

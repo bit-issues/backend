@@ -3,6 +3,7 @@ package attachments
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -77,6 +78,42 @@ func (s *Service) InitUpload(ctx context.Context, input AttachmentInput) (*Uploa
 		Attachment: attachment,
 		UploadURL:  uploadURL,
 	}, nil
+}
+
+func (s *Service) Import(
+	ctx context.Context,
+	taskID int64,
+	fileName, localFilePath string,
+	uploadedBy int64,
+) (*Attachment, error) {
+	fi, err := os.Stat(localFilePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat attachment file: %w", err)
+	}
+
+	storageKey := s.buildStorageKey(taskID, fileName)
+
+	if putErr := s.storageSvc.PutObject(ctx, storageKey, localFilePath); putErr != nil {
+		return nil, fmt.Errorf("failed to upload attachment to storage: %w", putErr)
+	}
+
+	//nolint:gosec // file size is always non-negative
+	attachment, createErr := s.attachments.Import(
+		ctx,
+		newAttachmentImport(taskID, fileName, storageKey, uint64(fi.Size()), uploadedBy),
+	)
+	if createErr != nil {
+		if cleanupErr := s.storageSvc.Delete(ctx, storageKey); cleanupErr != nil {
+			s.logger.Warn(
+				"failed to cleanup storage after failed attachment import",
+				zap.String("storageKey", storageKey),
+				zap.Error(cleanupErr),
+			)
+		}
+		return nil, createErr
+	}
+
+	return attachment, nil
 }
 
 func (s *Service) ListByTask(ctx context.Context, taskID int64) ([]AttachmentWithURL, error) {

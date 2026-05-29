@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -18,11 +20,12 @@ import (
 )
 
 type importer struct {
-	config      Config
-	tasksSvc    *tasks.Service
-	commentsSvc *comments.Service
-	usersSvc    *users.Service
-	logger      *zap.Logger
+	config         Config
+	tasksSvc       *tasks.Service
+	commentsSvc    *comments.Service
+	usersSvc       *users.Service
+	attachmentsSvc *attachments.Service
+	logger         *zap.Logger
 
 	sh fx.Shutdowner
 }
@@ -32,15 +35,17 @@ func newImporter(
 	tasksSvc *tasks.Service,
 	commentsSvc *comments.Service,
 	usersSvc *users.Service,
+	attachmentsSvc *attachments.Service,
 	logger *zap.Logger,
 	sh fx.Shutdowner,
 ) *importer {
 	return &importer{
-		config:      config,
-		tasksSvc:    tasksSvc,
-		commentsSvc: commentsSvc,
-		usersSvc:    usersSvc,
-		logger:      logger,
+		config:         config,
+		tasksSvc:       tasksSvc,
+		commentsSvc:    commentsSvc,
+		usersSvc:       usersSvc,
+		attachmentsSvc: attachmentsSvc,
+		logger:         logger,
 
 		sh: sh,
 	}
@@ -57,7 +62,12 @@ func (i *importer) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to parse export file: %w", err)
 	}
 
-	logger.Info("Parsed export file", zap.Int("issues", len(export.Issues)), zap.Int("comments", len(export.Comments)))
+	logger.Info(
+		"Parsed export file",
+		zap.Int("issues", len(export.Issues)),
+		zap.Int("comments", len(export.Comments)),
+		zap.Int("attachments", len(export.Attachments)),
+	)
 
 	if i.config.DryRun {
 		logger.Info("DRY RUN MODE - no changes will be made")
@@ -71,10 +81,38 @@ func (i *importer) Run(ctx context.Context) error {
 
 	logger.Info("Starting import")
 
-	// Build a map of issue ID to imported task for comments
-	issueToTask := make(map[int]int64) // BitBucket issue ID -> internal task ID
+	issueToTask := make(map[int]int64)
 
-	// Import issues
+	i.importIssues(ctx, logger, export, defaultUser, &result, issueToTask)
+	i.importComments(ctx, logger, export, defaultUser, &result, issueToTask)
+	attachmentsDir := filepath.Join(filepath.Dir(i.config.Filename), "attachments")
+	i.importAttachments(ctx, logger, export, defaultUser, &result, issueToTask, attachmentsDir)
+
+	// Print results
+	logger.Info("Import complete",
+		zap.Int("issuesImported", result.IssuesImported),
+		zap.Int("issuesSkipped", result.IssuesSkipped),
+		zap.Int("commentsImported", result.CommentsImported),
+		zap.Int("commentsSkipped", result.CommentsSkipped),
+		zap.Int("attachmentsImported", result.AttachmentsImported),
+		zap.Int("attachmentsSkipped", result.AttachmentsSkipped),
+	)
+
+	if shErr := i.sh.Shutdown(); shErr != nil {
+		return fmt.Errorf("failed to shutdown importer: %w", shErr)
+	}
+
+	return nil
+}
+
+func (i *importer) importIssues(
+	ctx context.Context,
+	logger *zap.Logger,
+	export *bitbucket.Export,
+	defaultUser *users.User,
+	result *ImportResult,
+	issueToTask map[int]int64,
+) {
 	for _, issue := range export.Issues {
 		if i.config.DryRun {
 			logger.Info("Would import issue", zap.Int("issueID", issue.ID))
@@ -93,8 +131,16 @@ func (i *importer) Run(ctx context.Context) error {
 		result.IssuesImported++
 		logger.Info("Imported issue", zap.Int("issueID", issue.ID), zap.Int64("taskID", task.ID))
 	}
+}
 
-	// Import comments
+func (i *importer) importComments(
+	ctx context.Context,
+	logger *zap.Logger,
+	export *bitbucket.Export,
+	defaultUser *users.User,
+	result *ImportResult,
+	issueToTask map[int]int64,
+) {
 	for _, comment := range export.Comments {
 		if i.config.DryRun {
 			logger.Info("Would import comment", zap.Int("commentID", comment.ID))
@@ -122,20 +168,65 @@ func (i *importer) Run(ctx context.Context) error {
 		result.CommentsImported++
 		logger.Info("Imported comment", zap.Int("commentID", comment.ID), zap.Int64("taskID", taskID))
 	}
+}
 
-	// Print results
-	logger.Info("Import complete",
-		zap.Int("issuesImported", result.IssuesImported),
-		zap.Int("issuesSkipped", result.IssuesSkipped),
-		zap.Int("commentsImported", result.CommentsImported),
-		zap.Int("commentsSkipped", result.CommentsSkipped),
-	)
+func (i *importer) importAttachments(
+	ctx context.Context,
+	logger *zap.Logger,
+	export *bitbucket.Export,
+	defaultUser *users.User,
+	result *ImportResult,
+	issueToTask map[int]int64,
+	attachmentsDir string,
+) {
+	for _, attachment := range export.Attachments {
+		if i.config.DryRun {
+			logger.Info(
+				"Would import attachment",
+				zap.Int("issueID", attachment.Issue),
+				zap.String("filename", attachment.Filename),
+			)
+			result.AttachmentsImported++
+			continue
+		}
 
-	if shErr := i.sh.Shutdown(); shErr != nil {
-		return fmt.Errorf("failed to shutdown importer: %w", shErr)
+		taskID, ok := issueToTask[attachment.Issue]
+		if !ok {
+			result.AttachmentsSkipped++
+			logger.Warn(
+				"Could not find task for attachment",
+				zap.String("filename", attachment.Filename),
+				zap.Int("issueID", attachment.Issue),
+			)
+			continue
+		}
+
+		localPath := filepath.Join(attachmentsDir, filepath.Base(attachment.Path))
+		if _, statErr := os.Stat(localPath); statErr != nil {
+			result.AttachmentsSkipped++
+			logger.Warn("Attachment file not found on disk", zap.String("path", localPath), zap.Error(statErr))
+			continue
+		}
+
+		if _, importErr := i.attachmentsSvc.Import(
+			ctx,
+			taskID,
+			attachment.Filename,
+			localPath,
+			defaultUser.ID,
+		); importErr != nil {
+			result.AttachmentsSkipped++
+			logger.Warn(
+				"Failed to import attachment",
+				zap.String("filename", attachment.Filename),
+				zap.Error(importErr),
+			)
+			continue
+		}
+
+		result.AttachmentsImported++
+		logger.Info("Imported attachment", zap.String("filename", attachment.Filename), zap.Int64("taskID", taskID))
 	}
-
-	return nil
 }
 
 // importIssue imports a single issue.
