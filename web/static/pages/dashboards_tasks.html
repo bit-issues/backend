@@ -117,9 +117,9 @@
                         ></a>
                         <span x-text="t.project_slug ? (' #' + t.number) : ('#' + t.number)"></span>
                       </span>
-                      <span x-text="t.status"></span>
-                      <span x-text="t.priority"></span>
-                      <span x-show="t.kind" x-cloak x-text="t.kind"></span>
+                      <span class="rounded px-2 py-0.5" :class="STATUS_CLASSES[t.status]" x-text="t.status"></span>
+                      <span class="rounded px-2 py-0.5" :class="PRIORITY_CLASSES[t.priority]" x-text="t.priority"></span>
+                      <span class="rounded bg-slate-100 px-2 py-0.5" x-show="t.kind" x-cloak x-text="t.kind"></span>
                       <span x-show="t.due_date" x-cloak x-text="'due: ' + t.due_date"></span>
                     </div>
                   </div>

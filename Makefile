@@ -27,7 +27,7 @@ coverage: test ## Generate coverage
 benchmark: ## Run benchmarks
 	go test -run=^$$ -bench=. -benchmem ./... | tee benchmark.txt
 
-air: ## Run development server
+air: gen ## Run development server
 	@command -v air >/dev/null 2>&1 || { \
       echo "Please install air: go install github.com/air-verse/air@latest"; \
       exit 1; \
