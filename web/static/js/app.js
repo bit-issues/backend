@@ -75,6 +75,26 @@ const toastSuccess = (message) => {
   }
 };
 
+const STATUS_CLASSES = {
+  "New": "bg-blue-100 text-blue-800 ring-1 ring-blue-300",
+  "Open": "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-300",
+  "In Progress": "bg-indigo-100 text-indigo-800 ring-1 ring-indigo-300",
+  "Resolved": "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
+  "Closed": "bg-slate-200 text-slate-600 ring-1 ring-slate-400",
+  "Reopened": "bg-red-100 text-red-800 ring-1 ring-red-300",
+};
+
+const PRIORITY_CLASSES = {
+  "Trivial": "border border-slate-200 text-slate-400",
+  "Minor": "border border-sky-300 text-sky-700",
+  "Major": "border border-amber-300 text-amber-700",
+  "Critical": "border border-orange-300 text-orange-700",
+  "Blocker": "border border-red-400 text-red-700",
+};
+
+window.STATUS_CLASSES = STATUS_CLASSES;
+window.PRIORITY_CLASSES = PRIORITY_CLASSES;
+
 document.addEventListener("alpine:init", () => {
   Alpine.store("auth", {
     token: null,

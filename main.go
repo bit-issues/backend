@@ -25,6 +25,7 @@ import (
 )
 
 //go:generate swag init --parseDependency --outputTypes go -g ./main.go -o ./internal/server/docs
+//go:generate npx tailwindcss@3.4.17 --config tailwind.config.js -i web/static/css/input.css -o web/static/css/tailwind.css --minify
 
 //nolint:gochecknoglobals // build metadata
 var (

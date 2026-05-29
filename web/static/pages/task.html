@@ -103,8 +103,8 @@
           <div>
             <div class="text-base font-semibold" x-text="task.title"></div>
             <div class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
-              <span class="rounded bg-slate-100 px-2 py-0.5" x-text="task.status"></span>
-              <span class="rounded bg-slate-100 px-2 py-0.5" x-text="task.priority"></span>
+              <span class="rounded px-2 py-0.5" :class="STATUS_CLASSES[task.status]" x-text="task.status"></span>
+              <span class="rounded px-2 py-0.5" :class="PRIORITY_CLASSES[task.priority]" x-text="task.priority"></span>
               <span class="rounded bg-slate-100 px-2 py-0.5" x-show="task.kind" x-cloak x-text="task.kind"></span>
               <span x-show="task.due_date" x-cloak x-text="'due: ' + task.due_date"></span>
             </div>
