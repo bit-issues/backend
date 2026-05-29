@@ -17,6 +17,14 @@ func NewRepository(db *bun.DB) *Repository {
 	return &Repository{db: db}
 }
 
+func (r *Repository) Import(ctx context.Context, model *attachmentModel) (*Attachment, error) {
+	if _, err := r.db.NewInsert().Model(model).Returning("*").Exec(ctx); err != nil {
+		return nil, fmt.Errorf("failed to import attachment: %w", err)
+	}
+
+	return model.toDomain(), nil
+}
+
 func (r *Repository) Create(ctx context.Context, input AttachmentInput, storageKey string) (*Attachment, error) {
 	model := newAttachmentModel(input, storageKey)
 

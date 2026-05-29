@@ -13,6 +13,7 @@ import (
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
+	"github.com/bit-issues/backend/pkg/miniofx"
 	"github.com/go-core-fx/bunfx"
 	"github.com/go-core-fx/fxutil"
 	"github.com/go-core-fx/healthfx"
@@ -34,10 +35,12 @@ func Command(_ healthfx.Version) *cli.Command {
 
 // ImportResult holds the results of an import operation.
 type ImportResult struct {
-	IssuesImported   int
-	IssuesSkipped    int
-	CommentsImported int
-	CommentsSkipped  int
+	IssuesImported      int
+	IssuesSkipped       int
+	CommentsImported    int
+	CommentsSkipped     int
+	AttachmentsImported int
+	AttachmentsSkipped  int
 }
 
 // run imports issues from a BitBucket export JSON file.
@@ -48,6 +51,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		logger.WithFxDefaultLogger(),
 		bunfx.Module(),
 		sqlfx.Module(),
+		miniofx.Module(),
 
 		config.Module(),
 		db.Module(),

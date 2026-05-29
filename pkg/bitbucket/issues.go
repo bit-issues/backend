@@ -37,11 +37,20 @@ type Comment struct {
 	UpdatedOn *time.Time `json:"updated_on"`
 }
 
+// Attachment represents a single attachment from BitBucket export.
+type Attachment struct {
+	User     User   `json:"user"`
+	Issue    int    `json:"issue"`
+	URL      string `json:"url"`
+	Filename string `json:"filename"`
+	Path     string `json:"path"`
+}
+
 // Export represents the full JSON export structure.
 type Export struct {
 	Meta        map[string]any `json:"meta"`
 	Issues      []Issue        `json:"issues"`
-	Attachments []any          `json:"attachments"`
+	Attachments []Attachment   `json:"attachments"`
 	Comments    []Comment      `json:"comments"`
 	Logs        []any          `json:"logs"`
 }

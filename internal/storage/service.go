@@ -52,6 +52,15 @@ func (s *Service) PresignedPutObject(ctx context.Context, key string) (string, e
 	return u.String(), nil
 }
 
+func (s *Service) PutObject(ctx context.Context, key string, filePath string) error {
+	_, err := s.client.FPutObject(ctx, s.bucketName, s.objectKey(key), filePath, minio.PutObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to put object: %w", err)
+	}
+
+	return nil
+}
+
 func (s *Service) PresignedGetObject(ctx context.Context, key string) (string, error) {
 	u, err := s.client.PresignedGetObject(
 		ctx,
