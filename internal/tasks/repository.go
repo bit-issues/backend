@@ -153,6 +153,8 @@ func (r *Repository) List(
 		}
 	}
 
+	query = query.OrderBy("id", bun.OrderDesc)
+
 	// Apply pagination
 	query = pagination.Apply(query)
 
