@@ -15,6 +15,7 @@ type Project struct {
 	ID        string    // Primary key
 	Name      string    // Unique project name
 	RepoURL   string    // BitBucket repository URL
+	Tags      []string  // List of tag names associated with the project
 	CreatedAt time.Time // Creation timestamp
 	UpdatedAt time.Time // Last update timestamp
 }
@@ -22,15 +23,17 @@ type Project struct {
 // ProjectInput represents the data required to create a new project.
 // All fields are required and must be validated before creation.
 type ProjectInput struct {
-	Name    string // Unique project name, required
-	RepoURL string // BitBucket repository URL, required
+	Name    string   // Unique project name, required
+	RepoURL string   // BitBucket repository URL, required
+	Tags    []string // Optional list of tag names
 }
 
 // ProjectUpdate represents the data that can be updated for a project.
 // All fields are optional (pointers) to support partial updates.
 type ProjectUpdate struct {
-	Name    *string // Optional new name, must be unique if provided
-	RepoURL *string // Optional new repository URL, must be valid if provided
+	Name    *string   // Optional new name, must be unique if provided
+	RepoURL *string   // Optional new repository URL, must be valid if provided
+	Tags    *[]string // Optional new list of tag names; nil = unchanged, empty = clear all
 }
 
 // Validate checks if the input data is valid for creating a new project.
@@ -53,7 +56,7 @@ func (i ProjectInput) Validate() error {
 // IsEmpty returns true if no update fields are set.
 // This prevents unnecessary database operations when no data is provided.
 func (u ProjectUpdate) IsEmpty() bool {
-	return u.Name == nil && u.RepoURL == nil
+	return u.Name == nil && u.RepoURL == nil && u.Tags == nil
 }
 
 func (u ProjectUpdate) Validate() error {
@@ -99,6 +102,11 @@ func validateRepoURL(repoURL string) error {
 	}
 
 	return nil
+}
+
+// ProjectFilter contains filtering criteria for listing projects.
+type ProjectFilter struct {
+	Tags []string // Filter by tags (AND: project must have all specified tags)
 }
 
 type pagination struct {

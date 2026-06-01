@@ -12,6 +12,7 @@ import (
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server"
 	"github.com/bit-issues/backend/internal/storage"
+	"github.com/bit-issues/backend/internal/tags"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/pkg/miniofx"
@@ -74,6 +75,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		fx.Supply(version),
 		jwt.Module(),
 		users.Module(),
+		tags.Module(),
 		projects.Module(),
 		tasks.Module(),
 		attachments.Module(),

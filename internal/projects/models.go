@@ -8,6 +8,14 @@ import (
 	"github.com/uptrace/bun/schema"
 )
 
+// projectTagModel is the junction table linking projects to tags.
+type projectTagModel struct {
+	bun.BaseModel `bun:"table:project_tags,alias:pt"`
+
+	ProjectID string `bun:"project_id,pk"`
+	TagName   string `bun:"tag_name,pk"`
+}
+
 // projectModel is the database representation of a project.
 // This struct is used for Bun ORM operations and maps to the `projects` table.
 type projectModel struct {
@@ -38,7 +46,7 @@ func newProjectModel(input ProjectInput, slug string) *projectModel {
 
 // toDomain converts the database model to a domain Project entity.
 // Returns nil if the model is nil.
-func (m *projectModel) toDomain() *Project {
+func (m *projectModel) toDomain(tags []string) *Project {
 	if m == nil {
 		return nil
 	}
@@ -46,6 +54,7 @@ func (m *projectModel) toDomain() *Project {
 		ID:        m.ID,
 		Name:      m.Name,
 		RepoURL:   m.RepoURL,
+		Tags:      tags,
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 	}

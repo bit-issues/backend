@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bit-issues/backend/internal/tags"
 	"github.com/gosimple/slug"
 )
 
@@ -16,17 +17,19 @@ const (
 // It coordinates between the repository layer and validation rules.
 type Service struct {
 	projects *Repository
+	tags     *tags.Service
 }
 
-// NewService creates a new Service instance with the given repository.
-func NewService(repo *Repository) *Service {
-	return &Service{projects: repo}
+// NewService creates a new Service instance with the given repository and tags service.
+func NewService(repo *Repository, tagsSvc *tags.Service) *Service {
+	return &Service{projects: repo, tags: tagsSvc}
 }
 
 // Create creates a new project after validating the input.
 // Validation includes:
 //   - Name must be non-empty after trimming whitespace
 //   - Repository URL must be in valid format (HTTPS)
+//   - Tags must be non-empty and within max length
 //   - Project name must be unique (case-sensitive)
 //
 // Returns the created project or an error if validation fails.
@@ -35,8 +38,15 @@ func (s *Service) Create(ctx context.Context, input ProjectInput) (*Project, err
 		return nil, err
 	}
 
-	// Create the project
-	return s.projects.Create(ctx, input, slug.Make(input.Name))
+	tags := input.Tags
+	if len(tags) > 0 {
+		var err error
+		if tags, err = s.tags.EnsureExists(ctx, tags); err != nil {
+			return nil, fmt.Errorf("failed to ensure tags: %w", err)
+		}
+	}
+
+	return s.projects.Create(ctx, input, slug.Make(input.Name), tags)
 }
 
 // GetBySlug retrieves a project by its slug.
@@ -48,10 +58,10 @@ func (s *Service) GetBySlug(ctx context.Context, slug string) (*Project, error) 
 	return s.projects.GetBySlug(ctx, slug)
 }
 
-// List retrieves a paginated list of projects.
+// List retrieves a paginated list of projects, optionally filtered.
 // Projects are ordered by name ascending.
-func (s *Service) List(ctx context.Context, pagination *Pagination) ([]Project, int, error) {
-	return s.projects.List(ctx, pagination)
+func (s *Service) List(ctx context.Context, pagination *Pagination, filter *ProjectFilter) ([]Project, int, error) {
+	return s.projects.List(ctx, pagination, filter)
 }
 
 // Update modifies an existing project with the provided update data.
@@ -59,21 +69,35 @@ func (s *Service) List(ctx context.Context, pagination *Pagination) ([]Project, 
 //   - At least one field must be provided
 //   - If name is provided, it must be non-empty and unique
 //   - If repoURL is provided, it must be in valid format
+//   - If tags are provided, they must be non-empty and within max length
 //
 // Returns the updated project or an error if validation fails.
-func (s *Service) Update(ctx context.Context, slug string, update ProjectUpdate) (*Project, error) {
+func (s *Service) Update(ctx context.Context, projectSlug string, update ProjectUpdate) (*Project, error) {
 	// Validate update data
 	if err := update.Validate(); err != nil {
 		return nil, err
 	}
 
-	// Perform update
-	if err := s.projects.Update(ctx, slug, update); err != nil {
+	// Update project fields
+	if err := s.projects.Update(ctx, projectSlug, update); err != nil {
 		return nil, err
 	}
 
-	// Return updated project
-	return s.projects.GetBySlug(ctx, slug)
+	// Update tags if provided
+	if update.Tags != nil {
+		tags := *update.Tags
+		if len(tags) > 0 {
+			var err error
+			if tags, err = s.tags.EnsureExists(ctx, tags); err != nil {
+				return nil, fmt.Errorf("failed to ensure tags: %w", err)
+			}
+		}
+		if err := s.projects.SetProjectTags(ctx, projectSlug, tags); err != nil {
+			return nil, fmt.Errorf("failed to set project tags: %w", err)
+		}
+	}
+
+	return s.projects.GetBySlug(ctx, projectSlug)
 }
 
 // Delete removes a project by its slug.

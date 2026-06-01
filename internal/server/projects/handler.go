@@ -3,6 +3,7 @@ package projects
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/projects"
@@ -73,8 +74,9 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			limit	query		int	false	"Page limit (max 100)"	default(20)
-//	@Param			offset	query		int	false	"Page offset"			default(0)
+//	@Param			limit	query		int		false	"Page limit (max 100)"									default(20)
+//	@Param			offset	query		int		false	"Page offset"											default(0)
+//	@Param			tags	query		string	false	"Comma-separated tag names to filter by (AND logic)"	example:"bug,urgent"
 //	@Success		200		{object}	ProjectListResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Router			/projects [get]
@@ -89,8 +91,21 @@ func (h *Handler) list(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to parse query: %w", err)
 	}
 
+	var filter *projects.ProjectFilter
+	if tagsParam := c.Query("tags"); tagsParam != "" {
+		tagList := strings.Split(tagsParam, ",")
+		for i := range tagList {
+			tagList[i] = strings.TrimSpace(tagList[i])
+		}
+		filter = &projects.ProjectFilter{Tags: tagList}
+	}
+
 	// Fetch projects from service
-	projectsList, total, err := h.projectsSvc.List(c.Context(), projects.NewPagination(query.Limit, query.Offset))
+	projectsList, total, err := h.projectsSvc.List(
+		c.Context(),
+		projects.NewPagination(query.Limit, query.Offset),
+		filter,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to list projects: %w", err)
 	}

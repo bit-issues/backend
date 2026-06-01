@@ -278,6 +278,12 @@ const docTemplate = `{
                         "description": "Page offset",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Comma-separated tag names to filter by (AND logic)",
+                        "name": "tags",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -1529,6 +1535,12 @@ const docTemplate = `{
                 "repo_url": {
                     "type": "string",
                     "example": "https://bitbucket.org/company/backend"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -1551,6 +1563,12 @@ const docTemplate = `{
                     "type": "string",
                     "example": "https://bitbucket.org/company/backend"
                 },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "updated_at": {
                     "type": "string",
                     "example": "2026-04-02T09:00:00Z"
@@ -1567,6 +1585,12 @@ const docTemplate = `{
                 "repo_url": {
                     "type": "string",
                     "example": "https://bitbucket.org/company/backend"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },

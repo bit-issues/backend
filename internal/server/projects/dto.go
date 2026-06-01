@@ -9,31 +9,39 @@ import (
 
 // ProjectRequest represents the request body for creating a new project.
 type ProjectRequest struct {
-	Name    string `json:"name"     validate:"required"     example:"Backend Service"`
-	RepoURL string `json:"repo_url" validate:"required,url" example:"https://bitbucket.org/company/backend"`
+	Name    string   `json:"name"           validate:"required"               example:"Backend Service"`
+	RepoURL string   `json:"repo_url"       validate:"required,url"           example:"https://bitbucket.org/company/backend"`
+	Tags    []string `json:"tags,omitempty" validate:"omitempty,dive,max=255"`
 }
 
 // ProjectUpdateRequest represents the request body for updating a project.
 // All fields are optional to support partial updates.
 type ProjectUpdateRequest struct {
-	Name    *string `json:"name,omitempty"     validate:"omitempty"     example:"Backend Service"`
-	RepoURL *string `json:"repo_url,omitempty" validate:"omitempty,url" example:"https://bitbucket.org/company/backend"`
+	Name    *string   `json:"name,omitempty"     validate:"omitempty"              example:"Backend Service"`
+	RepoURL *string   `json:"repo_url,omitempty" validate:"omitempty,url"          example:"https://bitbucket.org/company/backend"`
+	Tags    *[]string `json:"tags,omitempty"     validate:"omitempty,dive,max=255"`
 }
 
 // ProjectResponse represents the API response for a single project.
 type ProjectResponse struct {
-	ID        string `json:"id"         example:"backend-service"`
-	Name      string `json:"name"       example:"Backend Service"`
-	RepoURL   string `json:"repo_url"   example:"https://bitbucket.org/company/backend"`
-	CreatedAt string `json:"created_at" example:"2026-04-01T08:00:00Z"`
-	UpdatedAt string `json:"updated_at" example:"2026-04-02T09:00:00Z"`
+	ID        string   `json:"id"         example:"backend-service"`
+	Name      string   `json:"name"       example:"Backend Service"`
+	RepoURL   string   `json:"repo_url"   example:"https://bitbucket.org/company/backend"`
+	Tags      []string `json:"tags"`
+	CreatedAt string   `json:"created_at" example:"2026-04-01T08:00:00Z"`
+	UpdatedAt string   `json:"updated_at" example:"2026-04-02T09:00:00Z"`
 }
 
 func NewProjectResponse(p *projects.Project) ProjectResponse {
+	tags := p.Tags
+	if tags == nil {
+		tags = []string{}
+	}
 	return ProjectResponse{
 		ID:        p.ID,
 		Name:      p.Name,
 		RepoURL:   p.RepoURL,
+		Tags:      tags,
 		CreatedAt: p.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: p.UpdatedAt.Format(time.RFC3339),
 	}
@@ -64,6 +72,7 @@ func (req ProjectRequest) toProjectInput() projects.ProjectInput {
 	return projects.ProjectInput{
 		Name:    req.Name,
 		RepoURL: req.RepoURL,
+		Tags:    req.Tags,
 	}
 }
 
@@ -72,5 +81,6 @@ func (req ProjectUpdateRequest) toProjectUpdate() projects.ProjectUpdate {
 	return projects.ProjectUpdate{
 		Name:    req.Name,
 		RepoURL: req.RepoURL,
+		Tags:    req.Tags,
 	}
 }
