@@ -56,7 +56,7 @@ func (i ProjectInput) Validate() error {
 // IsEmpty returns true if no update fields are set.
 // This prevents unnecessary database operations when no data is provided.
 func (u ProjectUpdate) IsEmpty() bool {
-	return u.Name == nil && u.RepoURL == nil && u.Tags == nil
+	return u.Name == nil && u.RepoURL == nil
 }
 
 func (u ProjectUpdate) Validate() error {

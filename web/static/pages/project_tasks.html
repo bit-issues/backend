@@ -44,6 +44,11 @@
         </a>
         <h1 class="mt-2 text-lg font-semibold" x-text="projectName || projectSlug"></h1>
         <p class="mt-1 text-sm text-slate-600">Задачи проекта</p>
+        <div class="mt-2 flex flex-wrap gap-1.5" x-show="project && project.tags && project.tags.length" x-cloak>
+          <template x-for="tag in project.tags" :key="tag">
+            <span class="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700" x-text="tag"></span>
+          </template>
+        </div>
       </div>
 
       <div class="mb-4 flex flex-wrap items-center gap-2">

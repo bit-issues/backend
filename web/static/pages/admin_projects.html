@@ -95,6 +95,7 @@
                   <th class="px-2 py-2">ID</th>
                   <th class="px-2 py-2">Название</th>
                   <th class="px-2 py-2">Repo URL</th>
+                  <th class="px-2 py-2">Метки</th>
                   <th class="px-2 py-2">Действия</th>
                 </tr>
               </thead>
@@ -105,6 +106,13 @@
                     <td class="px-2 py-2 font-medium" x-text="p.name"></td>
                     <td class="px-2 py-2">
                       <a class="text-slate-700 underline decoration-slate-300 hover:decoration-slate-500" :href="safeRepoUrl(p.repo_url)" target="_blank" rel="noreferrer" x-text="p.repo_url"></a>
+                    </td>
+                    <td class="px-2 py-2">
+                      <div class="flex flex-wrap gap-1">
+                        <template x-for="tag in (p.tags || [])" :key="tag">
+                          <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700" x-text="tag"></span>
+                        </template>
+                      </div>
                     </td>
                     <td class="px-2 py-2">
                       <div class="flex flex-wrap items-center gap-2">
@@ -127,7 +135,7 @@
                   </tr>
                 </template>
                 <tr x-show="projects.length === 0" x-cloak>
-                  <td class="px-2 py-4 text-sm text-slate-600" colspan="4">Пока пусто.</td>
+                  <td class="px-2 py-4 text-sm text-slate-600" colspan="5">Пока пусто.</td>
                 </tr>
               </tbody>
             </table>
@@ -240,6 +248,16 @@
                     x-model="projectModal.form.repo_url"
                     placeholder="https://bitbucket.org/org/repo"
                   />
+                </div>
+                <div>
+                  <label for="project-tags" class="text-xs font-medium text-slate-600">Метки</label>
+                  <input
+                    id="project-tags"
+                    class="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-200"
+                    x-model="projectModal.form.tags"
+                    placeholder="bug, urgent, frontend"
+                  />
+                  <p class="mt-1 text-xs text-slate-400">Через запятую</p>
                 </div>
               </div>
 

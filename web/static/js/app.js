@@ -554,6 +554,15 @@ window.projectsPage = function projectsPage() {
       this.load();
     },
 
+    applyTagFilter() {
+      this.filter.tags = (this.filter.tagsQuery || "")
+        .split(",")
+        .map(t => t.trim())
+        .filter(Boolean);
+      this.filter.offset = 0;
+      this.load();
+    },
+
     hasPrev() {
       const offset = Number(this.filter && this.filter.offset != null ? this.filter.offset : 0);
       return Number.isFinite(offset) && offset > 0;
@@ -572,6 +581,9 @@ window.projectsPage = function projectsPage() {
       const params = new URLSearchParams();
       params.set("limit", String(this.filter.limit || 20));
       params.set("offset", String(this.filter.offset || 0));
+      if (this.filter.tags && this.filter.tags.length > 0) {
+        params.set("tags", this.filter.tags.join(","));
+      }
       const queryString = params.toString();
       return queryString ? `?${queryString}` : "";
     },
@@ -948,7 +960,7 @@ window.adminProjectsPage = function adminProjectsPage() {
       saving: false,
       error: "",
       original: null,
-      form: { name: "", repo_url: "" },
+      form: { name: "", repo_url: "", tags: "" },
     },
 
     init() {
@@ -1027,6 +1039,7 @@ window.adminProjectsPage = function adminProjectsPage() {
       this.projectModal.form = {
         name: (project && project.name) || "",
         repo_url: (project && project.repo_url) || "",
+        tags: (project && project.tags && project.tags.join(", ")) || "",
       };
     },
 
@@ -1038,7 +1051,7 @@ window.adminProjectsPage = function adminProjectsPage() {
       this.projectModal.error = "";
       this.projectModal.saving = false;
       this.projectModal.original = null;
-      this.projectModal.form = { name: "", repo_url: "" };
+      this.projectModal.form = { name: "", repo_url: "", tags: "" };
     },
 
     async save() {
@@ -1076,8 +1089,13 @@ window.adminProjectsPage = function adminProjectsPage() {
 
       this.projectModal.saving = true;
       try {
+        const tags = (this.projectModal.form.tags || "")
+          .split(",")
+          .map(t => t.trim())
+          .filter(Boolean);
+
         if (mode === "create") {
-          await window.apiFetch("/projects", { method: "POST", body: { name, repo_url: normalizedRepoUrl } });
+          await window.apiFetch("/projects", { method: "POST", body: { name, repo_url: normalizedRepoUrl, tags } });
           toastSuccess("Проект успешно создан");
         } else {
           if (!id) {
@@ -1108,6 +1126,11 @@ window.adminProjectsPage = function adminProjectsPage() {
             }
           } else {
             patch.repo_url = normalizedRepoUrl;
+          }
+
+          const originalTags = (this.projectModal.original && this.projectModal.original.tags) || [];
+          if (JSON.stringify(tags) !== JSON.stringify(originalTags)) {
+            patch.tags = tags;
           }
 
           if (Object.keys(patch).length === 0) {
