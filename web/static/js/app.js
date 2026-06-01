@@ -1597,6 +1597,12 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
       saving: false,
       error: "",
     },
+    statusEdit: {
+      pending: "",
+      comment: "",
+      saving: false,
+      error: "",
+    },
 
     safeRepoUrl(raw) {
       const s = String(raw == null ? "" : raw).trim();
@@ -1859,6 +1865,10 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
         this.attachmentDelete.error = "";
         this.cancelEditComment(true);
         this.closeDeleteModal(true);
+
+        this.statusEdit.pending = data ? (data.status || "") : "";
+        this.statusEdit.comment = "";
+        this.statusEdit.error = "";
 
         if (this.mode === "edit") {
           this._initEditFormFromTask(this.task);
@@ -2531,6 +2541,33 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
 
     async deleteComment(c) {
       this.openDeleteModal(c);
+    },
+
+    async changeStatus() {
+      this.statusEdit.error = "";
+      const status = (this.statusEdit.pending || "").trim();
+      if (!status || status === (this.task && this.task.status || "")) {
+        this.statusEdit.error = "Выберите другой статус";
+        return;
+      }
+
+      this.statusEdit.saving = true;
+      try {
+        const body = { status };
+        const comment = (this.statusEdit.comment || "").trim();
+        if (comment) body.comment = comment;
+
+        await window.apiFetch(`/tasks/${encodeURIComponent(this.taskId)}`, { method: "PATCH", body });
+        toastSuccess("Статус задачи успешно изменён");
+        this.statusEdit.comment = "";
+        this.statusEdit.pending = "";
+        await this.load();
+      } catch (err) {
+        if (err && err.status === 401) return;
+        toastApiError(err, "Не удалось изменить статус");
+      } finally {
+        this.statusEdit.saving = false;
+      }
     },
   };
 };

@@ -86,6 +86,7 @@ type TaskUpdateRequest struct {
 	Kind        *string `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"                   default:"Task"`
 	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=0"`
 	DueDate     *string `json:"due_date,omitempty"    validate:"omitzero,datetime=2006-01-02"`
+	Comment     *string `json:"comment,omitempty"     validate:"omitempty,max=10000"`
 }
 
 // TaskResponse represents the API response for a single task.

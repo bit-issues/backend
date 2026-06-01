@@ -1814,6 +1814,10 @@ const docTemplate = `{
                     "type": "integer",
                     "minimum": 0
                 },
+                "comment": {
+                    "type": "string",
+                    "maxLength": 10000
+                },
                 "description": {
                     "type": "string",
                     "maxLength": 10000

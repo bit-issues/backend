@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
@@ -217,6 +218,11 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 //
 // patch updates an existing task.
 func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
+	user, ok := jwtauth.GetUser(c)
+	if !ok {
+		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized")
+	}
+
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid task ID")
@@ -229,6 +235,20 @@ func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
 	task, err := h.tasksSvc.Update(c.Context(), id, update)
 	if err != nil {
 		return fmt.Errorf("failed to update task: %w", err)
+	}
+
+	// If comment was provided, create it on the task
+	if req.Comment != nil {
+		if trimmed := strings.TrimSpace(*req.Comment); trimmed != "" {
+			if _, commentErr := h.commentsSvc.Create(c.Context(), comments.CommentInput{
+				TaskID:   id,
+				AuthorID: user.ID,
+				Content:  trimmed,
+			}); commentErr != nil {
+				h.logger.Error("failed to create comment on task update",
+					zap.Int64("task_id", id), zap.Error(commentErr))
+			}
+		}
 	}
 
 	response, err := h.prepareDetailsResponse(c.Context(), task)
