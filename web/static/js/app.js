@@ -675,6 +675,7 @@ window.projectTasksPage = function projectTasksPage() {
     offset: 0,
     loading: false,
     statusFilters: [...DEFAULT_STATUS_FILTERS],
+    sort: "-created_at",
     error: "",
 
     safeRepoUrl(raw) {
@@ -710,6 +711,12 @@ window.projectTasksPage = function projectTasksPage() {
 
     clearFilters() {
       this.statusFilters = [...DEFAULT_STATUS_FILTERS];
+      this.offset = 0;
+      this.loadTasks();
+    },
+
+    setSort(value) {
+      this.sort = value;
       this.offset = 0;
       this.loadTasks();
     },
@@ -780,6 +787,7 @@ window.projectTasksPage = function projectTasksPage() {
         if (this.statusFilters.length > 0 && this.statusFilters.length < TASK_STATUSES.length) {
           params.set("statuses", this.statusFilters.join(","));
         }
+        params.set("sort", this.sort);
 
         const { data } = await window.apiFetch(`/tasks?${params.toString()}`);
         this.items = (data && data.items) || [];
@@ -1284,6 +1292,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
     },
 
     statusFilters: [...DEFAULT_STATUS_FILTERS],
+    sort: "-created_at",
 
     created: { items: [], total: 0, limit: 20, offset: 0 },
     assigned: { items: [], total: 0, limit: 20, offset: 0 },
@@ -1309,6 +1318,13 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
 
     clearFilters() {
       this.statusFilters = [...DEFAULT_STATUS_FILTERS];
+      this._resetOffsets();
+      if (this.section === "personal") this.loadPersonal();
+      else this.loadAll();
+    },
+
+    setSort(value) {
+      this.sort = value;
       this._resetOffsets();
       if (this.section === "personal") this.loadPersonal();
       else this.loadAll();
@@ -1352,6 +1368,10 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
         if (statuses && statuses.trim()) {
           this.statusFilters = statuses.split(",").filter(s => TASK_STATUSES.includes(s));
         }
+        const sort = url.searchParams.get("sort");
+        if (sort && sort.trim()) {
+          this.sort = sort;
+        }
       } catch {
         console.debug("dashboardsPage: failed to parse URL params (limit/statuses)");
       }
@@ -1361,7 +1381,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
       const params = new URLSearchParams();
       try {
         const current = new URL(window.location.href);
-        const allow = ["project", "statuses", "priorities", "sort"];
+        const allow = ["project", "statuses", "priorities"];
         for (const key of allow) {
           const v = current.searchParams.get(key);
           if (v != null && v !== "") params.set(key, v);
@@ -1369,6 +1389,7 @@ window.dashboardsPage = function dashboardsPage(initialSection = "personal") {
       } catch {
         console.debug("dashboardsPage: failed to parse URL search params");
       }
+      params.set("sort", this.sort);
       return params;
     },
 
