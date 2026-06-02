@@ -1456,6 +1456,31 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.Project": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string",
+                    "example": "2026-04-01T08:00:00Z"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "backend-service"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Backend Service"
+                },
+                "repo_url": {
+                    "type": "string",
+                    "example": "https://bitbucket.org/company/backend"
+                },
+                "updated_at": {
+                    "type": "string",
+                    "example": "2026-04-02T09:00:00Z"
+                }
+            }
+        },
         "dto.UserBrief": {
             "description": "Minimal user information for task relationships.",
             "type": "object",
@@ -1731,6 +1756,9 @@ const docTemplate = `{
                 },
                 "priority": {
                     "type": "string"
+                },
+                "project": {
+                    "$ref": "#/definitions/dto.Project"
                 },
                 "project_slug": {
                     "type": "string"
