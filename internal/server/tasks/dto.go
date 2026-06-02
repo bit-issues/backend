@@ -132,6 +132,7 @@ func newTaskResponse(task *tasks.Task, usersMap map[int64]users.User) TaskRespon
 type TaskDetailsResponse struct {
 	TaskResponse
 
+	Project     *dto.Project         `json:"project"`
 	Comments    []CommentResponse    `json:"comments"`
 	Attachments []AttachmentResponse `json:"attachments"`
 }
@@ -141,9 +142,11 @@ func newTaskDetailsResponse(
 	usersMap map[int64]users.User,
 	comments []comments.Comment,
 	attachmentList []attachments.AttachmentWithURL,
+	project *dto.Project,
 ) *TaskDetailsResponse {
 	return &TaskDetailsResponse{
 		TaskResponse: newTaskResponse(task, usersMap),
+		Project:      project,
 		Comments:     toCommentsList(comments, usersMap),
 		Attachments:  toAttachmentsList(attachmentList, usersMap),
 	}

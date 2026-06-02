@@ -9,6 +9,8 @@ import (
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/projects"
+	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -27,6 +29,7 @@ type Handler struct {
 	commentsSvc    *comments.Service
 	attachmentsSvc *attachments.Service
 	usersSvc       *users.Service
+	projectsSvc    *projects.Service
 
 	logger *zap.Logger
 }
@@ -37,6 +40,7 @@ func NewHandler(
 	commentsSvc *comments.Service,
 	attachmentsSvc *attachments.Service,
 	usersSvc *users.Service,
+	projectsSvc *projects.Service,
 	logger *zap.Logger,
 	validate *validator.Validate,
 ) handler.Handler {
@@ -47,6 +51,7 @@ func NewHandler(
 		commentsSvc:    commentsSvc,
 		attachmentsSvc: attachmentsSvc,
 		usersSvc:       usersSvc,
+		projectsSvc:    projectsSvc,
 
 		logger: logger,
 	}
@@ -392,7 +397,16 @@ func (h *Handler) prepareDetailsResponse(
 		return nil, err
 	}
 
-	return newTaskDetailsResponse(task, usersMap, comments, attachmentList), nil
+	// Fetch project for repo_url and other metadata
+	var projectResp *dto.Project
+	proj, err := h.projectsSvc.GetBySlug(ctx, task.ProjectSlug)
+	if err != nil {
+		h.logger.Warn("failed to fetch project for task", zap.String("project_slug", task.ProjectSlug), zap.Error(err))
+	} else {
+		projectResp = dto.ToProject(proj)
+	}
+
+	return newTaskDetailsResponse(task, usersMap, comments, attachmentList, projectResp), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.

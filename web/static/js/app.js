@@ -1620,7 +1620,7 @@ window.taskPage = function taskPage(taskIdRaw, modeRaw = "view", projectSlugRaw 
 
     renderMarkdown(text) {
       if (typeof window.renderMarkdown === "function") {
-        return window.renderMarkdown(text);
+        return window.renderMarkdown(text, { repoUrl: this.task?.project?.repo_url || "" });
       }
       const s = String(text ?? "").trim();
       return s ? `<p class="whitespace-pre-wrap">${s}</p>` : '<p class="text-slate-500">—</p>';
