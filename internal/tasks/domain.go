@@ -70,12 +70,17 @@ const (
 	StatusResolved   Status = "Resolved"
 	StatusClosed     Status = "Closed"
 	StatusReopened   Status = "Reopened"
+	StatusInvalid    Status = "Invalid"
+	StatusDuplicate  Status = "Duplicate"
+	StatusWontfix    Status = "Wontfix"
+	StatusOnHold     Status = "On Hold"
 )
 
 // IsValid checks if the status value is one of the allowed constants.
 func (s Status) IsValid() bool {
 	switch s {
-	case StatusNew, StatusOpen, StatusInProgress, StatusResolved, StatusClosed, StatusReopened:
+	case StatusNew, StatusOpen, StatusInProgress, StatusResolved, StatusClosed, StatusReopened,
+		StatusInvalid, StatusDuplicate, StatusWontfix, StatusOnHold:
 		return true
 	default:
 		return false

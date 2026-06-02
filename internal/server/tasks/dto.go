@@ -81,9 +81,9 @@ type TaskCreateRequest struct {
 type TaskUpdateRequest struct {
 	Title       *string `json:"title,omitempty"       validate:"omitempty,max=255"`
 	Description *string `json:"description,omitempty" validate:"omitempty,max=10000"`
-	Priority    *string `json:"priority,omitempty"    validate:"omitempty,oneof=Trivial Minor Major Critical Blocker"            default:"Minor"`
-	Status      *string `json:"status,omitempty"      validate:"omitempty,oneof=New Open 'In Progress' Resolved Closed Reopened"`
-	Kind        *string `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"                   default:"Task"`
+	Priority    *string `json:"priority,omitempty"    validate:"omitempty,oneof=Trivial Minor Major Critical Blocker"                                                default:"Minor"`
+	Status      *string `json:"status,omitempty"      validate:"omitempty,oneof=New Open 'In Progress' Resolved Closed Reopened Invalid Duplicate Wontfix 'On Hold'"`
+	Kind        *string `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"                                                       default:"Task"`
 	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=0"`
 	DueDate     *string `json:"due_date,omitempty"    validate:"omitzero,datetime=2006-01-02"`
 	Comment     *string `json:"comment,omitempty"     validate:"omitempty,max=10000"`
