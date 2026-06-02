@@ -82,6 +82,10 @@ const STATUS_CLASSES = {
   "Resolved": "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300",
   "Closed": "bg-slate-200 text-slate-600 ring-1 ring-slate-400",
   "Reopened": "bg-red-100 text-red-800 ring-1 ring-red-300",
+  "Invalid": "bg-rose-100 text-rose-800 ring-1 ring-rose-300",
+  "Duplicate": "bg-violet-100 text-violet-800 ring-1 ring-violet-300",
+  "Wontfix": "bg-gray-100 text-gray-800 ring-1 ring-gray-300",
+  "On Hold": "bg-cyan-100 text-cyan-800 ring-1 ring-cyan-300",
 };
 
 const PRIORITY_CLASSES = {
@@ -659,7 +663,7 @@ window.projectsPage = function projectsPage() {
   };
 };
 
-const TASK_STATUSES = ["New", "Open", "In Progress", "Resolved", "Closed", "Reopened"];
+const TASK_STATUSES = ["New", "Open", "In Progress", "Resolved", "Closed", "Reopened", "Invalid", "Duplicate", "Wontfix", "On Hold"];
 const DEFAULT_STATUS_FILTERS = ["New", "Open", "In Progress", "Reopened"];
 
 window.TASK_STATUSES = TASK_STATUSES;

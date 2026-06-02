@@ -1882,7 +1882,11 @@ const docTemplate = `{
                         "In Progress",
                         "Resolved",
                         "Closed",
-                        "Reopened"
+                        "Reopened",
+                        "Invalid",
+                        "Duplicate",
+                        "Wontfix",
+                        "On Hold"
                     ]
                 },
                 "title": {

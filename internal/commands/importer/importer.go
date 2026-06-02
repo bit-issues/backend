@@ -358,7 +358,7 @@ func (i *importer) normalizePriority(priority string) tasks.Priority {
 // normalizeStatus converts BitBucket status to internal format.
 func (i *importer) normalizeStatus(status string) tasks.Status {
 	switch strings.ToLower(status) {
-	case "new":
+	case "submitted", "new":
 		return tasks.StatusNew
 	case "open":
 		return tasks.StatusOpen
@@ -370,6 +370,14 @@ func (i *importer) normalizeStatus(status string) tasks.Status {
 		return tasks.StatusClosed
 	case "reopened":
 		return tasks.StatusReopened
+	case "invalid":
+		return tasks.StatusInvalid
+	case "duplicate":
+		return tasks.StatusDuplicate
+	case "wontfix":
+		return tasks.StatusWontfix
+	case "on hold":
+		return tasks.StatusOnHold
 	default:
 		return tasks.StatusNew // default
 	}
