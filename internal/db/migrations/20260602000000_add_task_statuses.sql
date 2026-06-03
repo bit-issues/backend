@@ -19,7 +19,7 @@ MODIFY COLUMN `status` ENUM(
 -- +goose StatementBegin
 UPDATE `tasks`
 SET `status` = 'Closed'
-WHERE `status` IN ('Invalid', 'Duplicate', 'Wontfix');
+WHERE `status` IN ('Invalid', 'Duplicate', 'Wontfix', 'On Hold');
 -- +goose StatementEnd
 -- +goose StatementBegin
 ALTER TABLE `tasks`
