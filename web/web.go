@@ -13,7 +13,7 @@ func Register(r fiber.Router) {
 	const maxAge = 3600
 
 	r.Get("/", func(c *fiber.Ctx) error {
-		data, err := Files.ReadFile("templates/index.html")
+		data, err := Files.ReadFile("static/dist/index.html")
 		if err != nil {
 			return fmt.Errorf("failed to open index.html: %w", err)
 		}
