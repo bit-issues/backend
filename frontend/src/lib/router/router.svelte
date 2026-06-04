@@ -1,17 +1,15 @@
-<script module lang="ts">
-  function match(pattern: string, path: string): boolean {
-    if (pattern === path) return true;
-    const patParts = pattern.split("/");
-    const pathParts = path.split("/");
-    if (patParts.length !== pathParts.length) return false;
-    return patParts.every((p, i) => p.startsWith(":") || p === pathParts[i]);
-  }
-</script>
-
 <script lang="ts">
-  import type { Snippet } from "svelte";
+  import type { RouteDef } from "./routes";
+  import { matchRoute } from "./routes";
+  import Guard from "./guard.svelte";
 
-  let { routes }: { routes: Record<string, Snippet> } = $props();
+  let {
+    routes,
+    notFound: NotFoundPage,
+  }: {
+    routes: RouteDef[];
+    notFound?: import("svelte").ComponentType;
+  } = $props();
 
   let path = $state(window.location.hash.slice(1) || "/");
 
@@ -22,10 +20,15 @@
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   });
+
+  let match = $derived(matchRoute(path, routes));
 </script>
 
-{#each Object.entries(routes) as [pattern, component]}
-  {#if match(pattern, path)}
-    {@render component()}
-  {/if}
-{/each}
+{#if match}
+  {@const Comp = match.route.component}
+  <Guard auth={match.route.auth} role={match.route.role}>
+    <Comp params={match.params} />
+  </Guard>
+{:else if NotFoundPage}
+  <NotFoundPage params={{}} />
+{/if}
