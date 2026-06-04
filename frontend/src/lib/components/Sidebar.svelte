@@ -17,7 +17,7 @@
 
   function isActive(pattern: string): boolean {
     if (pattern === "/") return currentPath === "/";
-    return currentPath.startsWith(pattern);
+    return currentPath === pattern || currentPath.startsWith(`${pattern}/`);
   }
 
   async function handleLogout() {
@@ -26,8 +26,8 @@
   }
 
   const mainNav = [
-    { pattern: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-    { pattern: "/tasks", label: "All Tasks", icon: ListTodoIcon },
+    { pattern: "/dashboard", label: "My Tasks", icon: LayoutDashboardIcon },
+    { pattern: "/dashboard/all", label: "All Tasks", icon: ListTodoIcon },
     { pattern: "/projects", label: "Projects", icon: FolderKanbanIcon },
   ];
 

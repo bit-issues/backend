@@ -286,7 +286,7 @@ func (f TaskFilter) apply(query *bun.SelectQuery) *bun.SelectQuery {
 	}
 
 	if f.UserID != nil {
-		query = query.WhereGroup("OR", func(sq *bun.SelectQuery) *bun.SelectQuery {
+		query = query.WhereGroup("AND", func(sq *bun.SelectQuery) *bun.SelectQuery {
 			return sq.WhereOr("author_id = ?", *f.UserID).WhereOr("assignee_id = ?", *f.UserID)
 		})
 	}

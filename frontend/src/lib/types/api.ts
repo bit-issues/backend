@@ -111,9 +111,14 @@ export interface TaskListResponse {
   total: number
 }
 
-export type Priority = 'Trivial' | 'Minor' | 'Major' | 'Critical' | 'Blocker'
-export type Status = 'New' | 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Reopened' | 'Invalid' | 'Duplicate' | 'Wontfix' | 'On Hold'
-export type Kind = 'Bug' | 'Enhancement' | 'Task' | 'Proposal'
+export const PRIORITIES = ['Trivial', 'Minor', 'Major', 'Critical', 'Blocker'] as const
+export type Priority = typeof PRIORITIES[number]
+
+export const STATUSES = ['New', 'Open', 'In Progress', 'Resolved', 'Closed', 'Reopened', 'Invalid', 'Duplicate', 'Wontfix', 'On Hold'] as const
+export type Status = typeof STATUSES[number]
+
+export const KINDS = ['Bug', 'Enhancement', 'Task', 'Proposal'] as const
+export type Kind = typeof KINDS[number]
 
 export interface Comment {
   id: number
