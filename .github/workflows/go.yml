@@ -39,7 +39,21 @@ jobs:
         with:
           go-version: stable
 
-      # step 3: run golangci-lint
+      # step 3: set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # step 4: install swag CLI
+      - name: Install swag CLI
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      # step 5: codegen
+      - name: Run codegen
+        run: go generate ./...
+
+      # step 6: run golangci-lint
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
@@ -64,11 +78,25 @@ jobs:
       - name: Install all Go dependencies
         run: go mod download
 
-      # step 4: run test
+      # step 4: set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # step 5: install swag CLI
+      - name: Install swag CLI
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      # step 6: codegen
+      - name: Run codegen
+        run: go generate ./...
+
+      # step 7: run test
       - name: Run coverage
         run: go test -race -shuffle=on -count=1 -covermode=atomic -coverpkg=./... -coverprofile=coverage.out ./...
 
-      # step 5: upload coverage
+      # step 8: upload coverage
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -96,7 +124,17 @@ jobs:
       - name: Install all Go dependencies
         run: go mod download
 
-      # step 4: restore previous benchmark history (if exists)
+      # step 4: set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # step 5: install swag CLI
+      - name: Install swag CLI
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      # step 6: restore previous benchmark history (if exists)
       - name: Restore benchmark history
         id: benchmark-cache
         uses: actions/cache/restore@v4
@@ -106,11 +144,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-benchmark-
 
-      # step 5: run benchmark
+      # step 7: codegen
+      - name: Run codegen
+        run: go generate ./...
+
+      # step 8: run benchmark
       - name: Run benchmarks
         run: go test -run=^$ -bench=. -benchmem ./... | tee benchmark.txt
 
-      # step 6: upload benchmark
+      # step 9: upload benchmark
       - name: Upload benchmark results
         uses: benchmark-action/github-action-benchmark@v1
         with:
@@ -123,7 +165,7 @@ jobs:
           # Workflow will fail when an alert happens
           fail-on-alert: true
 
-      # step 7: persist updated benchmark history
+      # step 10: persist updated benchmark history
       - name: Save benchmark history
         if: always()
         uses: actions/cache/save@v4
@@ -151,10 +193,24 @@ jobs:
       - name: Install main Go dependencies
         run: go mod download
 
-      # step 4: install e2e test dependencies
+      # step 4: set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      # step 5: install swag CLI
+      - name: Install swag CLI
+        run: go install github.com/swaggo/swag/cmd/swag@latest
+
+      # step 6: codegen
+      - name: Run codegen
+        run: go generate ./...
+
+      # step 7: install e2e test dependencies
       - name: Install E2E test dependencies
         run: cd tests/e2e && go mod download
 
-      # step 5: run e2e tests with verbose output
+      # step 8: run e2e tests with verbose output
       - name: Run E2E tests
         run: cd tests/e2e && go test -v ./...

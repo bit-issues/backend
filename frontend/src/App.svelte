@@ -13,6 +13,11 @@
   import PendingPage from "./pages/pending.svelte";
   import NotFoundPage from "./pages/notfound.svelte";
 
+  import DashboardPersonal from "$lib/pages/dashboard-personal.svelte";
+  import DashboardTasks from "$lib/pages/dashboard-tasks.svelte";
+  import ProjectsPage from "$lib/pages/projects.svelte";
+  import ProjectTasks from "$lib/pages/project-tasks.svelte";
+
   let initialized = $state(false);
 
   let path = $state("");
@@ -39,6 +44,10 @@
     { pattern: "/login", component: LoginPage },
     { pattern: "/register", component: RegisterPage },
     { pattern: "/pending", component: PendingPage },
+    { pattern: "/dashboard", component: DashboardPersonal, auth: true },
+    { pattern: "/dashboard/all", component: DashboardTasks, auth: true },
+    { pattern: "/projects", component: ProjectsPage, auth: true },
+    { pattern: "/projects/:slug", component: ProjectTasks, auth: true },
   ];
 </script>
 

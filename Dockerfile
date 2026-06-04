@@ -16,14 +16,14 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY --from=frontend /web/static/dist ./web/static/dist
+COPY --from=frontend /frontend/dist ./web/static/dist
 
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/server ./main.go
 
 
-FROM alpine:latest
+FROM alpine:3.23
 
 RUN apk add --no-cache ca-certificates tzdata
 

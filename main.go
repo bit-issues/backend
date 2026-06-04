@@ -25,6 +25,7 @@ import (
 )
 
 //go:generate swag init --parseDependency --outputTypes go -g ./main.go -o ./internal/server/docs
+//go:generate npm --prefix frontend ci
 //go:generate npm --prefix frontend run build
 
 //nolint:gochecknoglobals // build metadata

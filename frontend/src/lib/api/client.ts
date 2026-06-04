@@ -3,6 +3,7 @@ import type { ApiError, RefreshResponse } from '$lib/types/api'
 let accessToken: string | null = null
 let refreshToken: string | null = null
 let onUnauthorized: (() => void) | null = null
+let refreshInFlight: Promise<boolean> | null = null
 
 export function setTokens(access: string | null, refresh: string | null) {
   accessToken = access
@@ -19,19 +20,29 @@ export function setOnUnauthorized(cb: () => void) {
 
 async function refreshTokens(): Promise<boolean> {
   if (!refreshToken) return false
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = (async () => {
+    try {
+      const res = await fetch('/api/v1/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+      if (!res.ok) return false
+      const data: RefreshResponse = await res.json()
+      accessToken = data.access_token
+      refreshToken = data.refresh_token
+      return true
+    } catch {
+      return false
+    }
+  })()
+
   try {
-    const res = await fetch('/api/v1/auth/refresh', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    })
-    if (!res.ok) return false
-    const data: RefreshResponse = await res.json()
-    accessToken = data.access_token
-    refreshToken = data.refresh_token
-    return true
-  } catch {
-    return false
+    return await refreshInFlight
+  } finally {
+    refreshInFlight = null
   }
 }
 
@@ -80,6 +91,10 @@ export async function apiRequest<T>(
       onUnauthorized?.()
       throw new ApiErrorResponse(401, 'Unauthorized')
     }
+  }
+
+  if (res.status === 401) {
+    onUnauthorized?.()
   }
 
   if (!res.ok) {
