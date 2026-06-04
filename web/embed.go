@@ -2,7 +2,7 @@ package web
 
 import "embed"
 
-// Files contains embedded web templates and static assets.
+// Files contains embedded static assets.
 //
-//go:embed all:templates all:static
+//go:embed all:static
 var Files embed.FS
