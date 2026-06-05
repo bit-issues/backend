@@ -2,7 +2,7 @@
   import Router from "$lib/router/router.svelte";
   import type { RouteDef } from "$lib/router/routes";
   import { navigate } from "$lib/router/routes";
-  import { isAuthenticated, clear as clearAuth } from "$lib/stores/auth.svelte";
+  import { isAuthenticated } from "$lib/stores/auth.svelte";
   import { setOnUnauthorized } from "$lib/api/client";
   import AppShell from "$lib/components/AppShell.svelte";
   import { Toaster } from "$lib/components/ui/sonner";
@@ -17,6 +17,9 @@
   import DashboardTasks from "$lib/pages/dashboard-tasks.svelte";
   import ProjectsPage from "$lib/pages/projects.svelte";
   import ProjectTasks from "$lib/pages/project-tasks.svelte";
+  import TaskDetailPage from "$lib/pages/task-detail.svelte";
+  import TaskNewPage from "$lib/pages/task-new.svelte";
+  import TaskEditPage from "$lib/pages/task-edit.svelte";
 
   let initialized = $state(false);
 
@@ -24,7 +27,6 @@
 
   $effect(() => {
     setOnUnauthorized(() => {
-      clearAuth();
       navigate("/login");
     });
     initialized = true;
@@ -32,9 +34,9 @@
 
   $effect(() => {
     const handler = () => {
-      path = window.location.hash.slice(1) || "/";
+      path = (window.location.hash.slice(1) || "/").split("?")[0];
     };
-    path = window.location.hash.slice(1) || "/";
+    path = (window.location.hash.slice(1) || "/").split("?")[0];
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   });
@@ -48,6 +50,9 @@
     { pattern: "/dashboard/all", component: DashboardTasks, auth: true },
     { pattern: "/projects", component: ProjectsPage, auth: true },
     { pattern: "/projects/:slug", component: ProjectTasks, auth: true },
+    { pattern: "/tasks/new", component: TaskNewPage, auth: true },
+    { pattern: "/tasks/:id/edit", component: TaskEditPage, auth: true },
+    { pattern: "/tasks/:id", component: TaskDetailPage, auth: true },
   ];
 </script>
 

@@ -11,11 +11,15 @@
     notFound?: import("svelte").ComponentType;
   } = $props();
 
-  let path = $state(window.location.hash.slice(1) || "/");
+  function hashPath(): string {
+    return (window.location.hash.slice(1) || "/").split("?")[0];
+  }
+
+  let path = $state(hashPath());
 
   $effect(() => {
     const handler = () => {
-      path = window.location.hash.slice(1) || "/";
+      path = hashPath();
     };
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);

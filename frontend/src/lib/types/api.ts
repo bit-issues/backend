@@ -143,6 +143,7 @@ export interface Attachment {
   file_name: string
   size_bytes: number
   status: 'pending' | 'uploaded'
+  download_url: string
   created_at: string
   updated_at: string
 }
