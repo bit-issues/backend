@@ -1,10 +1,15 @@
 import { loginApi, registerApi, logoutApi } from '$lib/api/auth'
-import { setTokens } from '$lib/api/client'
 import type { User } from '$lib/types/api'
 
 let _accessToken = $state<string | null>(null)
 let _refreshToken = $state<string | null>(null)
 let _user = $state<User | null>(null)
+
+export function setTokens(accessToken: string, refreshToken: string) {
+  _accessToken = accessToken
+  _refreshToken = refreshToken
+  persist()
+}
 
 export function getAccessToken(): string | null {
   return _accessToken
@@ -43,7 +48,6 @@ function restore() {
       clear()
     }
   }
-  setTokens(_accessToken, _refreshToken)
 }
 
 export function clear() {
@@ -53,15 +57,11 @@ export function clear() {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
   localStorage.removeItem('user')
-  setTokens(null, null)
 }
 
 export async function login(email: string, password: string): Promise<void> {
   const res = await loginApi({ email, password })
-  _accessToken = res.access_token
-  _refreshToken = res.refresh_token
   _user = res.user
-  persist()
   setTokens(res.access_token, res.refresh_token)
 }
 

@@ -334,7 +334,11 @@ func (h *Handler) myTasks(c *fiber.Ctx) error {
 }
 
 // fetchUsersForTasks collects unique user IDs from tasks and fetches them in a single batch call.
-func (h *Handler) fetchUsersForTasks(ctx context.Context, tasks []tasks.Task) (map[int64]users.User, error) {
+func (h *Handler) fetchUsersForTasks(
+	ctx context.Context,
+	tasks []tasks.Task,
+	comments []comments.Comment,
+) (map[int64]users.User, error) {
 	// Collect unique user IDs
 	idSet := make(map[int64]struct{})
 	for _, t := range tasks {
@@ -342,6 +346,10 @@ func (h *Handler) fetchUsersForTasks(ctx context.Context, tasks []tasks.Task) (m
 		if t.AssigneeID != nil {
 			idSet[*t.AssigneeID] = struct{}{}
 		}
+	}
+
+	for _, c := range comments {
+		idSet[c.AuthorID] = struct{}{}
 	}
 
 	if len(idSet) == 0 {
@@ -369,7 +377,7 @@ func (h *Handler) prepareListResponse(
 	total int,
 ) (*TaskListResponse, error) {
 	// Fetch users for author and assignee enrichment
-	usersMap, err := h.fetchUsersForTasks(ctx, tasks)
+	usersMap, err := h.fetchUsersForTasks(ctx, tasks, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +400,7 @@ func (h *Handler) prepareDetailsResponse(
 	}
 
 	// Fetch users for author and assignee enrichment
-	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task})
+	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task}, comments)
 	if err != nil {
 		return nil, err
 	}

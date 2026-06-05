@@ -116,6 +116,16 @@
         </button>
       {/each}
     {/if}
+
+    <div class="px-2 pt-1">
+      <a
+        href="#/tasks/new"
+        onclick={() => (mobileOpen = false)}
+        class="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+      >
+        + New Task
+      </a>
+    </div>
   </nav>
 
   <!-- User section -->

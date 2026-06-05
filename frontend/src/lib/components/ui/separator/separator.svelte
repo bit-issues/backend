@@ -8,10 +8,10 @@
     orientation = "horizontal",
     decorative = true,
     ...restProps
-  }: SeparatorPrimitive.SeparatorProps = $props();
+  }: SeparatorPrimitive.Separator.RootProps = $props();
 </script>
 
-<SeparatorPrimitive.Separator
+<SeparatorPrimitive.Separator.Root
   bind:ref
   {orientation}
   {decorative}

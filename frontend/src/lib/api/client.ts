@@ -1,25 +1,16 @@
+import { clear, getAccessToken, getRefreshToken, setTokens } from '$lib/stores/auth.svelte'
 import type { ApiError, RefreshResponse } from '$lib/types/api'
 
-let accessToken: string | null = null
-let refreshToken: string | null = null
 let onUnauthorized: (() => void) | null = null
 let refreshInFlight: Promise<boolean> | null = null
-
-export function setTokens(access: string | null, refresh: string | null) {
-  accessToken = access
-  refreshToken = refresh
-}
-
-export function getAccessToken() {
-  return accessToken
-}
 
 export function setOnUnauthorized(cb: () => void) {
   onUnauthorized = cb
 }
 
 async function refreshTokens(): Promise<boolean> {
-  if (!refreshToken) return false
+  const refreshTokenSnapshot = getRefreshToken()
+  if (!refreshTokenSnapshot) return false
   if (refreshInFlight) return refreshInFlight
 
   refreshInFlight = (async () => {
@@ -27,12 +18,12 @@ async function refreshTokens(): Promise<boolean> {
       const res = await fetch('/api/v1/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refresh_token: refreshToken }),
+        body: JSON.stringify({ refresh_token: refreshTokenSnapshot }),
       })
       if (!res.ok) return false
       const data: RefreshResponse = await res.json()
-      accessToken = data.access_token
-      refreshToken = data.refresh_token
+      if (getRefreshToken() !== refreshTokenSnapshot) return false
+      setTokens(data.access_token, data.refresh_token)
       return true
     } catch {
       return false
@@ -66,8 +57,8 @@ export async function apiRequest<T>(
   if (body !== undefined && !(body instanceof FormData)) {
     headers['Content-Type'] = 'application/json'
   }
-  if (accessToken) {
-    headers['Authorization'] = `Bearer ${accessToken}`
+  if (getAccessToken()) {
+    headers['Authorization'] = `Bearer ${getAccessToken()}`
   }
 
   const requestBody = body instanceof FormData ? body : body !== undefined ? JSON.stringify(body) : undefined
@@ -78,22 +69,24 @@ export async function apiRequest<T>(
     body: requestBody,
   })
 
-  if (res.status === 401 && refreshToken) {
+  if (res.status === 401 && getRefreshToken()) {
     const refreshed = await refreshTokens()
     if (refreshed) {
-      headers['Authorization'] = `Bearer ${accessToken}`
+      headers['Authorization'] = `Bearer ${getAccessToken()}`
       res = await fetch(`/api/v1${path}`, {
         method,
         headers,
         body: requestBody,
       })
     } else {
+      clear()
       onUnauthorized?.()
       throw new ApiErrorResponse(401, 'Unauthorized')
     }
   }
 
   if (res.status === 401) {
+    clear()
     onUnauthorized?.()
   }
 
