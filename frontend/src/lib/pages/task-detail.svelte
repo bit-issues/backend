@@ -6,20 +6,25 @@
     deleteComment,
   } from "$lib/api/comments";
   import { deleteAttachment } from "$lib/api/attachments";
-  import { initUpload, confirmUpload } from "$lib/api/attachments";
   import { navigate } from "$lib/router/routes";
   import { getUser } from "$lib/stores/auth.svelte";
   import AssigneeCombobox from "$lib/components/AssigneeCombobox.svelte";
+  import CommentList from "$lib/components/CommentList.svelte";
+  import CommentForm from "$lib/components/CommentForm.svelte";
+  import AttachmentList from "$lib/components/AttachmentList.svelte";
+  import AttachmentUpload from "$lib/components/AttachmentUpload.svelte";
   import { Textarea } from "$lib/components/ui/textarea";
   import { Button } from "$lib/components/ui/button";
   import { Separator } from "$lib/components/ui/separator";
   import * as Card from "$lib/components/ui/card";
   import { parse } from "marked";
+  import DOMPurify from "dompurify";
   import { onMount } from "svelte";
-  import type { TaskDetails, Comment } from "$lib/types/api";
+  import type { TaskDetails, Comment, Attachment } from "$lib/types/api";
   import { STATUSES } from "$lib/types/api";
   import { processAutoLinks } from "$lib/autolink";
   import type { AutoLinkContext } from "$lib/autolink";
+  import { toast } from "$lib/toast";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let id = $derived(Number(params.id));
@@ -27,13 +32,6 @@
   let task = $state<TaskDetails | null>(null);
   let loading = $state(true);
   let error = $state("");
-
-  let newComment = $state("");
-  let posting = $state(false);
-
-  let editingCommentId = $state<number | null>(null);
-  let editCommentText = $state("");
-  let savingComment = $state(false);
 
   let deleting = $state(false);
 
@@ -53,9 +51,11 @@
 
   let renderedDescription = $derived(
     task?.description
-      ? (parse(processAutoLinks(task.description, autoLinkCtx), {
-          async: false,
-        }) as string)
+      ? DOMPurify.sanitize(
+          parse(processAutoLinks(task.description, autoLinkCtx), {
+            async: false,
+          }) as string,
+        )
       : "",
   );
 
@@ -88,7 +88,7 @@
           assigneeId = updated.assignee?.id ?? null;
         })
         .catch((e: any) => {
-          alert(e.message || "Failed to update assignee");
+          toast.error(e.message || "Failed to update assignee");
           assigneeId = oldId;
         })
         .finally(() => {
@@ -104,126 +104,44 @@
       await deleteTask(id);
       navigate("/dashboard");
     } catch (e: any) {
-      alert(e.message || "Failed to delete task");
+      toast.error(e.message || "Failed to delete task");
     } finally {
       deleting = false;
     }
   }
 
-  async function handleAddComment() {
-    if (!newComment.trim()) return;
-    posting = true;
-    try {
-      const created = await createComment(id, { content: newComment });
-      task = {
-        ...task!,
-        comments: [...task!.comments, created as Comment],
-      };
-      newComment = "";
-    } catch (e: any) {
-      alert(e.message || "Failed to add comment");
-    } finally {
-      posting = false;
-    }
+  async function handleAddComment(content: string) {
+    const created = await createComment(id, { content });
+    task = {
+      ...task!,
+      comments: [...task!.comments, created as Comment],
+    };
   }
 
-  function startEdit(comment: Comment) {
-    editingCommentId = comment.id;
-    editCommentText = comment.content;
-  }
-
-  function cancelEdit() {
-    editingCommentId = null;
-    editCommentText = "";
-  }
-
-  async function handleEditComment(commentId: number) {
-    if (!editCommentText.trim()) return;
-    savingComment = true;
-    try {
-      const updated = await updateComment(id, commentId, {
-        content: editCommentText,
-      });
-      task = {
-        ...task!,
-        comments: task!.comments.map((c) =>
-          c.id === commentId ? (updated as Comment) : c,
-        ),
-      };
-      editingCommentId = null;
-      editCommentText = "";
-    } catch (e: any) {
-      alert(e.message || "Failed to update comment");
-    } finally {
-      savingComment = false;
-    }
+  async function handleEditComment(commentId: number, content: string) {
+    const updated = await updateComment(id, commentId, { content });
+    task = {
+      ...task!,
+      comments: task!.comments.map((c) =>
+        c.id === commentId ? (updated as Comment) : c,
+      ),
+    };
   }
 
   async function handleDeleteComment(commentId: number) {
-    if (!confirm("Delete this comment?")) return;
-    try {
-      await deleteComment(id, commentId);
-      task = {
-        ...task!,
-        comments: task!.comments.filter((c) => c.id !== commentId),
-      };
-    } catch (e: any) {
-      alert(e.message || "Failed to delete comment");
-    }
+    await deleteComment(id, commentId);
+    task = {
+      ...task!,
+      comments: task!.comments.filter((c) => c.id !== commentId),
+    };
   }
 
   async function handleDeleteAttachment(attachmentId: number) {
-    if (!confirm("Delete this attachment?")) return;
-    try {
-      await deleteAttachment(id, attachmentId);
-      task = {
-        ...task!,
-        attachments: task!.attachments.filter((a) => a.id !== attachmentId),
-      };
-    } catch (e: any) {
-      alert(e.message || "Failed to delete attachment");
-    }
-  }
-
-  async function handleUpload(e: Event) {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    try {
-      const init = await initUpload(id, {
-        file_name: file.name,
-        size_bytes: file.size,
-      });
-      try {
-        const res = await fetch(init.upload_url, { method: "PUT", body: file });
-        if (!res.ok) throw new Error(`Upload failed with status ${res.status}`);
-      } catch {
-        alert("Upload failed: S3 storage not available in dev mode");
-        input.value = "";
-        return;
-      }
-      const confirmed = await confirmUpload(id, init.id);
-      task = {
-        ...task!,
-        attachments: [
-          ...task!.attachments,
-          {
-            id: confirmed.id,
-            task_id: id,
-            author: getUser()!,
-            file_name: confirmed.file_name,
-            size_bytes: confirmed.size_bytes,
-            status: "uploaded",
-            created_at: "",
-            updated_at: "",
-          },
-        ],
-      };
-    } catch (e: any) {
-      alert(e.message || "Upload failed");
-    }
-    input.value = "";
+    await deleteAttachment(id, attachmentId);
+    task = {
+      ...task!,
+      attachments: task!.attachments.filter((a) => a.id !== attachmentId),
+    };
   }
 
   async function handleStatusChange() {
@@ -236,7 +154,7 @@
       task = { ...updated };
       statusComment = "";
     } catch (e: any) {
-      alert(e.message || "Failed to update status");
+      toast.error(e.message || "Failed to update status");
     } finally {
       savingStatus = false;
     }
@@ -249,19 +167,6 @@
 
   function formatDateTime(d: string): string {
     return new Date(d).toLocaleString();
-  }
-
-  function renderMarkdown(text: string): string {
-    if (!text) return "";
-    return parse(processAutoLinks(text, autoLinkCtx), {
-      async: false,
-    }) as string;
-  }
-
-  function formatBytes(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 </script>
 
@@ -325,80 +230,17 @@
             Comments ({task.comments.length})
           </h2>
 
-          <div class="space-y-3">
-            {#each task.comments as comment (comment.id)}
-              <div class="rounded-lg border p-3">
-                <div
-                  class="mb-1 flex items-center gap-2 text-xs text-muted-foreground"
-                >
-                  <span class="font-medium text-foreground"
-                    >{comment.author.name}</span
-                  >
-                  &middot;
-                  <span>{formatDateTime(comment.created_at)}</span>
-                  {#if comment.updated_at !== comment.created_at}
-                    &middot;
-                    <span class="italic">edited</span>
-                  {/if}
-                </div>
-
-                {#if editingCommentId === comment.id}
-                  <Textarea
-                    bind:value={editCommentText}
-                    class="mb-2 min-h-16"
-                  />
-                  <div class="flex gap-2">
-                    <Button
-                      size="sm"
-                      onclick={() => handleEditComment(comment.id)}
-                      disabled={savingComment}
-                    >
-                      {savingComment ? "Saving..." : "Save"}
-                    </Button>
-                    <Button size="sm" variant="ghost" onclick={cancelEdit}
-                      >Cancel</Button
-                    >
-                  </div>
-                {:else}
-                  <div
-                    class="prose prose-sm dark:prose-invert max-w-none text-sm"
-                  >
-                    {@html renderMarkdown(comment.content)}
-                  </div>
-                  {#if comment.author.id === currentUserId}
-                    <div class="mt-1 flex gap-2">
-                      <button
-                        class="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-2"
-                        onclick={() => startEdit(comment)}>Edit</button
-                      >
-                      <button
-                        class="text-muted-foreground hover:text-destructive cursor-pointer text-xs underline underline-offset-2"
-                        onclick={() => handleDeleteComment(comment.id)}
-                        >Delete</button
-                      >
-                    </div>
-                  {/if}
-                {/if}
-              </div>
-            {:else}
-              <p class="text-muted-foreground text-sm italic">
-                No comments yet
-              </p>
-            {/each}
-          </div>
-
-          <div class="mt-4">
-            <Textarea
-              bind:value={newComment}
-              placeholder="Add a comment..."
-              class="mb-2 min-h-20"
+          <div>
+            <CommentList
+              comments={task.comments}
+              {currentUserId}
+              {autoLinkCtx}
+              onEdit={handleEditComment}
+              onDelete={handleDeleteComment}
             />
-            <Button
-              onclick={handleAddComment}
-              disabled={posting || !newComment.trim()}
-            >
-              {posting ? "Posting..." : "Comment"}
-            </Button>
+            <div class="mt-4">
+              <CommentForm onSubmit={handleAddComment} />
+            </div>
           </div>
         </div>
       </div>
@@ -501,49 +343,30 @@
             >
           </Card.CardHeader>
           <Card.CardContent>
-            {#if task.attachments.length > 0}
-              <div class="mb-3 space-y-1">
-                {#each task.attachments as att (att.id)}
-                  <div
-                    class="flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm"
-                  >
-                    <span class="text-muted-foreground text-lg">&#128206;</span>
-                    {#if att.download_url}
-                      <a
-                        href={att.download_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        class="flex-1 truncate hover:underline cursor-pointer"
-                        >{att.file_name}</a
-                      >
-                    {:else}
-                      <span class="flex-1 truncate">{att.file_name}</span>
-                    {/if}
-                    <span class="text-muted-foreground shrink-0 text-xs"
-                      >{formatBytes(att.size_bytes)}</span
-                    >
-                    <button
-                      type="button"
-                      onclick={() => handleDeleteAttachment(att.id)}
-                      class="text-muted-foreground hover:text-destructive shrink-0 cursor-pointer text-xs underline underline-offset-2"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                {/each}
-              </div>
-            {:else}
-              <p class="text-muted-foreground mb-3 text-sm italic">
-                No attachments
-              </p>
-            {/if}
-
-            <label
-              class="inline-flex cursor-pointer items-center justify-center rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm font-medium text-foreground hover:bg-muted dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
-            >
-              Upload file
-              <input type="file" class="hidden" onchange={handleUpload} />
-            </label>
+            <AttachmentList
+              attachments={task.attachments}
+              {currentUserId}
+              onDelete={handleDeleteAttachment}
+            />
+            <AttachmentUpload
+              taskId={id}
+              onUploaded={(confirmed) => {
+                const att: Attachment = {
+                  id: confirmed.id,
+                  task_id: id,
+                  uploaded_by: confirmed.uploaded_by,
+                  file_name: confirmed.file_name,
+                  size_bytes: confirmed.size_bytes,
+                  download_url: confirmed.download_url,
+                  created_at: confirmed.uploaded_at,
+                  updated_at: confirmed.uploaded_at,
+                };
+                task = {
+                  ...task!,
+                  attachments: [...task!.attachments, att],
+                };
+              }}
+            />
           </Card.CardContent>
         </Card.Root>
       </aside>
