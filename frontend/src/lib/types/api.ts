@@ -139,10 +139,9 @@ export interface CommentUpdateRequest {
 export interface Attachment {
   id: number
   task_id: number
-  author: UserBrief
+  uploaded_by: UserBrief
   file_name: string
   size_bytes: number
-  status: 'pending' | 'uploaded'
   download_url: string
   created_at: string
   updated_at: string
@@ -165,6 +164,8 @@ export interface AttachmentConfirmResponse {
   file_name: string
   size_bytes: number
   download_url: string
+  uploaded_by: UserBrief
+  uploaded_at: string
 }
 
 export interface PaginatedResponse<T> {
