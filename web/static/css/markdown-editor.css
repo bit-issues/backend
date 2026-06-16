@@ -1,6 +1,13 @@
 /* Bit Issues overrides for markdown-text-editor (.markdown-editor-wrapper) */
+.task-markdown-field {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .task-markdown-field .markdown-editor-wrapper {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 0.25rem;
 }
 

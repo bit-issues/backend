@@ -75,7 +75,7 @@
         x-text="notice" x-show="notice" x-cloak></div>
 
       <div class="grid gap-4 lg:grid-cols-3">
-        <div class="lg:col-span-2">
+        <div class="min-w-0 lg:col-span-2">
           <div class="rounded-xl border bg-white p-4 shadow-sm">
             <div x-show="loading" x-cloak class="text-sm text-slate-600">Загрузка…</div>
 
@@ -242,7 +242,7 @@
           </div>
         </div>
 
-        <div class="lg:col-span-1">
+        <div class="min-w-0 lg:col-span-1">
           <div class="rounded-xl border bg-white p-4 shadow-sm" x-show="isView()" x-cloak>
             <div class="text-sm font-semibold">Ответственный</div>
             <template x-if="!loading">
