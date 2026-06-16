@@ -1,7 +1,7 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
-  import { STATUSES, PRIORITIES, type Project } from "$lib/types/api";
+  import { STATUSES, PRIORITIES, ACTIVE_STATUSES, type Project } from "$lib/types/api";
 
   let {
     projects = [],
@@ -60,7 +60,7 @@
   };
 
   let hasFilters = $derived(
-    !!filterProject || filterStatuses.length > 0 || filterPriorities.length > 0,
+    !!filterProject || filterStatuses.join(",") !== ACTIVE_STATUSES.join(",") || filterPriorities.length > 0,
   );
 </script>
 

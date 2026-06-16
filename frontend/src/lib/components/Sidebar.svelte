@@ -16,8 +16,7 @@
   let mobileOpen = $state(false);
 
   function isActive(pattern: string): boolean {
-    if (pattern === "/") return currentPath === "/";
-    return currentPath === pattern || currentPath.startsWith(`${pattern}/`);
+    return currentPath === pattern;
   }
 
   async function handleLogout() {
