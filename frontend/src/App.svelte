@@ -21,6 +21,11 @@
   import TaskNewPage from "$lib/pages/task-new.svelte";
   import TaskEditPage from "$lib/pages/task-edit.svelte";
 
+  import AdminPage from "$lib/pages/admin.svelte";
+  import AdminUsers from "$lib/pages/admin-users.svelte";
+  import AdminProjects from "$lib/pages/admin-projects.svelte";
+  import ProfilePage from "$lib/pages/profile.svelte";
+
   let initialized = $state(false);
 
   let path = $state("");
@@ -53,6 +58,10 @@
     { pattern: "/tasks/new", component: TaskNewPage, auth: true },
     { pattern: "/tasks/:id/edit", component: TaskEditPage, auth: true },
     { pattern: "/tasks/:id", component: TaskDetailPage, auth: true },
+    { pattern: "/profile", component: ProfilePage, auth: true },
+    { pattern: "/admin/users", component: AdminUsers, auth: true, role: "admin" },
+    { pattern: "/admin/projects", component: AdminProjects, auth: true, role: "admin" },
+    { pattern: "/admin", component: AdminPage, auth: true, role: "admin" },
   ];
 </script>
 
