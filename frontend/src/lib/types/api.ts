@@ -115,6 +115,7 @@ export const PRIORITIES = ['Trivial', 'Minor', 'Major', 'Critical', 'Blocker'] a
 export type Priority = typeof PRIORITIES[number]
 
 export const STATUSES = ['New', 'Open', 'In Progress', 'Resolved', 'Closed', 'Reopened', 'Invalid', 'Duplicate', 'Wontfix', 'On Hold'] as const
+export const ACTIVE_STATUSES = ['New', 'Open', 'In Progress', 'Reopened', 'On Hold'] as const
 export type Status = typeof STATUSES[number]
 
 export const KINDS = ['Bug', 'Enhancement', 'Task', 'Proposal'] as const

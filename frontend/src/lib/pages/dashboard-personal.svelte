@@ -8,6 +8,7 @@
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import type { Task, Project } from "$lib/types/api";
+  import { ACTIVE_STATUSES } from "$lib/types/api";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
@@ -19,7 +20,7 @@
   let activeTab = $state<"created" | "assigned">("assigned");
 
   let filterProject = $state("");
-  let filterStatuses = $state<string[]>([]);
+  let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
   let sort = $state("-created_at");
 
@@ -45,7 +46,7 @@
 
   function resetFilters() {
     filterProject = "";
-    filterStatuses = [];
+    filterStatuses = [...ACTIVE_STATUSES];
     filterPriorities = [];
   }
 

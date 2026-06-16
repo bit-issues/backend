@@ -10,6 +10,7 @@
   import TaskFilters from "$lib/components/TaskFilters.svelte";
   import { Button } from "$lib/components/ui/button";
   import type { Project, Task } from "$lib/types/api";
+  import { ACTIVE_STATUSES } from "$lib/types/api";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
@@ -20,7 +21,7 @@
   let error = $state("");
 
   let filterProject = $state("");
-  let filterStatuses = $state<string[]>([]);
+  let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
   let sort = $state("-created_at");
   let offset = $state(0);
@@ -87,7 +88,7 @@
 
   function resetFilters() {
     filterProject = "";
-    filterStatuses = [];
+    filterStatuses = [...ACTIVE_STATUSES];
     filterPriorities = [];
     offset = 0;
   }

@@ -10,6 +10,7 @@
   import * as Card from "$lib/components/ui/card";
   import { Button } from "$lib/components/ui/button";
   import type { Project, Task } from "$lib/types/api";
+  import { ACTIVE_STATUSES } from "$lib/types/api";
 
   // svelte-ignore a11y_click_events_have_key_events
 
@@ -25,7 +26,7 @@
   let offset = $state(0);
   const limit = 50;
 
-  let filterStatuses = $state<string[]>([]);
+  let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
 
   function toggleStatus(s: string) {
@@ -47,7 +48,7 @@
   }
 
   function resetFilters() {
-    filterStatuses = [];
+    filterStatuses = [...ACTIVE_STATUSES];
     filterPriorities = [];
     offset = 0;
   }
