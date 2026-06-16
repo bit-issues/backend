@@ -118,6 +118,11 @@
     const originalDisabled = el.disabled;
 
     const instance = new Ctor(el, options);
+    // Vendor bug: handleBackspace uses `pairs[r] === a`, which is true when both are
+    // undefined (cursor at end of string) and can remove two characters per keypress.
+    if (instance.indentManager) {
+      instance.indentManager.handleBackspace = () => {};
+    }
     attachEditorSync(instance, el);
     instances.set(key, { instance, el, originalClass, originalDisabled });
     return instance;
