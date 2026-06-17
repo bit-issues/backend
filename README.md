@@ -140,7 +140,7 @@ Client                  Server                  S3 Storage
 * [![Fiber][Fiber-badge]][Fiber-url]
 * [![MySQL][MySQL-badge]][MySQL-url]
 * [![Swagger][Swagger-badge]][Swagger-url]
-* [![Alpine.js][Alpine-badge]][Alpine-url]
+* [![Svelte][Svelte-badge]][Svelte-url]
 * [![Tailwind CSS][Tailwind-badge]][Tailwind-url]
 * [![Docker][Docker-badge]][Docker-url]
 * [![Prometheus][Prometheus-badge]][Prometheus-url]
@@ -338,7 +338,7 @@ Project Link: [https://github.com/bit-issues/backend](https://github.com/bit-iss
 * [uptrace/bun](https://github.com/uptrace/bun)
 * [pressly/goose](https://github.com/pressly/goose)
 * [MinIO](https://min.io)
-* [Alpine.js](https://alpinejs.dev)
+* [Svelte](https://svelte.dev)
 * [Tailwind CSS](https://tailwindcss.com)
 * [Swaggo](https://github.com/swaggo/swag)
 * [GoReleaser](https://goreleaser.com)
@@ -367,8 +367,8 @@ Project Link: [https://github.com/bit-issues/backend](https://github.com/bit-iss
 [MySQL-url]: https://www.mysql.com
 [Swagger-badge]: https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black
 [Swagger-url]: https://swagger.io
-[Alpine-badge]: https://img.shields.io/badge/Alpine.js-8BC0D0?style=for-the-badge&logo=alpinedotjs&logoColor=black
-[Alpine-url]: https://alpinejs.dev
+[Svelte-badge]: https://img.shields.io/badge/Svelte-FF3E00?style=for-the-badge&logo=svelte&logoColor=white
+[Svelte-url]: https://svelte.dev
 [Tailwind-badge]: https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white
 [Tailwind-url]: https://tailwindcss.com
 [Docker-badge]: https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white
