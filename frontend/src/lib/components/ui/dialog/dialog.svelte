@@ -15,8 +15,8 @@
     children?: import("svelte").Snippet;
     footer?: import("svelte").Snippet;
   } = $props();
-  let dialogEl: HTMLDivElement | null = null;
-  let previouslyFocused: HTMLElement | null = null;
+  let dialogEl = $state<HTMLDivElement | null>(null);
+  let previouslyFocused = $state<HTMLElement | null>(null);
 
   $effect(() => {
     if (open) {
