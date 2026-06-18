@@ -31,6 +31,7 @@
     if (!q.trim()) {
       results = [];
       open = false;
+      loading = false;
       return;
     }
     loading = true;
@@ -58,6 +59,7 @@
   }
 
   function select(user: UserBrief) {
+    requestSeq++;
     value = user.id;
     selectedName = user.name;
     query = "";
@@ -66,6 +68,7 @@
   }
 
   function clear() {
+    requestSeq++;
     value = null;
     selectedName = "";
     query = "";
@@ -89,6 +92,7 @@
       <button
         type="button"
         onclick={clear}
+        aria-label="Clear selection"
         class="text-muted-foreground hover:text-foreground ml-1 cursor-pointer leading-none text-lg"
       >
         &times;
