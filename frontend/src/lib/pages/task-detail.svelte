@@ -7,6 +7,7 @@
   } from "$lib/api/comments";
   import { deleteAttachment } from "$lib/api/attachments";
   import { navigate } from "$lib/router/routes";
+  import { touchProject } from "$lib/stores/recent-projects.svelte";
   import { getUser } from "$lib/stores/auth.svelte";
   import AssigneeCombobox from "$lib/components/AssigneeCombobox.svelte";
   import CommentList from "$lib/components/CommentList.svelte";
@@ -67,6 +68,7 @@
         selectedStatus = t.status;
         assigneeId = t.assignee?.id ?? null;
         ready = true;
+        touchProject({ id: t.project.id, name: t.project.name });
       })
       .catch((e) => {
         error = e.message || "Failed to load task";
@@ -346,6 +348,7 @@
             <AttachmentList
               attachments={task.attachments}
               {currentUserId}
+              taskAuthorId={task.author?.id ?? 0}
               onDelete={handleDeleteAttachment}
             />
             <AttachmentUpload

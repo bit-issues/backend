@@ -1,16 +1,25 @@
 <script lang="ts">
   import type { Attachment } from "$lib/types/api";
+  import { isAdmin } from "$lib/stores/auth.svelte";
   import { toast } from "$lib/toast";
 
   let {
     attachments = [] as Attachment[],
     currentUserId = 0,
+    taskAuthorId = 0,
     onDelete = async (_attachmentId: number) => {},
   }: {
     attachments: Attachment[];
     currentUserId: number;
+    taskAuthorId?: number;
     onDelete: (attachmentId: number) => Promise<void>;
   } = $props();
+
+  function canManageAttachment(att: Attachment): boolean {
+    if (isAdmin()) return true;
+    if (att.uploaded_by.id === currentUserId) return true;
+    return taskAuthorId > 0 && currentUserId === taskAuthorId;
+  }
 
   function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -40,7 +49,7 @@
         <span class="text-muted-foreground shrink-0 text-xs"
           >{formatBytes(att.size_bytes)}</span
         >
-        {#if att.uploaded_by.id === currentUserId}
+        {#if canManageAttachment(att)}
           <button
             type="button"
             onclick={async () => {

@@ -1,6 +1,10 @@
 <script lang="ts">
   import { listProjects } from "$lib/api/projects";
   import { navigate } from "$lib/router/routes";
+  import {
+    enrichRecentFromProjects,
+    touchProject,
+  } from "$lib/stores/recent-projects.svelte";
   import * as Card from "$lib/components/ui/card";
   import { Button } from "$lib/components/ui/button";
   import { Separator } from "$lib/components/ui/separator";
@@ -24,6 +28,7 @@
       .then((res) => {
         projects = res.items;
         total = res.total;
+        enrichRecentFromProjects(res.items);
       })
       .catch((e) => {
         error = e.message || "Failed to load projects";
@@ -62,7 +67,10 @@
       {#each projects as project (project.id)}
         <Card.Root
           class="cursor-pointer"
-          onclick={() => navigate(`/projects/${project.id}`)}
+          onclick={() => {
+            touchProject({ id: project.id, name: project.name });
+            navigate(`/projects/${project.id}`);
+          }}
         >
           <Card.CardHeader>
             <Card.CardTitle>{project.name}</Card.CardTitle>

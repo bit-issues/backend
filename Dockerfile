@@ -16,7 +16,7 @@ WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY --from=frontend /frontend/dist ./web/static/dist
+COPY --from=frontend /web/static/dist ./web/static/dist
 
 COPY . .
 

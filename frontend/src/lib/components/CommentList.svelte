@@ -7,6 +7,7 @@
   import DOMPurify from "dompurify";
   import type { AutoLinkContext } from "$lib/autolink";
   import type { Comment } from "$lib/types/api";
+  import { isAdmin } from "$lib/stores/auth.svelte";
   import { toast } from "$lib/toast";
 
   let {
@@ -59,6 +60,10 @@
     editText = "";
   }
 
+  function canManageComment(comment: Comment): boolean {
+    return isAdmin() || comment.author.id === currentUserId;
+  }
+
   async function handleEdit(commentId: number) {
     if (!editText.trim()) return;
     saving = true;
@@ -109,7 +114,7 @@
           <div class="prose prose-sm dark:prose-invert max-w-none text-sm">
             {@html renderMarkdown(comment.content)}
           </div>
-          {#if comment.author.id === currentUserId}
+          {#if canManageComment(comment)}
             <div class="mt-1 flex gap-2">
               <button
                 class="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-2"

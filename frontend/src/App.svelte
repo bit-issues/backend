@@ -3,6 +3,7 @@
   import type { RouteDef } from "$lib/router/routes";
   import { navigate } from "$lib/router/routes";
   import { isAuthenticated } from "$lib/stores/auth.svelte";
+  import { trackRecentFromPath } from "$lib/stores/recent-projects.svelte";
   import { setOnUnauthorized } from "$lib/api/client";
   import AppShell from "$lib/components/AppShell.svelte";
   import { Toaster } from "$lib/components/ui/sonner";
@@ -44,6 +45,15 @@
     path = (window.location.hash.slice(1) || "/").split("?")[0];
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
+  });
+
+  $effect(() => {
+    const syncRecent = () => {
+      trackRecentFromPath(window.location.hash.slice(1) || "/");
+    };
+    syncRecent();
+    window.addEventListener("hashchange", syncRecent);
+    return () => window.removeEventListener("hashchange", syncRecent);
   });
 
   const routes: RouteDef[] = [

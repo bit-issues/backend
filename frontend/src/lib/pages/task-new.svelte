@@ -2,6 +2,7 @@
   import { listProjects } from "$lib/api/projects";
   import { createTask } from "$lib/api/tasks";
   import { navigate } from "$lib/router/routes";
+  import { touchProject } from "$lib/stores/recent-projects.svelte";
   import TaskForm from "$lib/components/TaskForm.svelte";
   import type { Project } from "$lib/types/api";
   import { onMount } from "svelte";
@@ -51,6 +52,11 @@
       kind: data.kind as any,
       assignee_id: data.assignee_id ?? undefined,
       due_date: data.due_date || undefined,
+    });
+    const match = projects.find((p) => p.id === data.project_slug);
+    touchProject({
+      id: data.project_slug,
+      name: match?.name || data.project_slug,
     });
     navigate(`/tasks/${task.id}`);
   }
