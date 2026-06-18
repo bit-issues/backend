@@ -5,6 +5,7 @@
     type TaskFilters as TaskFilterParams,
   } from "$lib/api/tasks";
   import { navigate } from "$lib/router/routes";
+  import { touchProject } from "$lib/stores/recent-projects.svelte";
   import TaskTable from "$lib/components/TaskTable.svelte";
   import TaskFilters from "$lib/components/TaskFilters.svelte";
   import * as Card from "$lib/components/ui/card";
@@ -68,6 +69,7 @@
         project = proj;
         tasks = res.items;
         total = res.total;
+        touchProject({ id: proj.id, name: proj.name });
       })
       .catch((e) => {
         error = e.message || "Failed to load data";

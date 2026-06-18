@@ -1,6 +1,10 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button";
   import { getUser, isAdmin, logout } from "$lib/stores/auth.svelte";
+  import {
+    getRecentProjects,
+    isRecentProjectActive,
+  } from "$lib/stores/recent-projects.svelte";
   import { navigate } from "$lib/router/routes";
   import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
   import ListTodoIcon from "@lucide/svelte/icons/list-todo";
@@ -14,6 +18,8 @@
   let { currentPath = "/" }: { currentPath?: string } = $props();
 
   let mobileOpen = $state(false);
+
+  let recentProjects = $derived(getRecentProjects());
 
   function isActive(pattern: string): boolean {
     return currentPath === pattern;
@@ -89,6 +95,34 @@
         <Icon class="size-4" />
         {label}
       </button>
+
+      {#if pattern === "/projects" && recentProjects.length > 0}
+        <div
+          class="mt-2 ml-1 space-y-0.5 border-l border-border pl-2"
+        >
+          <p class="px-2 pb-0.5 text-xs font-medium text-muted-foreground">
+            Recent
+          </p>
+          {#each recentProjects as project (project.id)}
+            <button
+              type="button"
+              title={project.name}
+              onclick={() => {
+                navigate(`/projects/${project.id}`);
+                mobileOpen = false;
+              }}
+              class="block w-full truncate rounded-lg px-2 py-1.5 text-left text-sm transition-colors {isRecentProjectActive(
+                project.id,
+                currentPath,
+              )
+                ? 'bg-accent font-medium text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}"
+            >
+              {project.name}
+            </button>
+          {/each}
+        </div>
+      {/if}
     {/each}
 
     {#if isAdmin()}
