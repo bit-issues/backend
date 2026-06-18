@@ -2,11 +2,12 @@ import { apiRequest } from './client'
 import type { Project, PaginatedResponse } from '$lib/types/api'
 
 export function listProjects(limit = 20, offset = 0): Promise<PaginatedResponse<Project>> {
-  return apiRequest<PaginatedResponse<Project>>('GET', `/projects?limit=${limit}&offset=${offset}`)
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  return apiRequest<PaginatedResponse<Project>>('GET', `/projects?${params}`)
 }
 
 export function getProject(slug: string): Promise<Project> {
-  return apiRequest<Project>('GET', `/projects/${slug}`)
+  return apiRequest<Project>('GET', `/projects/${encodeURIComponent(slug)}`)
 }
 
 export function createProject(data: { name: string; repo_url: string }): Promise<Project> {
@@ -14,9 +15,9 @@ export function createProject(data: { name: string; repo_url: string }): Promise
 }
 
 export function updateProject(slug: string, data: { name?: string; repo_url?: string }): Promise<Project> {
-  return apiRequest<Project>('PATCH', `/projects/${slug}`, data)
+  return apiRequest<Project>('PATCH', `/projects/${encodeURIComponent(slug)}`, data)
 }
 
 export function deleteProject(slug: string): Promise<void> {
-  return apiRequest<void>('DELETE', `/projects/${slug}`)
+  return apiRequest<void>('DELETE', `/projects/${encodeURIComponent(slug)}`)
 }
