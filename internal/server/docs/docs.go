@@ -278,6 +278,12 @@ const docTemplate = `{
                         "description": "Page offset",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by project name or slug (case-insensitive)",
+                        "name": "search",
+                        "in": "query"
                     }
                 ],
                 "responses": {

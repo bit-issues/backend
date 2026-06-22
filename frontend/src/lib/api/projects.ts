@@ -1,8 +1,9 @@
 import { apiRequest } from './client'
 import type { Project, PaginatedResponse } from '$lib/types/api'
 
-export function listProjects(limit = 20, offset = 0): Promise<PaginatedResponse<Project>> {
+export function listProjects(limit = 20, offset = 0, search?: string): Promise<PaginatedResponse<Project>> {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  if (search) params.set('search', search)
   return apiRequest<PaginatedResponse<Project>>('GET', `/projects?${params}`)
 }
 
