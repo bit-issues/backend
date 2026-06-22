@@ -73,8 +73,9 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			limit	query		int	false	"Page limit (max 100)"	default(20)
-//	@Param			offset	query		int	false	"Page offset"			default(0)
+//	@Param			limit	query		int		false	"Page limit (max 100)"	default(20)
+//	@Param			offset	query		int		false	"Page offset"			default(0)
+//	@Param			search	query		string	false	"Search by project name or slug (case-insensitive)"
 //	@Success		200		{object}	ProjectListResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Router			/projects [get]
@@ -89,8 +90,15 @@ func (h *Handler) list(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to parse query: %w", err)
 	}
 
+	// Parse search parameter
+	search := c.Query("search", "")
+
 	// Fetch projects from service
-	projectsList, total, err := h.projectsSvc.List(c.Context(), projects.NewPagination(query.Limit, query.Offset))
+	projectsList, total, err := h.projectsSvc.List(
+		c.Context(),
+		projects.NewPagination(query.Limit, query.Offset),
+		search,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to list projects: %w", err)
 	}

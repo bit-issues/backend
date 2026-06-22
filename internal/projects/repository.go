@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/uptrace/bun"
@@ -52,11 +53,25 @@ func (r *Repository) GetBySlug(ctx context.Context, slug string) (*Project, erro
 }
 
 // List retrieves a paginated list of projects, ordered by name ascending.
+// Supports optional search filtering by project name or slug (case-insensitive).
 // Returns the list of projects and no error if successful.
-func (r *Repository) List(ctx context.Context, pagination *Pagination) ([]Project, int, error) {
+func (r *Repository) List(ctx context.Context, pagination *Pagination, search string) ([]Project, int, error) {
 	models := make([]projectModel, 0)
 
 	query := r.db.NewSelect().Model(&models).OrderBy("name", bun.OrderAsc)
+
+	// Add search filter if provided
+	if search != "" {
+		escaped := strings.ReplaceAll(strings.ReplaceAll(search, "%", "\\%"), "_", "\\_")
+		searchPattern := "%" + escaped + "%"
+		query = query.WhereGroup(
+			"AND",
+			func(q *bun.SelectQuery) *bun.SelectQuery {
+				return q.Where("id LIKE ?", searchPattern).WhereOr("name LIKE ?", searchPattern)
+			},
+		)
+	}
+
 	query = pagination.Apply(query)
 	total, err := query.ScanAndCount(ctx)
 	if err != nil {

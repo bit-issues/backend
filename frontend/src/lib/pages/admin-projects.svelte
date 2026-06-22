@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import {
     listProjects,
     createProject,
@@ -12,11 +11,16 @@
   import * as Table from "$lib/components/ui/table";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Input } from "$lib/components/ui/input";
+  import SearchIcon from "@lucide/svelte/icons/search";
+  import XIcon from "@lucide/svelte/icons/x";
   import type { Project } from "$lib/types/api";
 
   let projects = $state<Project[]>([]);
   let loading = $state(true);
   let error = $state("");
+  let searchTerm = $state("");
+  let debouncedSearch = $state("");
+  let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 
   let showCreate = $state(false);
   let createName = $state("");
@@ -29,6 +33,26 @@
   let editRepoUrl = $state("");
   let editSaving = $state(false);
 
+  function handleSearchInput(value: string) {
+    searchTerm = value;
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      debouncedSearch = value;
+    }, 300);
+  }
+
+  function clearSearch() {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = null;
+    searchTerm = "";
+    debouncedSearch = "";
+  }
+
+  $effect(() => {
+    debouncedSearch;
+    load();
+  });
+
   function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString();
   }
@@ -37,7 +61,7 @@
     loading = true;
     error = "";
     try {
-      const res = await listProjects(100, 0);
+      const res = await listProjects(100, 0, debouncedSearch || undefined);
       projects = res.items;
     } catch (e: any) {
       error = e?.message || "Failed to load projects";
@@ -108,8 +132,6 @@
       toast.error(e?.message || "Failed to delete project");
     }
   }
-
-  onMount(load);
 </script>
 
 <div class="flex flex-col gap-4 p-6">
@@ -119,6 +141,28 @@
       <p class="text-muted-foreground text-sm">Manage projects</p>
     </div>
     <Button onclick={openCreate}>Create Project</Button>
+  </div>
+
+  <div class="relative">
+    <SearchIcon
+      class="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+    />
+    <input
+      type="text"
+      placeholder="Search projects by name or slug..."
+      value={searchTerm}
+      oninput={(e) => handleSearchInput((e.target as HTMLInputElement).value)}
+      class="w-full rounded-md border border-input bg-background py-2 pl-10 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+    />
+    {#if searchTerm}
+      <button
+        onclick={clearSearch}
+        class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        aria-label="Clear search"
+      >
+        <XIcon class="size-4" />
+      </button>
+    {/if}
   </div>
 
   <Dialog.Root bind:open={showCreate} title="Create Project">
@@ -189,7 +233,11 @@
               colspan={5}
               class="text-muted-foreground p-2 py-8 text-center align-middle italic"
             >
-              No projects
+              {#if debouncedSearch}
+                No projects found matching "{debouncedSearch}"
+              {:else}
+                No projects
+              {/if}
             </td>
           </Table.Row>
         {:else}

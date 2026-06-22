@@ -50,8 +50,9 @@ func (s *Service) GetBySlug(ctx context.Context, slug string) (*Project, error) 
 
 // List retrieves a paginated list of projects.
 // Projects are ordered by name ascending.
-func (s *Service) List(ctx context.Context, pagination *Pagination) ([]Project, int, error) {
-	return s.projects.List(ctx, pagination)
+// Supports optional search filtering by project name or slug.
+func (s *Service) List(ctx context.Context, pagination *Pagination, search string) ([]Project, int, error) {
+	return s.projects.List(ctx, pagination, search)
 }
 
 // Update modifies an existing project with the provided update data.
