@@ -1,4 +1,5 @@
 import { loginApi, registerApi, logoutApi } from '$lib/api/auth'
+import { passkeyLoginBegin, passkeyLoginComplete } from '$lib/api/passkey'
 import type { User } from '$lib/types/api'
 
 let _accessToken = $state<string | null>(null)
@@ -68,6 +69,34 @@ export async function login(email: string, password: string): Promise<void> {
 export async function register(email: string, password: string): Promise<User> {
   const user = await registerApi({ email, password })
   return user
+}
+
+export async function loginWithPasskey(): Promise<void> {
+  const options = await passkeyLoginBegin()
+  const credential = await navigator.credentials.get({ publicKey: options })
+  if (!credential) throw new Error('Passkey authentication cancelled')
+
+  const res = await passkeyLoginComplete(credential as PublicKeyCredential)
+  _user = res.user
+  setTokens(res.access_token, res.refresh_token)
+}
+
+// For conditional mediation (autofill) - called on page load
+export async function conditionalPasskeyLogin(): Promise<void> {
+  try {
+    const options = await passkeyLoginBegin()
+    const credential = await navigator.credentials.get({
+      publicKey: options,
+      mediation: 'conditional',
+    })
+    if (!credential) return
+
+    const res = await passkeyLoginComplete(credential as PublicKeyCredential)
+    _user = res.user
+    setTokens(res.access_token, res.refresh_token)
+  } catch {
+    // Silently fail - conditional may not be supported or user didn't interact
+  }
 }
 
 export async function logout(): Promise<void> {

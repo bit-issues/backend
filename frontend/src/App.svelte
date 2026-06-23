@@ -26,6 +26,7 @@
   import AdminUsers from "$lib/pages/admin-users.svelte";
   import AdminProjects from "$lib/pages/admin-projects.svelte";
   import ProfilePage from "$lib/pages/profile.svelte";
+  import SecurityPage from "$lib/pages/settings/security.svelte";
 
   let initialized = $state(false);
 
@@ -69,6 +70,7 @@
     { pattern: "/tasks/:id/edit", component: TaskEditPage, auth: true },
     { pattern: "/tasks/:id", component: TaskDetailPage, auth: true },
     { pattern: "/profile", component: ProfilePage, auth: true },
+    { pattern: "/settings/security", component: SecurityPage, auth: true },
     { pattern: "/admin/users", component: AdminUsers, auth: true, role: "admin" },
     { pattern: "/admin/projects", component: AdminProjects, auth: true, role: "admin" },
     { pattern: "/admin", component: AdminPage, auth: true, role: "admin" },

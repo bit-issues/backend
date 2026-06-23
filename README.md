@@ -37,32 +37,28 @@
 </div>
 
 <!-- TABLE OF CONTENTS -->
-<details>
-  <summary>Table of Contents</summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#features">Features</a></li>
-        <li><a href="#architecture">Architecture</a></li>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#installation">Installation</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-    <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
-  </ol>
-</details>
+## Table of Contents
+- [Table of Contents](#table-of-contents)
+- [About The Project](#about-the-project)
+  - [Features](#features)
+  - [Architecture](#architecture)
+  - [Built With](#built-with)
+- [Getting Started](#getting-started)
+  - [Download](#download)
+  - [Prerequisites](#prerequisites)
+  - [Build from Source](#build-from-source)
+- [Usage](#usage)
+  - [CLI Commands](#cli-commands)
+  - [API Overview](#api-overview)
+  - [Configuration](#configuration)
+  - [Development Commands](#development-commands)
+  - [Deployment](#deployment)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgments](#acknowledgments)
+
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
@@ -84,6 +80,7 @@ Here's why BitIssues exists:
 - **Comments** — per-task discussion with markdown support
 - **File Attachments** — two-phase upload via S3 presigned URLs (client uploads directly to storage, bypassing the server)
 - **JWT Authentication** — HS256 tokens with Argon2id password hashing
+- **WebAuthn/Passkey Authentication** — passwordless login via platform authenticators (fingerprint, Face ID, security keys)
 - **Role-Based Access** — admin and user roles with pending activation flow
 - **Rich Filtering & Sorting** — tasks filterable by project, author, assignee, status, priority, date range
 - **Dashboard Queries** — quick access to tasks assigned to or created by the current user
@@ -102,7 +99,7 @@ main.go
         │     └── Fx container
         │           ├── Core (logger, db, storage, validator, health)
         │           ├── Server (handlers, middlewares, routes, swagger)
-        │           └── Domains (users, projects, tasks, comments, attachments)
+        │           └── Domains (users, projects, tasks, comments, attachments, webauthn)
         └── import command      # Bitbucket import CLI
 ```
 
@@ -232,15 +229,16 @@ The `import` command maps Bitbucket issues and comments into the BitIssues schem
 
 All endpoints are under `/api/v1`. Full documentation is available via Swagger UI at `/api/v1/docs`.
 
-| Area        | Base Path                    | Auth                       |
-| ----------- | ---------------------------- | -------------------------- |
-| Auth        | `/auth`                      | Public (login, register)   |
-| Users       | `/users`                     | JWT (admin for management) |
-| Projects    | `/projects`                  | JWT                        |
-| Tasks       | `/tasks`                     | JWT                        |
-| Comments    | `/tasks/:taskId/comments`    | JWT                        |
-| Attachments | `/tasks/:taskId/attachments` | JWT                        |
-| Docs        | `/docs`                      | Public                     |
+| Area        | Base Path                    | Auth                          |
+| ----------- | ---------------------------- | ----------------------------- |
+| Auth        | `/auth`                      | Public (login, register)      |
+| Users       | `/users`                     | JWT (admin for management)    |
+| Projects    | `/projects`                  | JWT                           |
+| Tasks       | `/tasks`                     | JWT                           |
+| Comments    | `/tasks/:taskId/comments`    | JWT                           |
+| Attachments | `/tasks/:taskId/attachments` | JWT                           |
+| Passkeys    | `/auth/passkey`              | Public (login) / JWT (manage) |
+| Docs        | `/docs`                      | Public                        |
 
 A complete API reference with request/response examples is available in [`requests.http`](requests.http).
 
@@ -248,18 +246,21 @@ A complete API reference with request/response examples is available in [`reques
 
 Configuration is loaded from environment variables with optional YAML override via `CONFIG_PATH`.
 
-| Variable                | Default                    | Description                    |
-| ----------------------- | -------------------------- | ------------------------------ |
-| `DATABASE__URL`         | `mariadb://bit-issues:...` | Database connection string     |
-| `JWT__SECRET`           | `secret`                   | JWT signing key                |
-| `JWT__ACCESS_TTL`       | `15m`                      | Access token lifetime          |
-| `STORAGE__URL`          | `s3://bucket/prefix?...`   | S3 storage URL                 |
-| `STORAGE__LINKS_TTL`    | `15m`                      | Presigned URL lifetime         |
-| `ATTACHMENTS__MAX_SIZE` | `10485760`                 | Max file size in bytes (10 MB) |
-| `HTTP__ADDRESS`         | `127.0.0.1:3000`           | Server listen address          |
-| `AWS_ACCESS_KEY_ID`     | —                          | S3 access key                  |
-| `AWS_SECRET_ACCESS_KEY` | —                          | S3 secret key                  |
-| `AWS_REGION`            | —                          | S3 region                      |
+| Variable                    | Default                     | Description                            |
+| --------------------------- | --------------------------- | -------------------------------------- |
+| `DATABASE__URL`             | `mariadb://bit-issues:...`  | Database connection string             |
+| `JWT__SECRET`               | `secret`                    | JWT signing key                        |
+| `JWT__ACCESS_TTL`           | `15m`                       | Access token lifetime                  |
+| `STORAGE__URL`              | `s3://bucket/prefix?...`    | S3 storage URL                         |
+| `STORAGE__LINKS_TTL`        | `15m`                       | Presigned URL lifetime                 |
+| `ATTACHMENTS__MAX_SIZE`     | `10485760`                  | Max file size in bytes (10 MB)         |
+| `HTTP__ADDRESS`             | `127.0.0.1:3000`            | Server listen address                  |
+| `AWS_ACCESS_KEY_ID`         | —                           | S3 access key                          |
+| `AWS_SECRET_ACCESS_KEY`     | —                           | S3 secret key                          |
+| `AWS_REGION`                | —                           | S3 region                              |
+| `WEBAUTHN__RP_DISPLAY_NAME` | `BitIssues`                 | Display name shown during registration |
+| `WEBAUTHN__RP_ID`           | `localhost`                 | Relying Party ID (domain)              |
+| `WEBAUTHN__RP_ORIGINS`      | `["http://localhost:5173"]` | Allowed origins JSON array             |
 
 ### Development Commands
 
@@ -291,6 +292,7 @@ Pre-built multi-arch Docker images are published to **GHCR** (`ghcr.io/bit-issue
 
 - [x] Bitbucket Issues JSON import
 - [x] JWT authentication with Argon2id
+- [x] WebAuthn/passkey authentication
 - [x] File attachments via S3 presigned URLs
 - [ ] Email notifications
 - [ ] Webhook integration

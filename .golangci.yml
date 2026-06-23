@@ -259,6 +259,7 @@ linters:
         - ^github.com/go-telegram-bot-api/telegram-bot-api/.+Config$
         - ^github.com/go-telegram/bot.+Params$
         - ^github.com/go-telegram/bot/models.+$
+        - ^github.com/go-webauthn/webauthn/webauthn.+(Config|Credential)$
         - ^github.com/gofiber/.+Config$
         - ^github.com/golang-jwt/jwt/v5.+Claims$
         - ^github.com/minio/minio-go/.+Options$
@@ -395,7 +396,7 @@ linters:
     nolintlint:
       # Exclude following linters from requiring an explanation.
       # Default: []
-      allow-no-explanation: [ funlen, gocognit, golines ]
+      allow-no-explanation: [funlen, gocognit, golines]
       # Enable to require an explanation of nonzero length after each nolint directive.
       # Default: false
       require-explanation: true
@@ -475,20 +476,20 @@ linters:
     # Excluding configuration per-path, per-linter, per-text and per-source.
     rules:
       - source: "TODO"
-        linters: [ godot ]
+        linters: [godot]
       - text: "should have a package comment"
-        linters: [ revive ]
+        linters: [revive]
       - text: "avoid package names that conflict with Go standard library package names"
-        linters: [ revive ]
+        linters: [revive]
       - text: "exported \\S+ \\S+ should have comment( \\(or a comment on this
           block\\))? or be unexported"
-        linters: [ revive ]
-      - text: "package comment should be of the form \".+\""
+        linters: [revive]
+      - text: 'package comment should be of the form ".+"'
         source: "// ?(nolint|TODO)"
-        linters: [ revive ]
+        linters: [revive]
       - text: "comment on exported \\S+ \\S+ should be of the form \".+\""
         source: "// ?(nolint|TODO)"
-        linters: [ revive, staticcheck ]
+        linters: [revive, staticcheck]
       - path: "_test\\.go"
         linters:
           - bodyclose

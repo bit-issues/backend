@@ -7,6 +7,7 @@
   import * as Badge from "$lib/components/ui/badge";
   import { Input } from "$lib/components/ui/input";
   import { Label } from "$lib/components/ui/label";
+  import { navigate } from "$lib/router/routes";
 
   let user = $derived(getUser());
 
@@ -55,7 +56,16 @@
 </script>
 
 <div class="mx-auto max-w-2xl py-8">
-  <h1 class="mb-6 text-2xl font-bold">Profile</h1>
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold">Profile</h1>
+    <button
+      type="button"
+      onclick={() => navigate("/settings/security")}
+      class="text-primary text-sm underline-offset-4 hover:underline cursor-pointer"
+    >
+      Security settings
+    </button>
+  </div>
 
   <div class="grid gap-6 md:grid-cols-2">
     <Card.Root>

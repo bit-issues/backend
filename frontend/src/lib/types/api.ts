@@ -173,3 +173,13 @@ export interface PaginatedResponse<T> {
   items: T[]
   total: number
 }
+
+export interface PasskeyCredential {
+  id: number
+  name: string
+  created_at: string
+}
+
+export interface RenamePasskeyRequest {
+  name: string
+}

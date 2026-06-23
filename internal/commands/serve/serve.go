@@ -14,9 +14,11 @@ import (
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
+	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
 	"github.com/bit-issues/backend/pkg/miniofx"
 	"github.com/go-core-fx/bunfx"
+	"github.com/go-core-fx/cachefx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/goosefx"
 	"github.com/go-core-fx/healthfx"
@@ -49,7 +51,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		logger.WithFxDefaultLogger(),
 		// badgerfx.Module(),
 		bunfx.Module(),
-		// cachefx.Module(),
+		cachefx.Module(),
 		fiberfx.Module(),
 		// gocqlfx.Module(),
 		// gocqlxfx.Module(),
@@ -79,6 +81,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		tasks.Module(),
 		attachments.Module(),
 		comments.Module(),
+		webauthn.Module(),
 		webhooks.Module(),
 		//
 		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {
