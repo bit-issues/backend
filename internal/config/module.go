@@ -4,7 +4,9 @@ import (
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/storage"
+	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
+	"github.com/go-core-fx/cachefx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
 	"github.com/go-core-fx/sqlfx"
@@ -68,6 +70,22 @@ func Module() fx.Option {
 				return webhooks.Config{
 					Secret:       cfg.Webhooks.Secret,
 					BotUserEmail: cfg.Webhooks.BotUserEmail,
+				}
+			},
+		),
+		fx.Provide(
+			func(cfg Config) webauthn.Config {
+				return webauthn.Config{
+					RPDisplayName: cfg.WebAuthn.RPDisplayName,
+					RPID:          cfg.WebAuthn.RPID,
+					RPOrigins:     cfg.WebAuthn.RPOrigins,
+				}
+			},
+		),
+		fx.Provide(
+			func(cfg Config) cachefx.Config {
+				return cachefx.Config{
+					URL: cfg.Cache.URL,
 				}
 			},
 		),

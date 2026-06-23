@@ -46,6 +46,16 @@ type attachmentsConfig struct {
 	MaxSize uint64 `koanf:"max_size"`
 }
 
+type webauthnConfig struct {
+	RPDisplayName string   `koanf:"rp_display_name"`
+	RPID          string   `koanf:"rp_id"`
+	RPOrigins     []string `koanf:"rp_origins"`
+}
+
+type cacheConfig struct {
+	URL string `koanf:"url"`
+}
+
 type webhooksConfig struct {
 	Secret       string `koanf:"secret"`
 	BotUserEmail string `koanf:"bot_user_email"`
@@ -57,6 +67,8 @@ type Config struct {
 	JWT         jwtConfig         `koanf:"jwt"`
 	Storage     storageConfig     `koanf:"storage"`
 	Attachments attachmentsConfig `koanf:"attachments"`
+	WebAuthn    webauthnConfig    `koanf:"webauthn"`
+	Cache       cacheConfig       `koanf:"cache"`
 	Webhooks    webhooksConfig    `koanf:"webhooks"`
 }
 
@@ -92,6 +104,14 @@ func Default() Config {
 		},
 		Attachments: attachmentsConfig{
 			MaxSize: 10 * 1024 * 1024,
+		},
+		WebAuthn: webauthnConfig{
+			RPDisplayName: "BitIssues",
+			RPID:          "localhost",
+			RPOrigins:     []string{"http://localhost:5173"},
+		},
+		Cache: cacheConfig{
+			URL: "memory://",
 		},
 		Webhooks: webhooksConfig{
 			Secret:       "",

@@ -74,8 +74,8 @@ type ChangePasswordRequest struct {
 	NewPassword string `json:"new_password" validate:"required,min=8,max=72"`
 }
 
-// toUserResponseDTO converts domain User to response DTO.
-func toUserResponseDTO(u *users.User) UserResponseDTO {
+// ToUserResponseDTO converts domain User to response DTO.
+func ToUserResponseDTO(u *users.User) UserResponseDTO {
 	return UserResponseDTO{
 		ID:        u.ID,
 		Email:     u.Email,

@@ -23,7 +23,8 @@ func New(jwtSvc *jwt.Service, usersSvc *users.Service) fiber.Handler {
 		Next: func(c *fiber.Ctx) bool {
 			path := strings.TrimRight(c.Path(), "/")
 			return path == "/api/v1/auth/login" || path == "/api/v1/auth/register" ||
-				path == "/api/v1/auth/refresh" || path == "/api/v1/auth/logout"
+				path == "/api/v1/auth/refresh" || path == "/api/v1/auth/logout" ||
+				path == "/api/v1/auth/passkey/login/begin" || path == "/api/v1/auth/passkey/login/complete"
 		},
 		Validator: func(c *fiber.Ctx, token string) (bool, error) {
 			claims, err := jwtSvc.ValidateToken(token)

@@ -20,7 +20,11 @@ type Handler struct {
 	jwtSvc   *jwt.Service
 }
 
-func NewHandler(service *users.Service, validate *validator.Validate, jwtSvc *jwt.Service) handler.Handler {
+func NewHandler(
+	service *users.Service,
+	validate *validator.Validate,
+	jwtSvc *jwt.Service,
+) handler.Handler {
 	return &Handler{
 		Base:     handler.Base{Validator: validate},
 		usersSvc: service,
@@ -63,7 +67,7 @@ func (h *Handler) handleRegister(c *fiber.Ctx, req *RegisterRequest) error {
 		return fmt.Errorf("failed to register user: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(toUserResponseDTO(user))
+	return c.Status(fiber.StatusCreated).JSON(ToUserResponseDTO(user))
 }
 
 // handleLogin handles user login.
@@ -92,7 +96,7 @@ func (h *Handler) handleLogin(c *fiber.Ctx, req *LoginRequest) error {
 	return c.JSON(LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		User:         toUserResponseDTO(user),
+		User:         ToUserResponseDTO(user),
 	})
 }
 
