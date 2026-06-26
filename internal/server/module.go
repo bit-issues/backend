@@ -7,6 +7,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/projects"
 	"github.com/bit-issues/backend/internal/server/tasks"
 	"github.com/bit-issues/backend/internal/server/users"
+	"github.com/bit-issues/backend/internal/server/webhooks"
 	"github.com/bit-issues/backend/web"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/handler"
@@ -51,9 +52,14 @@ func Module() fx.Option {
 			fx.Private,
 		),
 
+		fx.Provide(
+			webhooks.NewHandler,
+			fx.Private,
+		),
+
 		fx.Invoke(
 			fx.Annotate(
-				func(handlers []handler.Handler, jwtAuth fiber.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
+				func(handlers []handler.Handler, jwtAuth fiber.Handler, webhookHandler *webhooks.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
 					// Health endpoint
 					healthHandler.Register(app)
 
@@ -64,8 +70,10 @@ func Module() fx.Option {
 					v1 := app.Group("/api/v1")
 					openapiHandler.Register(v1.Group("/docs"))
 
+					v1.Use(validation.Middleware)
+					webhookHandler.Register(v1)
+
 					v1.Use(
-						validation.Middleware,
 						jwtAuth,
 						jwtauth.ErrorsHandler(),
 					)

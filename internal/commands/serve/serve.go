@@ -14,6 +14,7 @@ import (
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
+	"github.com/bit-issues/backend/internal/webhooks"
 	"github.com/bit-issues/backend/pkg/miniofx"
 	"github.com/go-core-fx/bunfx"
 	"github.com/go-core-fx/fiberfx"
@@ -78,6 +79,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		tasks.Module(),
 		attachments.Module(),
 		comments.Module(),
+		webhooks.Module(),
 		//
 		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {
 			lc.Append(fx.Hook{

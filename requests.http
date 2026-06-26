@@ -414,3 +414,61 @@ GET {{downloadURL}}
 # Requires attachment ID from initAttachmentUpload response
 DELETE {{baseURL}}/tasks/{{taskId}}/attachments/{{attachmentId}}
 Authorization: Bearer {{accessToken}}
+
+###
+# BitBucket Webhook Push Event (fixes #2)
+# Public endpoint — no JWT auth required
+# Secret key: mysecret
+POST {{baseURL}}/webhooks/bitbucket/push
+Content-Type: application/json
+X-Hub-Signature-256: sha256=b591780f12804490e0e8b437be235dcbb6ccc2ac9087053f2b3116bf09c5a692
+
+{
+  "push": {
+    "changes": [
+      {
+        "commits": [
+          {
+            "hash": "a1b2c3d4e5f6789012345678901234567890abcdef",
+            "message": "Fix login redirect loop\n\nfixes #2",
+            "author": {"nickname": "dev1"},
+            "date": "2026-06-25T10:00:00+00:00"
+          }
+        ]
+      }
+    ]
+  },
+  "repository": {
+    "full_name": "my-org/my-repo"
+  },
+  "actor": {"nickname": "dev1"}
+}
+
+###
+# BitBucket Webhook Push Event (bare mention #1)
+# Public endpoint — no JWT auth required
+# Secret key: mysecret
+POST {{baseURL}}/webhooks/bitbucket/push
+Content-Type: application/json
+X-Hub-Signature-256: sha256=c8d3e58153ab0c75626df9ef241dd1240d748a922592fb05e17909ae658b088b
+
+{
+  "push": {
+    "changes": [
+      {
+        "commits": [
+          {
+            "hash": "f0e0d0c0b0a09080706050403020100000000000",
+            "message": "Refactored related code\n\nsee #1",
+            "author": {"nickname": "dev1"},
+            "date": "2026-06-25T11:00:00+00:00"
+          }
+        ]
+      }
+    ]
+  },
+  "repository": {
+    "full_name": "my-org/my-repo"
+  },
+  "actor": {"nickname": "dev1"}
+}

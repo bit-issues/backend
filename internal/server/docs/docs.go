@@ -1329,6 +1329,52 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/webhooks/bitbucket/push": {
+            "post": {
+                "description": "Receives BitBucket push event webhooks. Scans commit messages\nfor task references (e.g. \"fixes #42\") and transitions task status\nor adds mention comments accordingly.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "BitBucket push webhook",
+                "parameters": [
+                    {
+                        "description": "BitBucket push event payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/webhooks.PushEvent"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/webhooks.ProcessResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2018,6 +2064,143 @@ const docTemplate = `{
                             "$ref": "#/definitions/users.Status"
                         }
                     ]
+                }
+            }
+        },
+        "webhooks.Actor": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "webhooks.Change": {
+            "type": "object",
+            "properties": {
+                "commits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/webhooks.Commit"
+                    }
+                },
+                "new": {
+                    "$ref": "#/definitions/webhooks.Ref"
+                },
+                "old": {
+                    "$ref": "#/definitions/webhooks.Ref"
+                }
+            }
+        },
+        "webhooks.Commit": {
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/webhooks.Actor"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "hash": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "webhooks.Link": {
+            "type": "object",
+            "properties": {
+                "href": {
+                    "type": "string"
+                }
+            }
+        },
+        "webhooks.ProcessResult": {
+            "type": "object",
+            "properties": {
+                "matched": {
+                    "type": "integer"
+                },
+                "mentioned": {
+                    "type": "integer"
+                },
+                "resolved": {
+                    "type": "integer"
+                }
+            }
+        },
+        "webhooks.PushData": {
+            "type": "object",
+            "properties": {
+                "changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/webhooks.Change"
+                    }
+                }
+            }
+        },
+        "webhooks.PushEvent": {
+            "type": "object",
+            "properties": {
+                "actor": {
+                    "$ref": "#/definitions/webhooks.Actor"
+                },
+                "push": {
+                    "$ref": "#/definitions/webhooks.PushData"
+                },
+                "repository": {
+                    "$ref": "#/definitions/webhooks.Repository"
+                }
+            }
+        },
+        "webhooks.Ref": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "target": {
+                    "$ref": "#/definitions/webhooks.Commit"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "webhooks.RepoLinks": {
+            "type": "object",
+            "properties": {
+                "self": {
+                    "$ref": "#/definitions/webhooks.Link"
+                }
+            }
+        },
+        "webhooks.Repository": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "links": {
+                    "$ref": "#/definitions/webhooks.RepoLinks"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "scm": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
                 }
             }
         }
