@@ -79,6 +79,17 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
 	return &user.User, nil
 }
 
+func (s *Service) GetByEmail(ctx context.Context, email string) (*User, error) {
+	email = strings.ToLower(email)
+
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.User, nil
+}
+
 // LookupByIDs retrieves multiple users by their IDs in a single query.
 // Returns a map of user ID to User. Users that are not found are omitted from the map.
 func (s *Service) LookupByIDs(ctx context.Context, ids []int64) (map[int64]User, error) {
