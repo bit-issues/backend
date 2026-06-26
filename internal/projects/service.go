@@ -96,3 +96,12 @@ func (s *Service) Exists(ctx context.Context, slug string) (bool, error) {
 	}
 	return s.projects.Exists(ctx, slug)
 }
+
+// FindByRepoURL finds a project whose repository URL matches the
+// given one. Matching is case-insensitive.
+func (s *Service) FindByRepoURL(ctx context.Context, repoURL string) (*Project, error) {
+	if repoURL == "" {
+		return nil, fmt.Errorf("%w: repoURL is required", ErrValidationFailed)
+	}
+	return s.projects.FindByRepoURL(ctx, repoURL)
+}

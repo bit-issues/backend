@@ -86,6 +86,23 @@ func (r *Repository) List(ctx context.Context, pagination *Pagination, search st
 	return projects, total, nil
 }
 
+// FindByRepoURL finds a project whose repository URL matches the
+// given one. Matching is case-insensitive using SQL-level filtering.
+func (r *Repository) FindByRepoURL(ctx context.Context, repoURL string) (*Project, error) {
+	var model projectModel
+	if err := r.db.NewSelect().Model(&model).
+		Where("LOWER(repo_url) = ?", strings.ToLower(repoURL)).
+		Limit(1).
+		Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to find project by repo URL: %w", err)
+	}
+
+	return model.toDomain(), nil
+}
+
 // Update modifies an existing project with the provided update data.
 // Only the fields specified in the update struct will be changed.
 // Returns ErrNotFound if the project does not exist.
