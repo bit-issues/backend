@@ -110,6 +110,22 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Task, error) {
 	return model.toDomain(), nil
 }
 
+// GetByProjectAndNumber retrieves a task by its project slug and number.
+// Returns ErrNotFound if no task matches.
+func (r *Repository) GetByProjectAndNumber(ctx context.Context, projectSlug string, number int) (*Task, error) {
+	var model taskModel
+	if err := r.db.NewSelect().Model(&model).
+		Where("project_slug = ?", projectSlug).
+		Where("number = ?", number).
+		Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get task by project and number: %w", err)
+	}
+	return model.toDomain(), nil
+}
+
 // List retrieves a paginated list of tasks with optional filtering and sorting.
 // The filter parameter controls which tasks are returned. Empty fields mean no filter.
 // The sort parameter is a field name, optionally prefixed with "-" for descending order.

@@ -69,6 +69,11 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*Task, error) {
 	return s.tasks.GetByID(ctx, id)
 }
 
+// GetByProjectAndNumber retrieves a task by its project slug and number.
+func (s *Service) GetByProjectAndNumber(ctx context.Context, projectSlug string, number int) (*Task, error) {
+	return s.tasks.GetByProjectAndNumber(ctx, projectSlug, number)
+}
+
 // List retrieves tasks with filtering, sorting, and pagination.
 // Returns the list of tasks and the total count matching the filter.
 func (s *Service) List(
