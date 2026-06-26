@@ -46,12 +46,18 @@ type attachmentsConfig struct {
 	MaxSize uint64 `koanf:"max_size"`
 }
 
+type webhooksConfig struct {
+	Secret       string `koanf:"secret"`
+	BotUserEmail string `koanf:"bot_user_email"`
+}
+
 type Config struct {
 	HTTP        http              `koanf:"http"`
 	Database    databaseConfig    `koanf:"database"`
 	JWT         jwtConfig         `koanf:"jwt"`
 	Storage     storageConfig     `koanf:"storage"`
 	Attachments attachmentsConfig `koanf:"attachments"`
+	Webhooks    webhooksConfig    `koanf:"webhooks"`
 }
 
 func Default() Config {
@@ -86,6 +92,10 @@ func Default() Config {
 		},
 		Attachments: attachmentsConfig{
 			MaxSize: 10 * 1024 * 1024,
+		},
+		Webhooks: webhooksConfig{
+			Secret:       "",
+			BotUserEmail: "bot@bitissues.local",
 		},
 	}
 }
