@@ -4,6 +4,7 @@ import (
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/storage"
+	"github.com/bit-issues/backend/internal/webhooks"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
 	"github.com/go-core-fx/sqlfx"
@@ -59,6 +60,14 @@ func Module() fx.Option {
 			func(cfg Config) attachments.Config {
 				return attachments.Config{
 					MaxSize: cfg.Attachments.MaxSize,
+				}
+			},
+		),
+		fx.Provide(
+			func(cfg Config) webhooks.Config {
+				return webhooks.Config{
+					Secret:       cfg.Webhooks.Secret,
+					BotUserEmail: cfg.Webhooks.BotUserEmail,
 				}
 			},
 		),
