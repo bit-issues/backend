@@ -623,6 +623,12 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
+                        "description": "Full-text search across title and description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
                         "default": "created_at",
                         "description": "Sort field (e.g., created_at, -priority)",
                         "name": "sort",

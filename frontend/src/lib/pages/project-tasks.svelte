@@ -29,6 +29,7 @@
 
   let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
+  let searchQuery = $state("");
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -51,6 +52,7 @@
   function resetFilters() {
     filterStatuses = [...ACTIVE_STATUSES];
     filterPriorities = [];
+    searchQuery = "";
     offset = 0;
   }
 
@@ -63,6 +65,7 @@
     if (filterStatuses.length) filters.statuses = filterStatuses.join(",");
     if (filterPriorities.length)
       filters.priorities = filterPriorities.join(",");
+    if (searchQuery) filters.search = searchQuery;
 
     Promise.all([getProject(slug), listTasks(filters)])
       .then(([proj, res]) => {
@@ -162,9 +165,14 @@
 
       <aside>
         <TaskFilters
+          {searchQuery}
           {filterStatuses}
           {filterPriorities}
           hideProject
+          onSearchChange={(v) => {
+            searchQuery = v;
+            offset = 0;
+          }}
           onStatusToggle={toggleStatus}
           onPriorityToggle={togglePriority}
           onReset={resetFilters}

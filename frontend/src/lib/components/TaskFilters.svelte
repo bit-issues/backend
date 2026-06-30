@@ -1,29 +1,62 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
-  import { STATUSES, PRIORITIES, ACTIVE_STATUSES, type Project } from "$lib/types/api";
+  import {
+    STATUSES,
+    PRIORITIES,
+    ACTIVE_STATUSES,
+    type Project,
+  } from "$lib/types/api";
 
   let {
     projects = [],
+    searchQuery = "",
     filterProject = "",
     filterStatuses = [],
     filterPriorities = [],
     hideProject = false,
+    onSearchChange,
     onProjectChange,
     onStatusToggle,
     onPriorityToggle,
     onReset,
   }: {
-    projects: Project[];
+    projects?: Project[];
+    searchQuery?: string;
     filterProject?: string;
     filterStatuses?: string[];
     filterPriorities?: string[];
     hideProject?: boolean;
+    onSearchChange?: (v: string) => void;
     onProjectChange?: (v: string) => void;
     onStatusToggle?: (s: string) => void;
     onPriorityToggle?: (p: string) => void;
     onReset?: () => void;
   } = $props();
+
+  // Local draft for instant input feedback
+  let draft = $state(untrack(() => searchQuery));
+
+  // Sync from parent when searchQuery changes externally (e.g., reset)
+  $effect(() => {
+    draft = searchQuery;
+  });
+
+  let mounted = $state(false);
+  $effect(() => {
+    mounted = true;
+  });
+
+  // Debounce parent notification
+  $effect(() => {
+    if (!mounted) return;
+    const value = draft;
+    const timer = setTimeout(() => {
+      untrack(() => onSearchChange?.(value));
+    }, 250);
+    return () => clearTimeout(timer);
+  });
 
   const statusFilterColors: Record<string, string> = {
     New: "bg-blue-700/10 text-blue-700 ring-1 ring-inset ring-blue-200 dark:bg-blue-300/15 dark:text-blue-300 dark:ring-blue-700",
@@ -60,7 +93,10 @@
   };
 
   let hasFilters = $derived(
-    !!filterProject || filterStatuses.join(",") !== ACTIVE_STATUSES.join(",") || filterPriorities.length > 0,
+    !!draft ||
+      !!filterProject ||
+      filterStatuses.join(",") !== ACTIVE_STATUSES.join(",") ||
+      filterPriorities.length > 0,
   );
 </script>
 
@@ -70,6 +106,16 @@
   </Card.CardHeader>
   <Card.CardContent>
     <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-1.5">
+        <span class="text-muted-foreground text-xs font-medium">Search</span>
+        <input
+          type="text"
+          placeholder="Search title or description..."
+          class="border-input bg-background ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+          aria-label="Search"
+          bind:value={draft}
+        />
+      </div>
       {#if !hideProject}
         <div class="flex flex-col gap-1.5">
           <span class="text-muted-foreground text-xs font-medium">Project</span>

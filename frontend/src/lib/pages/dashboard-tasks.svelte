@@ -23,6 +23,7 @@
   let filterProject = $state("");
   let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
+  let searchQuery = $state("");
   let sort = $state("-created_at");
   let offset = $state(0);
   const limit = 50;
@@ -68,6 +69,7 @@
     if (filterStatuses.length) filters.statuses = filterStatuses.join(",");
     if (filterPriorities.length)
       filters.priorities = filterPriorities.join(",");
+    if (searchQuery) filters.search = searchQuery;
 
     Promise.all([
       listProjects(100, 0).then((r) => {
@@ -90,6 +92,7 @@
     filterProject = "";
     filterStatuses = [...ACTIVE_STATUSES];
     filterPriorities = [];
+    searchQuery = "";
     offset = 0;
   }
 
@@ -166,9 +169,14 @@
     <aside>
       <TaskFilters
         {projects}
+        {searchQuery}
         {filterProject}
         {filterStatuses}
         {filterPriorities}
+        onSearchChange={(v) => {
+          searchQuery = v;
+          offset = 0;
+        }}
         onProjectChange={handleProjectChange}
         onStatusToggle={toggleStatus}
         onPriorityToggle={togglePriority}
