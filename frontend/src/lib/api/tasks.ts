@@ -14,6 +14,7 @@ export interface TaskFilters {
   assignee?: number
   statuses?: string
   priorities?: string
+  search?: string
   sort?: string
   limit?: number
   offset?: number
@@ -26,6 +27,7 @@ function buildQuery(filters: TaskFilters): string {
   if (filters.assignee !== undefined) params.set('assignee', String(filters.assignee))
   if (filters.statuses) params.set('statuses', filters.statuses)
   if (filters.priorities) params.set('priorities', filters.priorities)
+  if (filters.search) params.set('search', filters.search)
   if (filters.sort) params.set('sort', filters.sort)
   if (filters.limit !== undefined) params.set('limit', String(filters.limit))
   if (filters.offset !== undefined) params.set('offset', String(filters.offset))

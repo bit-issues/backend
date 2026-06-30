@@ -245,11 +245,21 @@ type TaskFilter struct {
 	CreatedTo      *time.Time
 	IncludeDeleted bool
 
+	Search *string // Full-text search across title and description
+
 	// Extended
 	UserID *int64 // AuthorID or AssigneeID
 }
 
 func (f TaskFilter) apply(query *bun.SelectQuery) *bun.SelectQuery {
+	query = f.applyBasicFilters(query)
+	query = f.applyDateFilters(query)
+	query = f.applySearchFilter(query)
+	query = f.applyExtendedFilters(query)
+	return query
+}
+
+func (f TaskFilter) applyBasicFilters(query *bun.SelectQuery) *bun.SelectQuery {
 	if f.ProjectSlug != nil && *f.ProjectSlug != "" {
 		query = query.Where("project_slug = ?", *f.ProjectSlug)
 	}
@@ -269,6 +279,10 @@ func (f TaskFilter) apply(query *bun.SelectQuery) *bun.SelectQuery {
 	if len(f.Priorities) > 0 {
 		query = query.Where("priority IN (?)", bun.List(f.Priorities))
 	}
+	return query
+}
+
+func (f TaskFilter) applyDateFilters(query *bun.SelectQuery) *bun.SelectQuery {
 	if f.DueFrom != nil {
 		query = query.Where("due_date >= ?", *f.DueFrom)
 	}
@@ -281,16 +295,38 @@ func (f TaskFilter) apply(query *bun.SelectQuery) *bun.SelectQuery {
 	if f.CreatedTo != nil {
 		query = query.Where("created_at <= ?", *f.CreatedTo)
 	}
+	return query
+}
+
+func (f TaskFilter) applySearchFilter(query *bun.SelectQuery) *bun.SelectQuery {
+	if f.Search != nil && *f.Search != "" {
+		clean := strings.Map(func(r rune) rune {
+			if strings.ContainsRune(`+-<>()~*"@`, r) {
+				return -1
+			}
+			return r
+		}, *f.Search)
+		clean = strings.TrimSpace(clean)
+		if clean != "" {
+			terms := strings.Fields(clean)
+			for i, t := range terms {
+				terms[i] = "+" + t + "*"
+			}
+			query = query.Where("MATCH(title, description) AGAINST(? IN BOOLEAN MODE)", strings.Join(terms, " "))
+		}
+	}
+	return query
+}
+
+func (f TaskFilter) applyExtendedFilters(query *bun.SelectQuery) *bun.SelectQuery {
 	if f.IncludeDeleted {
 		query = query.WhereAllWithDeleted()
 	}
-
 	if f.UserID != nil {
 		query = query.WhereGroup("AND", func(sq *bun.SelectQuery) *bun.SelectQuery {
 			return sq.WhereOr("author_id = ?", *f.UserID).WhereOr("assignee_id = ?", *f.UserID)
 		})
 	}
-
 	return query
 }
 

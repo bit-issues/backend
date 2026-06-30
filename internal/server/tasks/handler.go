@@ -107,6 +107,7 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Param			assignee	query		int64		false	"Filter by assignee ID"
 //	@Param			statuses	query		[]string	false	"Filter by status (comma-separated)"
 //	@Param			priorities	query		[]string	false	"Filter by priority (comma-separated)"
+//	@Param			search		query		string		false	"Full-text search across title and description"
 //	@Param			sort		query		string		false	"Sort field (e.g., created_at, -priority)"	default(created_at)
 //	@Success		200			{object}	TaskListResponse
 //	@Failure		401			{object}	fiberfx.ErrorResponse

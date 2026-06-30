@@ -22,6 +22,7 @@ type TaskListQuery struct {
 	Assignee   *int64  `query:"assignee"   validate:"omitempty,min=0"`
 	Statuses   *string `query:"statuses"`
 	Priorities *string `query:"priorities"`
+	Search     *string `query:"search"     validate:"omitempty,max=255"`
 }
 
 func (q *TaskListQuery) toFilter() tasks.TaskFilter {
@@ -47,6 +48,7 @@ func (q *TaskListQuery) toFilter() tasks.TaskFilter {
 		Statuses:       statuses,
 		Priorities:     priorities,
 		IncludeDeleted: false,
+		Search:         q.Search,
 
 		DueFrom:     nil,
 		DueTo:       nil,
