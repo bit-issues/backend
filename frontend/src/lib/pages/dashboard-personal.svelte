@@ -68,7 +68,7 @@
   }
 
   function handleTaskClick(task: Task) {
-    navigate(`/tasks/${task.id}`);
+    navigate(`/tasks/${task.project_slug}/${task.number}`);
   }
 
   $effect(() => {

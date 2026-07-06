@@ -95,6 +95,12 @@ export function parseProjectSlugFromPath(path: string): string {
     const legacyMatch = base.match(/^\/projects\/([^/]+)\/tasks$/)
     if (legacyMatch) return decodeURIComponent(legacyMatch[1] || '').trim()
 
+    const taskMatch = base.match(/^\/task\/([^/]+)\/\d+$/)
+    if (taskMatch) return decodeURIComponent(taskMatch[1] || '').trim()
+
+    const taskEditMatch = base.match(/^\/task\/([^/]+)\/\d+\/edit$/)
+    if (taskEditMatch) return decodeURIComponent(taskEditMatch[1] || '').trim()
+
     if (base.startsWith('/tasks/new/')) {
       return decodeURIComponent(base.slice('/tasks/new/'.length) || '').trim()
     }

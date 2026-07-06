@@ -136,7 +136,7 @@
           </Table.Cell>
           <Table.Cell class="max-w-xs truncate font-medium">
             <a
-              href="#/tasks/{task.id}"
+              href="#/tasks/{task.project_slug}/{task.number}"
               class="hover:underline"
               onclick={(e) => e.stopPropagation()}
             >

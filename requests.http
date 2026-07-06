@@ -249,6 +249,12 @@ GET {{baseURL}}/tasks/{{taskId}}
 Authorization: Bearer {{accessToken}}
 
 ###
+# Get task by project slug and number
+# Uses the new friendly URL pattern: project-slug/task-number
+GET {{baseURL}}/tasks/my-new-project/1
+Authorization: Bearer {{accessToken}}
+
+###
 # Create a new task
 # POST to /tasks
 # @name createTask

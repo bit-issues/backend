@@ -58,7 +58,7 @@
       id: data.project_slug,
       name: match?.name || data.project_slug,
     });
-    navigate(`/tasks/${task.id}`);
+    navigate(`/tasks/${encodeURIComponent(task.project_slug)}/${task.number}`);
   }
 </script>
 
@@ -69,7 +69,7 @@
     <TaskForm
       mode="create"
       {projects}
-      initialProjectSlug={initialProjectSlug}
+      {initialProjectSlug}
       onSubmit={handleSubmit}
     />
   {/if}

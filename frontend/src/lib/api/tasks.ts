@@ -47,6 +47,10 @@ export function getTask(id: number): Promise<TaskDetails> {
   return apiRequest<TaskDetails>('GET', `/tasks/${id}`)
 }
 
+export function getTaskByProjectAndNumber(slug: string, number: number): Promise<TaskDetails> {
+  return apiRequest<TaskDetails>('GET', `/tasks/${slug}/${number}`)
+}
+
 export function createTask(data: TaskCreateRequest): Promise<TaskDetails> {
   return apiRequest<TaskDetails>('POST', '/tasks', data)
 }
