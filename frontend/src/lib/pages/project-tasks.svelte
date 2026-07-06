@@ -12,17 +12,20 @@
   import { Button } from "$lib/components/ui/button";
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
+  import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
 
   // svelte-ignore a11y_click_events_have_key_events
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let slug = $derived(params.slug || "");
+  let routeKey = $derived(`/projects/${slug}`);
 
   let project = $state<Project | null>(null);
   let tasks = $state<Task[]>([]);
   let total = $state(0);
   let loading = $state(true);
   let error = $state("");
+  let currentRouteKey = $state("");
   let sort = $state("-created_at");
   let offset = $state(0);
   const limit = 50;
@@ -30,6 +33,19 @@
   let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
   let searchQuery = $state("");
+
+  $effect(() => {
+    const saved = getSnapshot(routeKey);
+    if (saved) {
+      filterStatuses = saved.filterStatuses;
+      filterPriorities = saved.filterPriorities;
+      sort = saved.sort;
+      offset = saved.offset;
+    } else {
+      searchQuery = "";
+      sort = "-created_at";
+    }
+  });
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -78,11 +94,22 @@
         error = e.message || "Failed to load data";
       })
       .finally(() => {
+        currentRouteKey = routeKey;
         loading = false;
       });
   }
 
   $effect(load);
+
+  $effect(() => {
+    if (routeKey !== currentRouteKey) return;
+    saveSnapshot(routeKey, {
+      filterStatuses: [...filterStatuses],
+      filterPriorities: [...filterPriorities],
+      sort,
+      offset,
+    });
+  });
 
   function handleSort(field: string) {
     sort = sort === field ? `-${field}` : field;
