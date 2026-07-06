@@ -70,6 +70,7 @@ func (h *Handler) Register(r fiber.Router) {
 	tasks.Get("/", h.list)
 	tasks.Get("/me", h.myTasks)
 	tasks.Get("/:id", h.get)
+	tasks.Get("/:slug/:number", h.getByProjectAndNumber)
 	tasks.Post("/",
 		validation.DecorateWithBodyEx(h.Validator, h.post),
 	)
@@ -158,6 +159,42 @@ func (h *Handler) get(c *fiber.Ctx) error {
 
 	// Fetch task from service
 	task, err := h.tasksSvc.GetByID(c.Context(), id)
+	if err != nil {
+		return fmt.Errorf("failed to get task: %w", err)
+	}
+
+	response, err := h.prepareDetailsResponse(c.Context(), task)
+	if err != nil {
+		return fmt.Errorf("failed to prepare details response: %w", err)
+	}
+
+	return c.JSON(response)
+}
+
+//	@Summary		Get task by project slug and number
+//	@Description	Returns detailed information about a task identified by its project slug and sequential number.
+//	@Tags			Tasks
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			slug	path		string	true	"Project slug"
+//	@Param			number	path		int		true	"Task number within project"
+//	@Success		200		{object}	TaskDetailsResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Failure		404		{object}	fiberfx.ErrorResponse
+//	@Router			/tasks/{slug}/{number} [get]
+//
+// getByProjectAndNumber retrieves a single task by its project slug and sequential number.
+func (h *Handler) getByProjectAndNumber(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+
+	number, err := strconv.ParseInt(c.Params("number"), 10, 64)
+	if err != nil || number < 1 {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid task number")
+	}
+
+	task, err := h.tasksSvc.GetByProjectAndNumber(c.Context(), slug, int(number))
 	if err != nil {
 		return fmt.Errorf("failed to get task: %w", err)
 	}

@@ -22,6 +22,7 @@
   import TaskDetailPage from "$lib/pages/task-detail.svelte";
   import TaskNewPage from "$lib/pages/task-new.svelte";
   import TaskEditPage from "$lib/pages/task-edit.svelte";
+  import TaskRedirectPage from "$lib/pages/task-redirect.svelte";
 
   import AdminPage from "$lib/pages/admin.svelte";
   import AdminUsers from "$lib/pages/admin-users.svelte";
@@ -55,7 +56,6 @@
         trackRecentFromPath(window.location.hash.slice(1) || "/");
       });
     };
-    syncRecent();
     window.addEventListener("hashchange", syncRecent);
     return () => window.removeEventListener("hashchange", syncRecent);
   });
@@ -69,13 +69,28 @@
     { pattern: "/dashboard/all", component: DashboardTasks, auth: true },
     { pattern: "/projects", component: ProjectsPage, auth: true },
     { pattern: "/projects/:slug", component: ProjectTasks, auth: true },
+    {
+      pattern: "/tasks/:slug/:number/edit",
+      component: TaskEditPage,
+      auth: true,
+    },
+    { pattern: "/tasks/:slug/:number", component: TaskDetailPage, auth: true },
+    { pattern: "/tasks/:id", component: TaskRedirectPage, auth: true },
     { pattern: "/tasks/new", component: TaskNewPage, auth: true },
-    { pattern: "/tasks/:id/edit", component: TaskEditPage, auth: true },
-    { pattern: "/tasks/:id", component: TaskDetailPage, auth: true },
     { pattern: "/profile", component: ProfilePage, auth: true },
     { pattern: "/settings/security", component: SecurityPage, auth: true },
-    { pattern: "/admin/users", component: AdminUsers, auth: true, role: "admin" },
-    { pattern: "/admin/projects", component: AdminProjects, auth: true, role: "admin" },
+    {
+      pattern: "/admin/users",
+      component: AdminUsers,
+      auth: true,
+      role: "admin",
+    },
+    {
+      pattern: "/admin/projects",
+      component: AdminProjects,
+      auth: true,
+      role: "admin",
+    },
     { pattern: "/admin", component: AdminPage, auth: true, role: "admin" },
   ];
 </script>

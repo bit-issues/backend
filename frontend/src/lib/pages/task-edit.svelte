@@ -1,30 +1,46 @@
 <script lang="ts">
-  import { getTask, updateTask } from "$lib/api/tasks";
+  import { getTaskByProjectAndNumber, updateTask } from "$lib/api/tasks";
   import { listProjects } from "$lib/api/projects";
   import { navigate } from "$lib/router/routes";
   import TaskForm from "$lib/components/TaskForm.svelte";
   import type { TaskDetails, Project } from "$lib/types/api";
-  import { onMount } from "svelte";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
-  let id = $derived(Number(params.id));
+  let slug = $derived(params.slug || "");
+  let number = $derived(Number(params.number));
 
   let task = $state<TaskDetails | null>(null);
+  let taskId = $state(0);
   let projects = $state<Project[]>([]);
   let loading = $state(true);
   let error = $state("");
 
-  onMount(() => {
-    if (!id) return;
-    Promise.all([getTask(id), listProjects(100, 0)])
+  $effect(() => {
+    const currentSlug = slug;
+    const currentNumber = number;
+    if (!currentSlug || !currentNumber) return;
+
+    loading = true;
+    error = "";
+    task = null;
+    taskId = 0;
+
+    Promise.all([
+      getTaskByProjectAndNumber(currentSlug, currentNumber),
+      listProjects(100, 0),
+    ])
       .then(([t, p]) => {
+        if (currentSlug !== slug || currentNumber !== number) return;
         task = t;
+        taskId = t.id;
         projects = p.items;
       })
       .catch((e) => {
+        if (currentSlug !== slug || currentNumber !== number) return;
         error = e.message || "Failed to load task";
       })
       .finally(() => {
+        if (currentSlug !== slug || currentNumber !== number) return;
         loading = false;
       });
   });
@@ -38,7 +54,7 @@
     assignee_id: number | null | undefined;
     due_date: string;
   }) {
-    const updated = await updateTask(id, {
+    const updated = await updateTask(taskId, {
       title: data.title,
       description: data.description || undefined,
       priority: data.priority as any,
@@ -47,7 +63,7 @@
       assignee_id: data.assignee_id ?? undefined,
       due_date: data.due_date,
     });
-    navigate(`/tasks/${updated.id}`);
+    navigate(`/tasks/${updated.project_slug}/${updated.number}`);
   }
 </script>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getTask, deleteTask, updateTask } from "$lib/api/tasks";
+  import { getTaskByProjectAndNumber, deleteTask, updateTask } from "$lib/api/tasks";
   import {
     createComment,
     updateComment,
@@ -20,7 +20,6 @@
   import * as Card from "$lib/components/ui/card";
   import { parse } from "marked";
   import DOMPurify from "dompurify";
-  import { onMount } from "svelte";
   import type { TaskDetails, Comment, Attachment } from "$lib/types/api";
   import { STATUSES } from "$lib/types/api";
   import { processAutoLinks } from "$lib/autolink";
@@ -28,9 +27,11 @@
   import { toast } from "$lib/toast";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
-  let id = $derived(Number(params.id));
+  let slug = $derived(params.slug || "");
+  let number = $derived(Number(params.number));
 
   let task = $state<TaskDetails | null>(null);
+  let taskId = $state(0);
   let loading = $state(true);
   let error = $state("");
 
@@ -41,7 +42,7 @@
   let savingStatus = $state(false);
 
   let assigneeId = $state<number | null>(null);
-  let assigning = $state(false);
+  let assigning = false;
   let ready = $state(false);
 
   let currentUserId = $derived(getUser()?.id);
@@ -60,20 +61,33 @@
       : "",
   );
 
-  onMount(() => {
-    if (!id) return;
-    getTask(id)
+  $effect(() => {
+    const currentSlug = slug;
+    const currentNumber = number;
+    if (!currentSlug || !currentNumber) return;
+
+    loading = true;
+    error = "";
+    task = null;
+    ready = false;
+    taskId = 0;
+
+    getTaskByProjectAndNumber(currentSlug, currentNumber)
       .then((t) => {
+        if (currentSlug !== slug || currentNumber !== number) return;
         task = t;
+        taskId = t.id;
         selectedStatus = t.status;
         assigneeId = t.assignee?.id ?? null;
         ready = true;
         touchProject({ id: t.project.id, name: t.project.name });
       })
       .catch((e) => {
+        if (currentSlug !== slug || currentNumber !== number) return;
         error = e.message || "Failed to load task";
       })
       .finally(() => {
+        if (currentSlug !== slug || currentNumber !== number) return;
         loading = false;
       });
   });
@@ -84,7 +98,7 @@
     const oldId = task.assignee?.id ?? null;
     if (newId !== oldId) {
       assigning = true;
-      updateTask(id, { assignee_id: newId ?? 0 })
+      updateTask(taskId, { assignee_id: newId ?? 0 })
         .then((updated) => {
           task = updated;
           assigneeId = updated.assignee?.id ?? null;
@@ -103,7 +117,7 @@
     if (!confirm("Delete this task permanently?")) return;
     deleting = true;
     try {
-      await deleteTask(id);
+      await deleteTask(taskId);
       navigate("/dashboard");
     } catch (e: any) {
       toast.error(e.message || "Failed to delete task");
@@ -113,7 +127,7 @@
   }
 
   async function handleAddComment(content: string) {
-    const created = await createComment(id, { content });
+    const created = await createComment(taskId, { content });
     task = {
       ...task!,
       comments: [...task!.comments, created as Comment],
@@ -121,7 +135,7 @@
   }
 
   async function handleEditComment(commentId: number, content: string) {
-    const updated = await updateComment(id, commentId, { content });
+    const updated = await updateComment(taskId, commentId, { content });
     task = {
       ...task!,
       comments: task!.comments.map((c) =>
@@ -131,7 +145,7 @@
   }
 
   async function handleDeleteComment(commentId: number) {
-    await deleteComment(id, commentId);
+    await deleteComment(taskId, commentId);
     task = {
       ...task!,
       comments: task!.comments.filter((c) => c.id !== commentId),
@@ -139,7 +153,7 @@
   }
 
   async function handleDeleteAttachment(attachmentId: number) {
-    await deleteAttachment(id, attachmentId);
+    await deleteAttachment(taskId, attachmentId);
     task = {
       ...task!,
       attachments: task!.attachments.filter((a) => a.id !== attachmentId),
@@ -149,7 +163,7 @@
   async function handleStatusChange() {
     savingStatus = true;
     try {
-      const updated = await updateTask(id, {
+      const updated = await updateTask(taskId, {
         status: selectedStatus,
         comment: statusComment || undefined,
       });
@@ -198,7 +212,7 @@
         <h1 class="text-2xl font-semibold">{task.title}</h1>
       </div>
       <div class="flex shrink-0 gap-2">
-        <Button variant="outline" onclick={() => navigate(`/tasks/${id}/edit`)}
+        <Button variant="outline" onclick={() => navigate(`/tasks/${slug}/${number}/edit`)}
           >Edit</Button
         >
         <Button
@@ -353,11 +367,11 @@
               onDelete={handleDeleteAttachment}
             />
             <AttachmentUpload
-              taskId={id}
+              taskId={taskId}
               onUploaded={(confirmed) => {
                 const att: Attachment = {
                   id: confirmed.id,
-                  task_id: id,
+                  task_id: taskId,
                   uploaded_by: confirmed.uploaded_by,
                   file_name: confirmed.file_name,
                   size_bytes: confirmed.size_bytes,
