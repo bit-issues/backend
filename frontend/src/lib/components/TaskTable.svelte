@@ -135,7 +135,13 @@
             {task.project_slug}-{task.number}
           </Table.Cell>
           <Table.Cell class="max-w-xs truncate font-medium">
-            {task.title}
+            <a
+              href="#/tasks/{task.id}"
+              class="hover:underline"
+              onclick={(e) => e.stopPropagation()}
+            >
+              {task.title}
+            </a>
           </Table.Cell>
           <Table.Cell>
             <span
