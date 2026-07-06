@@ -11,8 +11,11 @@
   import { Button } from "$lib/components/ui/button";
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
+  import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
+
+  const ROUTE_KEY = "/dashboard/all";
 
   let tasks = $state<Task[]>([]);
   let total = $state(0);
@@ -27,6 +30,15 @@
   let sort = $state("-created_at");
   let offset = $state(0);
   const limit = 50;
+
+  let saved = getSnapshot(ROUTE_KEY);
+  if (saved) {
+    filterProject = saved.filterProject ?? "";
+    filterStatuses = saved.filterStatuses;
+    filterPriorities = saved.filterPriorities;
+    sort = saved.sort;
+    offset = saved.offset;
+  }
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -97,6 +109,16 @@
   }
 
   $effect(load);
+
+  $effect(() => {
+    saveSnapshot(ROUTE_KEY, {
+      filterProject: filterProject || undefined,
+      filterStatuses: [...filterStatuses],
+      filterPriorities: [...filterPriorities],
+      sort,
+      offset,
+    });
+  });
 
   function handleTaskClick(task: Task) {
     navigate(`/tasks/${task.id}`);

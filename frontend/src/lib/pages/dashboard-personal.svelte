@@ -9,8 +9,11 @@
   import * as Card from "$lib/components/ui/card";
   import type { Task, Project } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
+  import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
+
+  const ROUTE_KEY = "/dashboard";
 
   let createdTasks = $state<Task[]>([]);
   let assignedTasks = $state<Task[]>([]);
@@ -24,6 +27,14 @@
   let filterPriorities = $state<string[]>([]);
   let searchQuery = $state("");
   let sort = $state("-created_at");
+
+  let saved = getSnapshot(ROUTE_KEY);
+  if (saved) {
+    filterProject = saved.filterProject ?? "";
+    filterStatuses = saved.filterStatuses;
+    filterPriorities = saved.filterPriorities;
+    sort = saved.sort;
+  }
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -59,6 +70,16 @@
   function handleTaskClick(task: Task) {
     navigate(`/tasks/${task.id}`);
   }
+
+  $effect(() => {
+    saveSnapshot(ROUTE_KEY, {
+      filterProject: filterProject || undefined,
+      filterStatuses: [...filterStatuses],
+      filterPriorities: [...filterPriorities],
+      sort,
+      offset: 0,
+    });
+  });
 
   $effect(() => {
     loading = true;
