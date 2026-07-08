@@ -14,6 +14,7 @@
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
   import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   // svelte-ignore a11y_click_events_have_key_events
 
@@ -30,6 +31,7 @@
   let sort = $state("-created_at");
   let offset = $state(0);
   const limit = 50;
+  const requestGuard = createLatestRequestGuard();
 
   let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
   let filterPriorities = $state<string[]>([]);
@@ -48,6 +50,7 @@
       sort = "-created_at";
     }
   });
+  let lastSlug = "";
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -76,6 +79,10 @@
 
   function load() {
     if (!slug) return;
+    if (slug !== lastSlug) {
+      lastSlug = slug;
+      project = null;
+    }
     loading = true;
     error = "";
 
@@ -85,20 +92,25 @@
       filters.priorities = filterPriorities.join(",");
     if (searchQuery) filters.search = searchQuery;
 
-    Promise.all([getProject(slug), listTasks(filters)])
-      .then(([proj, res]) => {
-        project = proj;
-        tasks = res.items;
-        total = res.total;
-        touchProject({ id: proj.id, name: proj.name });
-      })
-      .catch((e) => {
-        error = e.message || "Failed to load data";
-      })
-      .finally(() => {
-        currentRouteKey = routeKey;
-        loading = false;
-      });
+    runLatest(
+      requestGuard,
+      () => Promise.all([getProject(slug), listTasks(filters)]),
+      {
+        onSuccess: ([proj, res]) => {
+          project = proj;
+          tasks = res.items;
+          total = res.total;
+          touchProject({ id: proj.id, name: proj.name });
+        },
+        onError: (e) => {
+          error = (e as Error).message || "Failed to load data";
+        },
+        onFinally: () => {
+          currentRouteKey = routeKey;
+          loading = false;
+        },
+      },
+    );
   }
 
   $effect(load);
@@ -121,12 +133,14 @@
   function handleTaskClick(task: Task) {
     navigate(`/tasks/${task.project_slug}/${task.number}`);
   }
+
+  let initialLoading = $derived(loading && project === null);
 </script>
 
 <div class="mx-auto max-w-7xl space-y-4">
-  {#if loading}
+  {#if initialLoading}
     <p class="text-muted-foreground py-8 text-center">Loading...</p>
-  {:else if error}
+  {:else if error && !project}
     <p class="text-destructive py-8 text-center">{error}</p>
   {:else if project}
     <div class="flex items-center justify-between">
@@ -148,6 +162,11 @@
 
     <div class="grid grid-cols-[1fr_280px] gap-6">
       <div class="min-w-0">
+        {#if loading}
+          <p class="text-muted-foreground py-2 text-center text-sm">
+            Loading...
+          </p>
+        {/if}
         <Card.Root>
           <Card.CardContent class="p-0">
             <TaskTable
@@ -167,7 +186,6 @@
               disabled={offset === 0}
               onclick={() => {
                 offset = Math.max(0, offset - limit);
-                load();
               }}
             >
               Previous
@@ -183,7 +201,6 @@
               disabled={offset + limit >= total}
               onclick={() => {
                 offset = offset + limit;
-                load();
               }}
             >
               Next

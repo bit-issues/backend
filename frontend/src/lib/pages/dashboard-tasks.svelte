@@ -12,6 +12,7 @@
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
   import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
@@ -39,6 +40,8 @@
     sort = saved.sort;
     offset = saved.offset;
   }
+
+  const requestGuard = createLatestRequestGuard();
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -83,21 +86,27 @@
       filters.priorities = filterPriorities.join(",");
     if (searchQuery) filters.search = searchQuery;
 
-    Promise.all([
-      listProjects(100, 0).then((r) => {
-        projects = r.items;
-      }),
-      listTasks(filters).then((r) => {
-        tasks = r.items;
-        total = r.total;
-      }),
-    ])
-      .catch((e) => {
-        error = e.message || "Failed to load tasks";
-      })
-      .finally(() => {
-        loading = false;
-      });
+    runLatest(
+      requestGuard,
+      () =>
+        Promise.all([
+          listProjects(100, 0).then((r) => r.items),
+          listTasks(filters).then((r) => ({ items: r.items, total: r.total })),
+        ]),
+      {
+        onSuccess: ([projectItems, taskRes]) => {
+          projects = projectItems;
+          tasks = taskRes.items;
+          total = taskRes.total;
+        },
+        onError: (e) => {
+          error = (e as Error).message || "Failed to load tasks";
+        },
+        onFinally: () => {
+          loading = false;
+        },
+      },
+    );
   }
 
   function resetFilters() {

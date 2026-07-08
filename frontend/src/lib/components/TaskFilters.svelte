@@ -53,7 +53,11 @@
     if (!mounted) return;
     const value = draft;
     const timer = setTimeout(() => {
-      untrack(() => onSearchChange?.(value));
+      untrack(() => {
+        if (value !== searchQuery) {
+          onSearchChange?.(value);
+        }
+      });
     }, 250);
     return () => clearTimeout(timer);
   });

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { searchUsers } from "$lib/api/users";
   import type { UserBrief } from "$lib/types/api";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let {
     value = $bindable<number | null>(null),
@@ -20,35 +21,33 @@
   let loading = $state(false);
   let selectedName = $state("");
   let timer: ReturnType<typeof setTimeout> | null = null;
-  let requestSeq = 0;
+  const requestGuard = createLatestRequestGuard();
 
   $effect(() => {
     if (initialName) selectedName = initialName;
   });
 
   function doSearch(q: string) {
-    const seq = ++requestSeq;
     if (!q.trim()) {
+      requestGuard.invalidate();
       results = [];
       open = false;
       loading = false;
       return;
     }
     loading = true;
-    searchUsers(q, 10)
-      .then((r) => {
-        if (seq !== requestSeq) return;
+    runLatest(requestGuard, () => searchUsers(q, 10), {
+      onSuccess: (r) => {
         results = r.items;
         open = true;
-      })
-      .catch(() => {
-        if (seq !== requestSeq) return;
+      },
+      onError: () => {
         results = [];
-      })
-      .finally(() => {
-        if (seq !== requestSeq) return;
+      },
+      onFinally: () => {
         loading = false;
-      });
+      },
+    });
   }
 
   function handleInput(e: Event) {
@@ -59,7 +58,7 @@
   }
 
   function select(user: UserBrief) {
-    requestSeq++;
+    requestGuard.invalidate();
     value = user.id;
     selectedName = user.name;
     query = "";
@@ -68,7 +67,7 @@
   }
 
   function clear() {
-    requestSeq++;
+    requestGuard.invalidate();
     value = null;
     selectedName = "";
     query = "";
