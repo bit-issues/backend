@@ -13,6 +13,7 @@
   import SearchIcon from "@lucide/svelte/icons/search";
   import XIcon from "@lucide/svelte/icons/x";
   import type { Project } from "$lib/types/api";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
@@ -25,7 +26,7 @@
   let searchTerm = $state("");
   let debouncedSearch = $state("");
   let searchTimeout: ReturnType<typeof setTimeout> | null = null;
-  let requestVersion = 0;
+  const requestGuard = createLatestRequestGuard();
 
   function handleSearchInput(value: string) {
     searchTerm = value;
@@ -45,24 +46,25 @@
   }
 
   function load() {
-    const version = ++requestVersion;
     loading = true;
     error = "";
-    listProjects(limit, offset, debouncedSearch || undefined)
-      .then((res) => {
-        if (version !== requestVersion) return;
-        projects = res.items;
-        total = res.total;
-        enrichRecentFromProjects(res.items);
-      })
-      .catch((e) => {
-        if (version !== requestVersion) return;
-        error = e.message || "Failed to load projects";
-      })
-      .finally(() => {
-        if (version !== requestVersion) return;
-        loading = false;
-      });
+    runLatest(
+      requestGuard,
+      () => listProjects(limit, offset, debouncedSearch || undefined),
+      {
+        onSuccess: (res) => {
+          projects = res.items;
+          total = res.total;
+          enrichRecentFromProjects(res.items);
+        },
+        onError: (e) => {
+          error = (e as Error).message || "Failed to load projects";
+        },
+        onFinally: () => {
+          loading = false;
+        },
+      },
+    );
   }
 
   $effect(load);

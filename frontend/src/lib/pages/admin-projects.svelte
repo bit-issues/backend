@@ -14,6 +14,7 @@
   import SearchIcon from "@lucide/svelte/icons/search";
   import XIcon from "@lucide/svelte/icons/x";
   import type { Project } from "$lib/types/api";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let projects = $state<Project[]>([]);
   let loading = $state(true);
@@ -32,6 +33,8 @@
   let editName = $state("");
   let editRepoUrl = $state("");
   let editSaving = $state(false);
+
+  const requestGuard = createLatestRequestGuard();
 
   function handleSearchInput(value: string) {
     searchTerm = value;
@@ -57,17 +60,24 @@
     return new Date(dateStr).toLocaleDateString();
   }
 
-  async function load() {
+  function load() {
     loading = true;
     error = "";
-    try {
-      const res = await listProjects(100, 0, debouncedSearch || undefined);
-      projects = res.items;
-    } catch (e: any) {
-      error = e?.message || "Failed to load projects";
-    } finally {
-      loading = false;
-    }
+    runLatest(
+      requestGuard,
+      () => listProjects(100, 0, debouncedSearch || undefined),
+      {
+        onSuccess: (res) => {
+          projects = res.items;
+        },
+        onError: (e) => {
+          error = (e as Error)?.message || "Failed to load projects";
+        },
+        onFinally: () => {
+          loading = false;
+        },
+      },
+    );
   }
 
   function openCreate() {

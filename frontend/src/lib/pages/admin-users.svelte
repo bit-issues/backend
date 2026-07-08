@@ -9,6 +9,7 @@
   import * as Badge from "$lib/components/ui/badge";
   import * as Dialog from "$lib/components/ui/dialog";
   import type { User } from "$lib/types/api";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   const PAGE_SIZE = 20;
 
@@ -28,6 +29,8 @@
   let editSaving = $state(false);
 
   let activatingId = $state<number | null>(null);
+
+  const requestGuard = createLatestRequestGuard();
 
   let totalPages = $derived(Math.max(1, Math.ceil(total / PAGE_SIZE)));
 
@@ -50,24 +53,32 @@
     return new Date(dateStr).toLocaleDateString();
   }
 
-  async function loadUsers() {
+  function loadUsers() {
     loading = true;
     error = "";
-    try {
-      const res = await listUsers({
-        status: filterStatus || undefined,
-        role: filterRole || undefined,
-        limit: PAGE_SIZE,
-        offset: (page - 1) * PAGE_SIZE,
-      });
-      users = res.items;
-      total = res.total;
-    } catch (e: any) {
-      error = e?.message || "Failed to load users";
-      users = [];
-    } finally {
-      loading = false;
-    }
+    runLatest(
+      requestGuard,
+      () =>
+        listUsers({
+          status: filterStatus || undefined,
+          role: filterRole || undefined,
+          limit: PAGE_SIZE,
+          offset: (page - 1) * PAGE_SIZE,
+        }),
+      {
+        onSuccess: (res) => {
+          users = res.items;
+          total = res.total;
+        },
+        onError: (e) => {
+          error = (e as Error)?.message || "Failed to load users";
+          users = [];
+        },
+        onFinally: () => {
+          loading = false;
+        },
+      },
+    );
   }
 
   function onFilterChange() {

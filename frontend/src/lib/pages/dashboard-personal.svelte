@@ -10,6 +10,7 @@
   import type { Task, Project } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
   import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
@@ -35,6 +36,8 @@
     filterPriorities = saved.filterPriorities;
     sort = saved.sort;
   }
+
+  const requestGuard = createLatestRequestGuard();
 
   function toggleStatus(s: string) {
     if (filterStatuses.includes(s)) {
@@ -94,24 +97,30 @@
       filters.priorities = filterPriorities.join(",");
     if (searchQuery) filters.search = searchQuery;
 
-    Promise.all([
-      listProjects(100, 0).then((r) => {
-        projects = r.items;
-      }),
-      getMyTasks({ limit: 50, ...filters }).then((res) => {
-        const currentUserId = getUser()?.id;
-        createdTasks = res.items.filter((t) => t.author.id === currentUserId);
-        assignedTasks = res.items.filter(
-          (t) => t.assignee?.id === currentUserId,
-        );
-      }),
-    ])
-      .catch((e) => {
-        error = e.message || "Failed to load tasks";
-      })
-      .finally(() => {
-        loading = false;
-      });
+    runLatest(
+      requestGuard,
+      () =>
+        Promise.all([
+          listProjects(100, 0).then((r) => r.items),
+          getMyTasks({ limit: 50, ...filters }).then((res) => res.items),
+        ]),
+      {
+        onSuccess: ([projectItems, taskItems]) => {
+          projects = projectItems;
+          const currentUserId = getUser()?.id;
+          createdTasks = taskItems.filter((t) => t.author.id === currentUserId);
+          assignedTasks = taskItems.filter(
+            (t) => t.assignee?.id === currentUserId,
+          );
+        },
+        onError: (e) => {
+          error = (e as Error).message || "Failed to load tasks";
+        },
+        onFinally: () => {
+          loading = false;
+        },
+      },
+    );
   });
 </script>
 
