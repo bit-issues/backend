@@ -7,6 +7,27 @@ export function listProjects(limit = 20, offset = 0, search?: string): Promise<P
   return apiRequest<PaginatedResponse<Project>>('GET', `/projects?${params}`)
 }
 
+const LIST_ALL_PROJECTS_MAX_PAGES = 100
+
+export async function listAllProjects(search?: string): Promise<Project[]> {
+  const pageSize = 100
+  const items: Project[] = []
+  let offset = 0
+  let total = Number.POSITIVE_INFINITY
+  let pagesFetched = 0
+
+  while (offset < total && pagesFetched < LIST_ALL_PROJECTS_MAX_PAGES) {
+    const page = await listProjects(pageSize, offset, search)
+    items.push(...page.items)
+    total = page.total
+    offset += page.items.length
+    pagesFetched++
+    if (page.items.length === 0) break
+  }
+
+  return items
+}
+
 export function getProject(slug: string): Promise<Project> {
   return apiRequest<Project>('GET', `/projects/${encodeURIComponent(slug)}`)
 }

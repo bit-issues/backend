@@ -1,6 +1,6 @@
 <script lang="ts">
   import { getTaskByProjectAndNumber, updateTask } from "$lib/api/tasks";
-  import { listProjects } from "$lib/api/projects";
+  import { listAllProjects } from "$lib/api/projects";
   import { navigate } from "$lib/router/routes";
   import TaskForm from "$lib/components/TaskForm.svelte";
   import type { TaskDetails, Project } from "$lib/types/api";
@@ -27,13 +27,13 @@
 
     Promise.all([
       getTaskByProjectAndNumber(currentSlug, currentNumber),
-      listProjects(100, 0),
+      listAllProjects(),
     ])
       .then(([t, p]) => {
         if (currentSlug !== slug || currentNumber !== number) return;
         task = t;
         taskId = t.id;
-        projects = p.items;
+        projects = p;
       })
       .catch((e) => {
         if (currentSlug !== slug || currentNumber !== number) return;
