@@ -68,8 +68,9 @@ func Module() fx.Option {
 		fx.Provide(
 			func(cfg Config) webhooks.Config {
 				return webhooks.Config{
-					Secret:       cfg.Webhooks.Secret,
-					BotUserEmail: cfg.Webhooks.BotUserEmail,
+					Secret:         cfg.Webhooks.Secret,
+					BotUserEmail:   cfg.Webhooks.BotUserEmail,
+					ActionKeywords: cfg.Webhooks.ActionKeywords,
 				}
 			},
 		),

@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/bit-issues/backend/internal/webhooks"
 	"github.com/go-core-fx/config"
 )
 
@@ -57,8 +58,9 @@ type cacheConfig struct {
 }
 
 type webhooksConfig struct {
-	Secret       string `koanf:"secret"`
-	BotUserEmail string `koanf:"bot_user_email"`
+	Secret         string                           `koanf:"secret"`
+	BotUserEmail   string                           `koanf:"bot_user_email"`
+	ActionKeywords map[string]webhooks.KeywordEntry `koanf:"action_keywords"`
 }
 
 type Config struct {
@@ -73,7 +75,7 @@ type Config struct {
 }
 
 func Default() Config {
-	//nolint:gosec,mnd // default values
+	//nolint:gosec,mnd,goconst // default values
 	return Config{
 		HTTP: http{
 			Address:     "127.0.0.1:3000",
@@ -116,6 +118,21 @@ func Default() Config {
 		Webhooks: webhooksConfig{
 			Secret:       "",
 			BotUserEmail: "bot@bitissues.local",
+			ActionKeywords: map[string]webhooks.KeywordEntry{
+				"fixes":    {Status: "Resolved", Verb: "Resolved"},
+				"fixed":    {Status: "Resolved", Verb: "Resolved"},
+				"fix":      {Status: "Resolved", Verb: "Resolved"},
+				"resolves": {Status: "Resolved", Verb: "Resolved"},
+				"resolved": {Status: "Resolved", Verb: "Resolved"},
+				"resolve":  {Status: "Resolved", Verb: "Resolved"},
+				"closes":   {Status: "Closed", Verb: "Closed"},
+				"closed":   {Status: "Closed", Verb: "Closed"},
+				"close":    {Status: "Closed", Verb: "Closed"},
+				"blocks":   {Status: "On Hold", Verb: "On Hold"},
+				"blocked":  {Status: "On Hold", Verb: "On Hold"},
+				"block":    {Status: "On Hold", Verb: "On Hold"},
+				"on hold":  {Status: "On Hold", Verb: "On Hold"},
+			},
 		},
 	}
 }

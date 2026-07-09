@@ -16,8 +16,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var ErrInvalidSignature = errors.New("invalid webhook signature")
-
 type Service struct {
 	config Config
 
@@ -27,7 +25,8 @@ type Service struct {
 	usersSvc    *users.Service
 	logger      *zap.Logger
 
-	botUserID int64
+	keywordParser *KeywordParser
+	botUserID     int64
 }
 
 func NewService(
@@ -47,11 +46,18 @@ func NewService(
 		usersSvc:    usersSvc,
 		logger:      logger,
 
-		botUserID: -1,
+		keywordParser: nil,
+		botUserID:     -1,
 	}, nil
 }
 
 func (s *Service) Init(ctx context.Context) error {
+	parser, err := NewKeywordParser(s.config.ActionKeywords)
+	if err != nil {
+		return fmt.Errorf("failed to build keyword parser: %w", err)
+	}
+	s.keywordParser = parser
+
 	botUser, err := s.usersSvc.GetByEmail(ctx, s.config.BotUserEmail)
 	if err != nil {
 		return fmt.Errorf("failed to resolve bot user %q: %w", s.config.BotUserEmail, err)
@@ -144,7 +150,7 @@ func (s *Service) processCommit(
 	commit PushCommit,
 	result *ProcessResult,
 ) {
-	refs := ParseCommitMessage(commit.Message)
+	refs := s.keywordParser.ParseCommitMessage(commit.Message)
 	if len(refs) == 0 {
 		return
 	}
