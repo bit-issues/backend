@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { listProjects } from "$lib/api/projects";
+  import { listAllProjects } from "$lib/api/projects";
   import { createTask } from "$lib/api/tasks";
   import { navigate } from "$lib/router/routes";
   import { touchProject } from "$lib/stores/recent-projects.svelte";
@@ -21,9 +21,9 @@
 
   onMount(() => {
     loading = true;
-    listProjects(100, 0)
-      .then((r) => {
-        projects = r.items;
+    listAllProjects()
+      .then((items) => {
+        projects = items;
         if (initialProject) {
           const match = projects.find((p) => p.id === initialProject);
           if (match) initialProjectSlug = match.id;
