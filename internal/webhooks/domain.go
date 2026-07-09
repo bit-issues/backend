@@ -19,12 +19,16 @@ const (
 //
 //nolint:gochecknoglobals // this is a constant
 var keywordActions = map[string]KeywordAction{
+	"fix":      {Status: tasks.StatusResolved, Verb: verbResolved},
 	"fixes":    {Status: tasks.StatusResolved, Verb: verbResolved},
 	"fixed":    {Status: tasks.StatusResolved, Verb: verbResolved},
+	"resolve":  {Status: tasks.StatusResolved, Verb: verbResolved},
 	"resolves": {Status: tasks.StatusResolved, Verb: verbResolved},
 	"resolved": {Status: tasks.StatusResolved, Verb: verbResolved},
+	"close":    {Status: tasks.StatusClosed, Verb: verbClosed},
 	"closes":   {Status: tasks.StatusClosed, Verb: verbClosed},
 	"closed":   {Status: tasks.StatusClosed, Verb: verbClosed},
+	"block":    {Status: tasks.StatusOnHold, Verb: verbOnHold},
 	"blocks":   {Status: tasks.StatusOnHold, Verb: verbOnHold},
 	"blocked":  {Status: tasks.StatusOnHold, Verb: verbOnHold},
 	"on hold":  {Status: tasks.StatusOnHold, Verb: verbOnHold},
@@ -39,7 +43,7 @@ type KeywordAction struct {
 var (
 	// keywordRefPattern matches patterns like "fixes #123", "closes #456", etc.
 	keywordRefPattern = regexp.MustCompile(
-		`(?i)\b(fixes|fixed|resolves|resolved|closes|closed|blocks|blocked)\s+#(\d+)\b`,
+		`(?i)\b(fix|fixes|fixed|resolve|resolves|resolved|close|closes|closed|block|blocks|blocked|on hold)\s+#(\d+)\b`,
 	)
 	// hashRefPattern matches "#NUMBER" preceded by start-of-string or a non-word character.
 	hashRefPattern = regexp.MustCompile(`(?:^|\W)#(\d+)\b`)
