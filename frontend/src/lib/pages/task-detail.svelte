@@ -181,15 +181,16 @@
     <div class="flex items-start justify-between gap-4">
       <div>
         <p class="text-muted-foreground mb-1 text-sm">
-          <button
-            class="hover:text-foreground cursor-pointer underline underline-offset-2"
-            onclick={() => navigate("/projects")}>Projects</button
+          <a
+            href="#/projects"
+            class="hover:text-foreground underline underline-offset-2"
+            >Projects</a
           >
           /
-          <button
-            class="hover:text-foreground cursor-pointer underline underline-offset-2"
-            onclick={() => navigate(`/projects/${task?.project.id}`)}
-            >{task.project.name}</button
+          <a
+            href={`#/projects/${task.project.id}`}
+            class="hover:text-foreground underline underline-offset-2"
+            >{task.project.name}</a
           >
           /
           <span class="text-muted-foreground font-mono">#{task.number}</span>
