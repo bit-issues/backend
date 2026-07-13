@@ -7,6 +7,7 @@
   import { setOnUnauthorized } from "$lib/api/client";
   import AppShell from "$lib/components/AppShell.svelte";
   import { Toaster } from "$lib/components/ui/sonner";
+  import { untrack } from "svelte";
 
   import HomePage from "./pages/home.svelte";
   import LoginPage from "./pages/login.svelte";
@@ -50,7 +51,9 @@
 
   $effect(() => {
     const syncRecent = () => {
-      trackRecentFromPath(window.location.hash.slice(1) || "/");
+      untrack(() => {
+        trackRecentFromPath(window.location.hash.slice(1) || "/");
+      });
     };
     syncRecent();
     window.addEventListener("hashchange", syncRecent);
