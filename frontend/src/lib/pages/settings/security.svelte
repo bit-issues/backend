@@ -2,6 +2,7 @@
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
   import { Input } from "$lib/components/ui/input";
+  import { Label } from "$lib/components/ui/label";
   import {
     passkeyRegisterBegin,
     passkeyRegisterComplete,
@@ -9,6 +10,7 @@
     renamePasskey,
     deletePasskey,
   } from "$lib/api/passkey";
+  import { changePasswordApi } from "$lib/api/auth";
   import { toast } from "$lib/toast";
   import type { PasskeyCredential } from "$lib/types/api";
   import KeyIcon from "@lucide/svelte/icons/key";
@@ -24,6 +26,22 @@
   let editingId = $state<number | null>(null);
   let editName = $state("");
   let passkeySupported = $state(false);
+
+  let oldPassword = $state("");
+  let newPassword = $state("");
+  let confirmPassword = $state("");
+  let saving = $state(false);
+  let error = $state("");
+
+  let passwordsMatch = $derived(newPassword === confirmPassword);
+  let passwordValid = $derived(newPassword.length >= 8);
+  let canSubmit = $derived(
+    !!oldPassword &&
+      !!newPassword &&
+      !!confirmPassword &&
+      passwordValid &&
+      passwordsMatch,
+  );
 
   $effect(() => {
     passkeySupported =
@@ -105,6 +123,27 @@
   function formatDate(dateStr: string): string {
     return new Date(dateStr).toLocaleDateString();
   }
+
+  async function handleSubmit() {
+    if (!canSubmit || saving) return;
+    saving = true;
+    error = "";
+    try {
+      await changePasswordApi({
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
+      toast.success("Password changed successfully");
+      oldPassword = "";
+      newPassword = "";
+      confirmPassword = "";
+    } catch (e: any) {
+      error = e?.message || "Failed to change password";
+      toast.error(error);
+    } finally {
+      saving = false;
+    }
+  }
 </script>
 
 <div class="mx-auto max-w-2xl py-8">
@@ -123,94 +162,161 @@
     {/if}
   </div>
 
-  <Card.Root>
-    <Card.Header>
-      <Card.Title>Passkeys</Card.Title>
-      <Card.Description>
-        Passkeys let you sign in without a password using biometrics, PIN, or
-        security keys.
-      </Card.Description>
-    </Card.Header>
-    <Card.Content>
-      {#if loading}
-        <p class="text-muted-foreground text-sm">Loading...</p>
-      {:else if credentials.length === 0}
-        <div class="flex flex-col items-center gap-2 py-8 text-center">
-          <KeyIcon class="text-muted-foreground size-8" />
-          <p class="text-muted-foreground text-sm">
-            {passkeySupported
-              ? "No passkeys registered yet."
-              : "Passkeys are not supported in this browser."}
-          </p>
-        </div>
-      {:else}
-        <ul class="flex flex-col gap-2">
-          {#each credentials as cred (cred.id)}
-            <li
-              class="flex items-center justify-between rounded-lg border border-border p-3"
-            >
-              {#if editingId === cred.id}
-                <div class="flex flex-1 items-center gap-2">
-                  <Input
-                    bind:value={editName}
-                    class="h-8"
-                    placeholder="Passkey name"
-                    onkeydown={(e) => {
-                      if (e.key === "Enter") saveEdit(cred);
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Save passkey name"
-                    onclick={() => saveEdit(cred)}
-                  >
-                    <CheckIcon class="size-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Cancel rename"
-                    onclick={cancelEdit}
-                  >
-                    <XIcon class="size-4" />
-                  </Button>
-                </div>
-              {:else}
-                <div class="flex flex-1 items-center gap-3">
-                  <KeyIcon class="text-muted-foreground size-4" />
-                  <div>
-                    <p class="text-sm font-medium">{cred.name}</p>
-                    <p class="text-muted-foreground text-xs">
-                      Registered {formatDate(cred.created_at)}
-                    </p>
+  <div class="flex flex-col gap-6">
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>Change Password</Card.Title>
+        <Card.Description>Update your account password</Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <form
+          onsubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          class="flex flex-col gap-4"
+        >
+          <div class="flex flex-col gap-2">
+            <Label for="old_password">Current Password</Label>
+            <Input
+              id="old_password"
+              type="password"
+              autocomplete="current-password"
+              bind:value={oldPassword}
+              oninput={() => (error = "")}
+              disabled={saving}
+              placeholder="Enter current password"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label for="new_password">New Password</Label>
+            <Input
+              id="new_password"
+              type="password"
+              autocomplete="new-password"
+              bind:value={newPassword}
+              disabled={saving}
+              placeholder="Enter new password"
+            />
+            {#if newPassword && !passwordValid}
+              <p class="text-destructive text-xs">
+                Password must be at least 8 characters
+              </p>
+            {/if}
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label for="confirm_password">Confirm New Password</Label>
+            <Input
+              id="confirm_password"
+              type="password"
+              autocomplete="new-password"
+              bind:value={confirmPassword}
+              disabled={saving}
+              placeholder="Confirm new password"
+            />
+            {#if confirmPassword && !passwordsMatch}
+              <p class="text-destructive text-xs">Passwords do not match</p>
+            {/if}
+          </div>
+          <Button type="submit" disabled={!canSubmit || saving} class="mt-2">
+            {saving ? "Saving..." : "Change Password"}
+          </Button>
+          {#if error}
+            <p class="text-destructive text-xs">{error}</p>
+          {/if}
+        </form>
+      </Card.Content>
+    </Card.Root>
+
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>Passkeys</Card.Title>
+        <Card.Description>
+          Passkeys let you sign in without a password using biometrics, PIN, or
+          security keys.
+        </Card.Description>
+      </Card.Header>
+      <Card.Content>
+        {#if loading}
+          <p class="text-muted-foreground text-sm">Loading...</p>
+        {:else if credentials.length === 0}
+          <div class="flex flex-col items-center gap-2 py-8 text-center">
+            <KeyIcon class="text-muted-foreground size-8" />
+            <p class="text-muted-foreground text-sm">
+              {passkeySupported
+                ? "No passkeys registered yet."
+                : "Passkeys are not supported in this browser."}
+            </p>
+          </div>
+        {:else}
+          <ul class="flex flex-col gap-2">
+            {#each credentials as cred (cred.id)}
+              <li
+                class="flex items-center justify-between rounded-lg border border-border p-3"
+              >
+                {#if editingId === cred.id}
+                  <div class="flex flex-1 items-center gap-2">
+                    <Input
+                      bind:value={editName}
+                      class="h-8"
+                      placeholder="Passkey name"
+                      onkeydown={(e) => {
+                        if (e.key === "Enter") saveEdit(cred);
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Save passkey name"
+                      onclick={() => saveEdit(cred)}
+                    >
+                      <CheckIcon class="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Cancel rename"
+                      onclick={cancelEdit}
+                    >
+                      <XIcon class="size-4" />
+                    </Button>
                   </div>
-                </div>
-                <div class="flex items-center gap-1">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Rename passkey"
-                    onclick={() => startEdit(cred)}
-                  >
-                    <PencilIcon class="size-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label="Delete passkey"
-                    class="text-destructive hover:text-destructive"
-                    onclick={() => handleDelete(cred)}
-                  >
-                    <Trash2Icon class="size-4" />
-                  </Button>
-                </div>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </Card.Content>
-  </Card.Root>
+                {:else}
+                  <div class="flex flex-1 items-center gap-3">
+                    <KeyIcon class="text-muted-foreground size-4" />
+                    <div>
+                      <p class="text-sm font-medium">{cred.name}</p>
+                      <p class="text-muted-foreground text-xs">
+                        Registered {formatDate(cred.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Rename passkey"
+                      onclick={() => startEdit(cred)}
+                    >
+                      <PencilIcon class="size-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label="Delete passkey"
+                      class="text-destructive hover:text-destructive"
+                      onclick={() => handleDelete(cred)}
+                    >
+                      <Trash2Icon class="size-4" />
+                    </Button>
+                  </div>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </Card.Content>
+    </Card.Root>
+  </div>
 </div>
