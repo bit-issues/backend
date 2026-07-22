@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from "svelte";
   import { getProject } from "$lib/api/projects";
   import {
     listTasks,
@@ -35,7 +36,8 @@
   let searchQuery = $state("");
 
   $effect(() => {
-    const saved = getSnapshot(routeKey);
+    const key = routeKey;
+    const saved = untrack(() => getSnapshot(key));
     if (saved) {
       filterStatuses = saved.filterStatuses;
       filterPriorities = saved.filterPriorities;
