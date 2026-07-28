@@ -75,8 +75,8 @@
       auth: true,
     },
     { pattern: "/tasks/:slug/:number", component: TaskDetailPage, auth: true },
-    { pattern: "/tasks/:id", component: TaskRedirectPage, auth: true },
     { pattern: "/tasks/new", component: TaskNewPage, auth: true },
+    { pattern: "/tasks/:id", component: TaskRedirectPage, auth: true },
     { pattern: "/profile", component: ProfilePage, auth: true },
     { pattern: "/settings/security", component: SecurityPage, auth: true },
     {
