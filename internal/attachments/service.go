@@ -116,6 +116,11 @@ func (s *Service) Import(
 	return attachment, nil
 }
 
+// GetByID retrieves an attachment by its ID.
+func (s *Service) GetByID(ctx context.Context, id int64) (*Attachment, error) {
+	return s.attachments.GetByID(ctx, id)
+}
+
 func (s *Service) ListByTask(ctx context.Context, taskID int64) ([]AttachmentWithURL, error) {
 	items, err := s.attachments.ListByTask(ctx, taskID)
 	if err != nil {
@@ -135,6 +140,7 @@ func (s *Service) ListByTask(ctx context.Context, taskID int64) ([]AttachmentWit
 	return result, nil
 }
 
+// GetDownloadURL returns a presigned URL for downloading an uploaded attachment.
 func (s *Service) GetDownloadURL(ctx context.Context, id int64) (string, error) {
 	attachment, err := s.attachments.GetByID(ctx, id)
 	if err != nil {

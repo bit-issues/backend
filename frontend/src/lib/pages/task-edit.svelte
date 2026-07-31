@@ -75,6 +75,7 @@
   {:else if task}
     <TaskForm
       mode="edit"
+      {taskId}
       {projects}
       initialTitle={task.title}
       initialDescription={task.description || ""}

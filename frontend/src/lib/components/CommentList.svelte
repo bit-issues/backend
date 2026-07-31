@@ -2,8 +2,11 @@
   import { Avatar, AvatarFallback } from "$lib/components/ui/avatar";
   import { Button } from "$lib/components/ui/button";
   import { Textarea } from "$lib/components/ui/textarea";
+  import InlineImageButton from "$lib/components/InlineImageButton.svelte";
   import { parse } from "marked";
   import { processAutoLinks } from "$lib/autolink";
+  import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
+  import { InlineImageEditor } from "$lib/inline-image-editor.svelte";
   import DOMPurify from "dompurify";
   import type { AutoLinkContext } from "$lib/autolink";
   import type { Comment } from "$lib/types/api";
@@ -13,12 +16,16 @@
   let {
     comments = [] as Comment[],
     currentUserId = 0,
+    taskId = 0,
+    attachmentsMap = new Map<number, string>(),
     autoLinkCtx = {} as AutoLinkContext,
     onEdit = async (_commentId: number, _content: string) => {},
     onDelete = async (_commentId: number) => {},
   }: {
     comments: Comment[];
     currentUserId: number;
+    taskId?: number;
+    attachmentsMap: Map<number, string>;
     autoLinkCtx: AutoLinkContext;
     onEdit: (commentId: number, content: string) => Promise<void>;
     onDelete: (commentId: number) => Promise<void>;
@@ -27,6 +34,18 @@
   let editingId = $state<number | null>(null);
   let editText = $state("");
   let saving = $state(false);
+  let editTextarea: HTMLTextAreaElement | undefined = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
+
+  const images = new InlineImageEditor({
+    getTaskId: () => taskId,
+    getValue: () => editText,
+    setValue: (v) => {
+      editText = v;
+    },
+    getTextarea: () => editTextarea,
+    getSessionId: () => editingId,
+  });
 
   function formatDateTime(d: string): string {
     return new Date(d).toLocaleString();
@@ -44,18 +63,24 @@
   function renderMarkdown(text: string): string {
     if (!text) return "";
     return DOMPurify.sanitize(
-      parse(processAutoLinks(text, autoLinkCtx), {
-        async: false,
-      }) as string,
+      parse(
+        processAutoLinks(
+          resolveAttachmentRefs(text, attachmentsMap),
+          autoLinkCtx,
+        ),
+        { async: false },
+      ) as string,
     );
   }
 
   function startEdit(comment: Comment) {
+    if (images.uploading) return;
     editingId = comment.id;
     editText = comment.content;
   }
 
   function cancelEdit() {
+    if (images.uploading) return;
     editingId = null;
     editText = "";
   }
@@ -71,8 +96,8 @@
       await onEdit(commentId, editText);
       editingId = null;
       editText = "";
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update comment");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update comment");
     } finally {
       saving = false;
     }
@@ -97,18 +122,63 @@
         </div>
 
         {#if editingId === comment.id}
-          <Textarea bind:value={editText} class="mb-2 min-h-16" />
+          <!-- svelte-ignore a11y_no_static_element_interactions -->
+          <div
+            ondragover={(e) => {
+              if (saving) {
+                e.preventDefault();
+                return;
+              }
+              images.handleDragOver(e);
+            }}
+            ondrop={(e) => {
+              if (saving) {
+                e.preventDefault();
+                return;
+              }
+              images.handleImageDrop(e);
+            }}
+          >
+            <Textarea
+              bind:value={editText}
+              bind:this={editTextarea}
+              onpaste={(e) => {
+                if (!saving) images.handleImagePaste(e);
+              }}
+              class="mb-2 min-h-16"
+            />
+          </div>
+          <div class="mb-2 flex items-center gap-2">
+            <InlineImageButton
+              uploading={images.uploading}
+              disabled={!taskId || saving}
+              onclick={() => fileInput?.click()}
+            />
+            <input
+              type="file"
+              disabled={saving || images.uploading}
+              bind:this={fileInput}
+              accept="image/png,image/jpeg,image/gif,image/webp"
+              class="hidden"
+              onchange={(e) => images.handleImagePick(e)}
+            />
+          </div>
           <div class="flex gap-2">
             <Button
               size="sm"
               onclick={() => handleEdit(comment.id)}
-              disabled={saving}
+              disabled={saving || images.uploading}
             >
               {saving ? "Saving..." : "Save"}
             </Button>
-            <Button size="sm" variant="ghost" onclick={cancelEdit}
-              >Cancel</Button
+            <Button
+              size="sm"
+              variant="ghost"
+              onclick={cancelEdit}
+              disabled={images.uploading}
             >
+              Cancel
+            </Button>
           </div>
         {:else}
           <div class="prose prose-sm dark:prose-invert max-w-none text-sm">
@@ -117,17 +187,23 @@
           {#if canManageComment(comment)}
             <div class="mt-1 flex gap-2">
               <button
-                class="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-2"
+                class="text-muted-foreground hover:text-foreground cursor-pointer text-xs underline underline-offset-2 disabled:opacity-50 disabled:no-underline"
+                disabled={images.uploading}
                 onclick={() => startEdit(comment)}>Edit</button
               >
               <button
-                class="text-muted-foreground hover:text-destructive cursor-pointer text-xs underline underline-offset-2"
+                class="text-muted-foreground hover:text-destructive cursor-pointer text-xs underline underline-offset-2 disabled:opacity-50 disabled:no-underline"
+                disabled={images.uploading}
                 onclick={async () => {
                   if (confirm("Delete this comment?")) {
                     try {
                       await onDelete(comment.id);
-                    } catch (e: any) {
-                      toast.error(e.message || "Failed to delete comment");
+                    } catch (e) {
+                      toast.error(
+                        e instanceof Error
+                          ? e.message
+                          : "Failed to delete comment",
+                      );
                     }
                   }
                 }}>Delete</button

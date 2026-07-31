@@ -94,4 +94,9 @@
   .prose a:hover {
     color: hsl(var(--muted-foreground));
   }
+  .prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.375rem;
+  }
 }
