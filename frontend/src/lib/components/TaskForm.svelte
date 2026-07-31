@@ -6,6 +6,8 @@
   import AssigneeCombobox from "$lib/components/AssigneeCombobox.svelte";
   import * as Card from "$lib/components/ui/card";
   import { PRIORITIES, KINDS, STATUSES, type Project } from "$lib/types/api";
+  import InlineImageButton from "$lib/components/InlineImageButton.svelte";
+  import { InlineImageEditor } from "$lib/inline-image-editor.svelte";
 
   interface TaskFormData {
     project_slug: string;
@@ -20,6 +22,7 @@
 
   interface Props {
     mode?: "create" | "edit";
+    taskId?: number;
     projects?: Project[];
     initialTitle?: string;
     initialDescription?: string;
@@ -37,6 +40,7 @@
 
   let {
     mode = "create",
+    taskId = 0,
     projects = [] as Project[],
     initialTitle = "",
     initialDescription = "",
@@ -74,6 +78,17 @@
 
   let saving = $state(false);
   let error = $state("");
+  let descriptionTextarea: HTMLTextAreaElement | undefined = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
+
+  const images = new InlineImageEditor({
+    getTaskId: () => taskId,
+    getValue: () => description,
+    setValue: (v) => {
+      description = v;
+    },
+    getTextarea: () => descriptionTextarea,
+  });
 
   async function handleSubmit() {
     if (!title.trim()) {
@@ -84,6 +99,7 @@
       error = "Project is required";
       return;
     }
+    if (images.uploading) return;
     saving = true;
     error = "";
 
@@ -154,12 +170,41 @@
       </div>
 
       <div class="space-y-1.5">
-        <label for="description" class="text-sm font-medium">Description</label>
-        <Textarea
-          id="description"
-          bind:value={description}
-          placeholder="Optional description (supports Markdown)"
-          class="min-h-32"
+        <div class="flex items-center justify-between">
+          <label for="description" class="text-sm font-medium"
+            >Description</label
+          >
+          {#if taskId > 0}
+            <InlineImageButton
+              uploading={images.uploading}
+              onclick={() => fileInput?.click()}
+            />
+          {:else}
+            <span class="text-xs text-muted-foreground"
+              >Image upload available when editing</span
+            >
+          {/if}
+        </div>
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
+        <div
+          ondragover={(e) => images.handleDragOver(e)}
+          ondrop={(e) => images.handleImageDrop(e)}
+        >
+          <Textarea
+            id="description"
+            bind:value={description}
+            bind:this={descriptionTextarea}
+            onpaste={(e) => images.handleImagePaste(e)}
+            placeholder="Optional description (supports Markdown)"
+            class="min-h-32"
+          />
+        </div>
+        <input
+          type="file"
+          bind:this={fileInput}
+          accept="image/png,image/jpeg,image/gif,image/webp"
+          class="hidden"
+          onchange={(e) => images.handleImagePick(e)}
         />
       </div>
 
@@ -244,7 +289,7 @@
       {/if}
 
       <div class="flex gap-2 pt-2">
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving || images.uploading}>
           {saving
             ? mode === "edit"
               ? "Saving..."

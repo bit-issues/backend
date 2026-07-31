@@ -20,9 +20,10 @@
   import * as Card from "$lib/components/ui/card";
   import { parse } from "marked";
   import DOMPurify from "dompurify";
-  import type { TaskDetails, Comment, Attachment } from "$lib/types/api";
+  import type { TaskDetails, Attachment } from "$lib/types/api";
   import { STATUSES } from "$lib/types/api";
   import { processAutoLinks } from "$lib/autolink";
+  import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
   import type { AutoLinkContext } from "$lib/autolink";
   import { toast } from "$lib/toast";
 
@@ -51,12 +52,20 @@
     repoUrl: task?.project.repo_url || undefined,
   });
 
+  let attachmentUrls = $derived(
+    new Map(task?.attachments?.map((a) => [a.id, a.download_url]) ?? []),
+  );
+
   let renderedDescription = $derived(
     task?.description
       ? DOMPurify.sanitize(
-          parse(processAutoLinks(task.description, autoLinkCtx), {
-            async: false,
-          }) as string,
+          parse(
+            processAutoLinks(
+              resolveAttachmentRefs(task.description, attachmentUrls),
+              autoLinkCtx,
+            ),
+            { async: false },
+          ) as string,
         )
       : "",
   );
@@ -127,21 +136,18 @@
   }
 
   async function handleAddComment(content: string) {
-    const created = await createComment(taskId, { content });
-    task = {
-      ...task!,
-      comments: [...task!.comments, created as Comment],
-    };
+    await createComment(taskId, { content });
+    // Refetch the task so the freshly-confirmed inline attachment is present in
+    // task.attachments (attachmentUrls derives from it), letting the newly
+    // posted comment's inline image resolve without a manual page refresh.
+    const refreshed = await getTaskByProjectAndNumber(slug, number);
+    task = refreshed;
   }
 
   async function handleEditComment(commentId: number, content: string) {
-    const updated = await updateComment(taskId, commentId, { content });
-    task = {
-      ...task!,
-      comments: task!.comments.map((c) =>
-        c.id === commentId ? (updated as Comment) : c,
-      ),
-    };
+    await updateComment(taskId, commentId, { content });
+    const refreshed = await getTaskByProjectAndNumber(slug, number);
+    task = refreshed;
   }
 
   async function handleDeleteComment(commentId: number) {
@@ -251,12 +257,14 @@
             <CommentList
               comments={task.comments}
               {currentUserId}
+              taskId={task.id}
+              attachmentsMap={attachmentUrls}
               {autoLinkCtx}
               onEdit={handleEditComment}
               onDelete={handleDeleteComment}
             />
             <div class="mt-4">
-              <CommentForm onSubmit={handleAddComment} />
+              <CommentForm taskId={task.id} onSubmit={handleAddComment} />
             </div>
           </div>
         </div>

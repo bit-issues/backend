@@ -61,6 +61,7 @@ func (s *Service) PutObject(ctx context.Context, key string, filePath string) er
 	return nil
 }
 
+// PresignedGetObject returns a presigned URL for downloading an object.
 func (s *Service) PresignedGetObject(ctx context.Context, key string) (string, error) {
 	u, err := s.client.PresignedGetObject(
 		ctx,
