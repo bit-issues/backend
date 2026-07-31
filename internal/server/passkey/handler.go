@@ -46,6 +46,16 @@ func (h *Handler) Register(r fiber.Router) {
 	passkey.Delete("/credentials/:id", h.handleDeletePasskeyCredential)
 }
 
+// handlePasskeyRegisterBegin initiates WebAuthn credential registration.
+//
+//	@Summary		Begin passkey registration
+//	@Description	Start WebAuthn credential registration for the authenticated user. Returns creation options required by the WebAuthn API.
+//	@Tags			Passkeys
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	protocol.CredentialCreation
+//	@Failure		401	{object}	fiberfx.ErrorResponse
+//	@Router			/auth/passkey/register/begin [post]
 func (h *Handler) handlePasskeyRegisterBegin(c *fiber.Ctx) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
@@ -60,6 +70,19 @@ func (h *Handler) handlePasskeyRegisterBegin(c *fiber.Ctx) error {
 	return c.JSON(options)
 }
 
+// handlePasskeyRegisterComplete completes WebAuthn credential registration.
+//
+//	@Summary		Complete passkey registration
+//	@Description	Finalize WebAuthn credential registration by verifying the authenticator response and storing the new credential.
+//	@Tags			Passkeys
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			request	body		object	true	"WebAuthn credential creation response (raw)"
+//	@Success		201		{object}	CredentialResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Router			/auth/passkey/register/complete [post]
 func (h *Handler) handlePasskeyRegisterComplete(c *fiber.Ctx) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
@@ -83,6 +106,14 @@ func (h *Handler) handlePasskeyRegisterComplete(c *fiber.Ctx) error {
 	})
 }
 
+// handlePasskeyLoginBegin initiates WebAuthn authentication.
+//
+//	@Summary		Begin passkey login
+//	@Description	Start WebAuthn authentication. Returns assertion options required by the WebAuthn API. This endpoint does not require authentication.
+//	@Tags			Passkeys
+//	@Produce		json
+//	@Success		200	{object}	protocol.CredentialAssertion
+//	@Router			/auth/passkey/login/begin [post]
 func (h *Handler) handlePasskeyLoginBegin(c *fiber.Ctx) error {
 	options, err := h.waSvc.BeginLogin(c.Context())
 	if err != nil {
@@ -92,6 +123,18 @@ func (h *Handler) handlePasskeyLoginBegin(c *fiber.Ctx) error {
 	return c.JSON(options)
 }
 
+// handlePasskeyLoginComplete completes WebAuthn authentication.
+//
+//	@Summary		Complete passkey login
+//	@Description	Finalize WebAuthn authentication by verifying the authenticator response. On success, returns JWT token pair. This endpoint does not require authentication.
+//	@Tags			Passkeys
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		object	true	"WebAuthn credential assertion response (raw)"
+//	@Success		200		{object}	auth.LoginResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		403		{object}	fiberfx.ErrorResponse
+//	@Router			/auth/passkey/login/complete [post]
 func (h *Handler) handlePasskeyLoginComplete(c *fiber.Ctx) error {
 	body := c.Body()
 	if len(body) == 0 {
@@ -119,6 +162,16 @@ func (h *Handler) handlePasskeyLoginComplete(c *fiber.Ctx) error {
 	})
 }
 
+// handleListPasskeyCredentials lists all WebAuthn credentials for the authenticated user.
+//
+//	@Summary		List passkey credentials
+//	@Description	Returns all registered WebAuthn credentials for the authenticated user.
+//	@Tags			Passkeys
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Success		200	{object}	[]CredentialResponse
+//	@Failure		401	{object}	fiberfx.ErrorResponse
+//	@Router			/auth/passkey/credentials [get]
 func (h *Handler) handleListPasskeyCredentials(c *fiber.Ctx) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
@@ -142,6 +195,20 @@ func (h *Handler) handleListPasskeyCredentials(c *fiber.Ctx) error {
 	return c.JSON(resp)
 }
 
+// handleRenamePasskeyCredential renames a WebAuthn credential.
+//
+//	@Summary		Rename passkey credential
+//	@Description	Rename a registered WebAuthn credential for the authenticated user.
+//	@Tags			Passkeys
+//	@Accept			json
+//	@Security		BearerAuth
+//	@Param			id		path	int64			true	"Credential ID"
+//	@Param			request	body	RenameRequest	true	"New name"
+//	@Success		204
+//	@Failure		400	{object}	fiberfx.ErrorResponse
+//	@Failure		401	{object}	fiberfx.ErrorResponse
+//	@Failure		404	{object}	fiberfx.ErrorResponse
+//	@Router			/auth/passkey/credentials/{id} [patch]
 func (h *Handler) handleRenamePasskeyCredential(c *fiber.Ctx) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
@@ -165,6 +232,18 @@ func (h *Handler) handleRenamePasskeyCredential(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// handleDeletePasskeyCredential deletes a WebAuthn credential.
+//
+//	@Summary		Delete passkey credential
+//	@Description	Remove a registered WebAuthn credential for the authenticated user.
+//	@Tags			Passkeys
+//	@Security		BearerAuth
+//	@Param			id	path	int64	true	"Credential ID"
+//	@Success		204
+//	@Failure		400	{object}	fiberfx.ErrorResponse
+//	@Failure		401	{object}	fiberfx.ErrorResponse
+//	@Failure		404	{object}	fiberfx.ErrorResponse
+//	@Router			/auth/passkey/credentials/{id} [delete]
 func (h *Handler) handleDeletePasskeyCredential(c *fiber.Ctx) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
