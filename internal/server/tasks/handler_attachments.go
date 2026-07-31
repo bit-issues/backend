@@ -12,6 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
+// attachmentInitUpload initializes a file upload for a task attachment.
+//
+//	@Summary		Initiate attachment upload
+//	@Description	Initialize a new attachment upload for a task. Returns a pre-signed URL for uploading the file.
+//	@Tags			Tasks
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			task_id	path		int64					true	"Task ID"
+//	@Param			request	body		AttachmentUploadRequest	true	"Upload details"
+//	@Success		201		{object}	AttachmentUploadResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Router			/tasks/{task_id}/attachments [post]
 func (h *Handler) attachmentInitUpload(c *fiber.Ctx, req *AttachmentUploadRequest) error {
 	taskID, err := strconv.ParseInt(c.Params("task_id"), 10, 64)
 	if err != nil {
@@ -36,6 +50,20 @@ func (h *Handler) attachmentInitUpload(c *fiber.Ctx, req *AttachmentUploadReques
 	return c.Status(fiber.StatusCreated).JSON(toUploadResponse(result))
 }
 
+// attachmentConfirmUpload confirms an attachment upload after the file has been uploaded to the storage.
+//
+//	@Summary		Confirm attachment upload
+//	@Description	Mark an attachment upload as completed after the file has been uploaded to the storage provider. Returns attachment metadata and download URL.
+//	@Tags			Tasks
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			task_id	path		int64	true	"Task ID"
+//	@Param			id		path		int64	true	"Attachment ID"
+//	@Success		200		{object}	AttachmentConfirmResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Failure		404		{object}	fiberfx.ErrorResponse
+//	@Router			/tasks/{task_id}/attachments/{id}/confirm [put]
 func (h *Handler) attachmentConfirmUpload(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -67,6 +95,20 @@ func (h *Handler) attachmentConfirmUpload(c *fiber.Ctx) error {
 	return c.JSON(toConfirmResponse(attachment, downloadURL, usersMap))
 }
 
+// attachmentGetDownloadURL returns a download URL for an attachment.
+//
+//	@Summary		Get attachment download URL
+//	@Description	Get a pre-signed download URL for a task attachment.
+//	@Tags			Tasks
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			task_id	path		int64	true	"Task ID"
+//	@Param			id		path		int64	true	"Attachment ID"
+//	@Success		200		{object}	AttachmentDownloadResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Failure		404		{object}	fiberfx.ErrorResponse
+//	@Router			/tasks/{task_id}/attachments/{id}/download [get]
 func (h *Handler) attachmentGetDownloadURL(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {
@@ -85,6 +127,19 @@ func (h *Handler) attachmentGetDownloadURL(c *fiber.Ctx) error {
 	return c.JSON(AttachmentDownloadResponse{DownloadURL: downloadURL})
 }
 
+// attachmentDelete deletes an attachment.
+//
+//	@Summary		Delete attachment
+//	@Description	Delete a task attachment permanently.
+//	@Tags			Tasks
+//	@Security		BearerAuth
+//	@Param			task_id	path	int64	true	"Task ID"
+//	@Param			id		path	int64	true	"Attachment ID"
+//	@Success		204
+//	@Failure		400	{object}	fiberfx.ErrorResponse
+//	@Failure		401	{object}	fiberfx.ErrorResponse
+//	@Failure		404	{object}	fiberfx.ErrorResponse
+//	@Router			/tasks/{task_id}/attachments/{id} [delete]
 func (h *Handler) attachmentDelete(c *fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("id"), 10, 64)
 	if err != nil {

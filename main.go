@@ -1,18 +1,22 @@
 // Golang project template
 //
-//	@title			Project API
-//	@version		1.0.0
-//	@description	Project API documentation
+//	@title						Project API
+//	@version					1.0.0
+//	@description				Project API documentation
 //
-//	@contact.name	API Support
-//	@contact.url	https://github.com/capcom6
-//	@contact.email	i@capcom.me
+//	@contact.name				API Support
+//	@contact.url				https://github.com/capcom6
+//	@contact.email				i@capcom.me
 //
-//	@license.name	Apache 2.0
-//	@license.url	http://www.apache.org/licenses/LICENSE-2.0.html
+//	@license.name				Apache 2.0
+//	@license.url				http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//	@host			localhost:3000
-//	@BasePath		/api/v1
+//	@host						localhost:3000
+//	@BasePath					/api/v1
+//
+//	@securitydefinitions.apikey	BearerAuth
+//	@in							header
+//	@name						Authorization
 package main
 
 import (
