@@ -9,6 +9,8 @@ import (
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	"github.com/bit-issues/backend/internal/webhooks"
+	restkit "github.com/capcom6/go-restkit"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-playground/validator/v10"
@@ -20,6 +22,7 @@ type Handler struct {
 	handler.Base
 
 	projectsSvc *projects.Service
+	webhooksSvc *webhooks.ManagementService
 	usersSvc    *users.Service
 	jwtSvc      *jwt.Service
 }
@@ -27,6 +30,7 @@ type Handler struct {
 // NewHandler creates a new Handler instance with the given dependencies.
 func NewHandler(
 	projectsSvc *projects.Service,
+	webhooksSvc *webhooks.ManagementService,
 	usersSvc *users.Service,
 	jwtSvc *jwt.Service,
 	validate *validator.Validate,
@@ -34,6 +38,7 @@ func NewHandler(
 	return &Handler{
 		Base:        handler.Base{Validator: validate},
 		projectsSvc: projectsSvc,
+		webhooksSvc: webhooksSvc,
 		usersSvc:    usersSvc,
 		jwtSvc:      jwtSvc,
 	}
@@ -64,6 +69,18 @@ func (h *Handler) Register(r fiber.Router) {
 	projects.Delete("/:slug",
 		jwtauth.WithRole(users.RoleAdmin),
 		h.delete,
+	)
+	projects.Get("/:slug/webhook",
+		jwtauth.WithRole(users.RoleAdmin),
+		h.getWebhookStatus,
+	)
+	projects.Post("/:slug/webhook/register",
+		jwtauth.WithRole(users.RoleAdmin),
+		h.registerWebhook,
+	)
+	projects.Post("/:slug/webhook/unregister",
+		jwtauth.WithRole(users.RoleAdmin),
+		h.unregisterWebhook,
 	)
 }
 
@@ -218,6 +235,108 @@ func (h *Handler) delete(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+//	@Summary		Get project webhook status
+//	@Description	Returns the live Bitbucket webhook registration state of the project repository. Only administrators can perform this action.
+//	@Tags			Projects
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			slug	path		string	true	"Project ID"
+//	@Success		200		{object}	WebhookStatusResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Failure		403		{object}	fiberfx.ErrorResponse
+//	@Failure		404		{object}	fiberfx.ErrorResponse
+//	@Failure		502		{object}	fiberfx.ErrorResponse
+//	@Failure		503		{object}	fiberfx.ErrorResponse
+//	@Router			/projects/{slug}/webhook [get]
+//
+// getWebhookStatus returns the live Bitbucket webhook state (admin only).
+func (h *Handler) getWebhookStatus(c *fiber.Ctx) error {
+	project, err := h.resolveProject(c)
+	if err != nil {
+		return err
+	}
+
+	status, err := h.webhooksSvc.GetWebhookStatus(c.Context(), project)
+	if err != nil {
+		return fmt.Errorf("failed to get webhook status: %w", err)
+	}
+
+	return c.JSON(NewWebhookStatusResponse(status))
+}
+
+//	@Summary		Register project webhook
+//	@Description	Registers or repairs the Bitbucket push webhook of the project repository. Only administrators can perform this action.
+//	@Tags			Projects
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			slug	path		string	true	"Project ID"
+//	@Success		200		{object}	WebhookStatusResponse
+//	@Failure		400		{object}	fiberfx.ErrorResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Failure		403		{object}	fiberfx.ErrorResponse
+//	@Failure		404		{object}	fiberfx.ErrorResponse
+//	@Failure		422		{object}	fiberfx.ErrorResponse
+//	@Failure		502		{object}	fiberfx.ErrorResponse
+//	@Failure		503		{object}	fiberfx.ErrorResponse
+//	@Router			/projects/{slug}/webhook/register [post]
+//
+// registerWebhook registers or repairs the project webhook (admin only).
+func (h *Handler) registerWebhook(c *fiber.Ctx) error {
+	project, err := h.resolveProject(c)
+	if err != nil {
+		return err
+	}
+
+	status, err := h.webhooksSvc.RegisterWebhook(c.Context(), project)
+	if err != nil {
+		return fmt.Errorf("failed to register webhook: %w", err)
+	}
+
+	return c.JSON(NewWebhookStatusResponse(status))
+}
+
+//	@Summary		Unregister project webhook
+//	@Description	Removes the Bitbucket push webhook of the project repository. Only administrators can perform this action.
+//	@Tags			Projects
+//	@Accept			json
+//	@Produce		json
+//	@Security		BearerAuth
+//	@Param			slug	path		string	true	"Project ID"
+//	@Success		200		{object}	WebhookStatusResponse
+//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Failure		403		{object}	fiberfx.ErrorResponse
+//	@Failure		404		{object}	fiberfx.ErrorResponse
+//	@Failure		502		{object}	fiberfx.ErrorResponse
+//	@Failure		503		{object}	fiberfx.ErrorResponse
+//	@Router			/projects/{slug}/webhook/unregister [post]
+//
+// unregisterWebhook removes the project webhook (admin only).
+func (h *Handler) unregisterWebhook(c *fiber.Ctx) error {
+	project, err := h.resolveProject(c)
+	if err != nil {
+		return err
+	}
+
+	status, err := h.webhooksSvc.UnregisterWebhook(c.Context(), project)
+	if err != nil {
+		return fmt.Errorf("failed to unregister webhook: %w", err)
+	}
+
+	return c.JSON(NewWebhookStatusResponse(status))
+}
+
+// resolveProject loads the project referenced by the slug route parameter.
+func (h *Handler) resolveProject(c *fiber.Ctx) (*projects.Project, error) {
+	project, err := h.projectsSvc.GetBySlug(c.Context(), c.Params("slug"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get project: %w", err)
+	}
+
+	return project, nil
+}
+
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.
 // It should be registered as the first middleware in the route group.
 func (h *Handler) errorsHandler(c *fiber.Ctx) error {
@@ -235,7 +354,39 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusConflict, err.Error())
 	case errors.Is(err, projects.ErrInvalidURL):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	case errors.Is(err, webhooks.ErrWebhookSecretNotConfigured):
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	case restkit.IsClientError(err):
+		code, reason := webhookClientErrorReason(err)
+		return fiber.NewError(code, reason)
+	case restkit.IsServerError(err):
+		return fiber.NewError(fiber.StatusBadGateway, "Bitbucket API returned an error")
+	case restkit.IsInfrastructureError(err):
+		return fiber.NewError(fiber.StatusServiceUnavailable, "Bitbucket API is unreachable")
 	default:
 		return err //nolint:wrapcheck // err is already wrapped
 	}
+}
+
+// webhookClientErrorReason maps a Bitbucket 4xx failure to a status code and
+// a human-readable reason. The reason never exposes Bitbucket internals, the
+// access token, or the webhook secret.
+func webhookClientErrorReason(err error) (int, string) {
+	code := fiber.StatusBadRequest
+	reason := "Bitbucket rejected the webhook request"
+
+	apiErr, ok := restkit.AsAPIError(err)
+	if !ok {
+		return code, reason
+	}
+
+	switch apiErr.StatusCode {
+	case fiber.StatusBadRequest:
+		reason = "Bitbucket rejected the webhook configuration"
+	case fiber.StatusForbidden:
+		code = fiber.StatusUnprocessableEntity
+		reason = "insufficient Bitbucket permissions to manage webhooks"
+	}
+
+	return code, reason
 }

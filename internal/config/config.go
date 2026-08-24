@@ -63,6 +63,12 @@ type webhooksConfig struct {
 	ActionKeywords map[string]webhooks.KeywordEntry `koanf:"action_keywords"`
 }
 
+type bitbucketConfig struct {
+	AccessToken string `koanf:"access_token"`
+	CallbackURL string `koanf:"callback_url"`
+	BaseURL     string `koanf:"base_url"`
+}
+
 type Config struct {
 	HTTP        http              `koanf:"http"`
 	Database    databaseConfig    `koanf:"database"`
@@ -72,6 +78,7 @@ type Config struct {
 	WebAuthn    webauthnConfig    `koanf:"webauthn"`
 	Cache       cacheConfig       `koanf:"cache"`
 	Webhooks    webhooksConfig    `koanf:"webhooks"`
+	Bitbucket   bitbucketConfig   `koanf:"bitbucket"`
 }
 
 func Default() Config {
@@ -133,6 +140,11 @@ func Default() Config {
 				"block":    {Status: "On Hold", Verb: "On Hold"},
 				"on hold":  {Status: "On Hold", Verb: "On Hold"},
 			},
+		},
+		Bitbucket: bitbucketConfig{
+			AccessToken: "",
+			CallbackURL: "",
+			BaseURL:     "",
 		},
 	}
 }

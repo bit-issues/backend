@@ -18,9 +18,11 @@ type Service struct {
 	projects *Repository
 }
 
-// NewService creates a new Service instance with the given repository.
+// NewService creates a new Service instance with the given dependencies.
 func NewService(repo *Repository) *Service {
-	return &Service{projects: repo}
+	return &Service{
+		projects: repo,
+	}
 }
 
 // Create creates a new project after validating the input.

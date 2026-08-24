@@ -223,6 +223,28 @@ DELETE {{baseURL}}/projects/my-new-project
 Authorization: Bearer {{adminAccessToken}}
 
 ###
+# Project Webhook API (admin only)
+
+###
+# Get project webhook status (admin only)
+# Returns live Bitbucket webhook registration state: registered/not_registered
+GET {{baseURL}}/projects/my-new-project/webhook
+Authorization: Bearer {{adminAccessToken}}
+
+###
+# Register or repair project webhook (admin only)
+# Creates or updates the Bitbucket repo hook pointing at BITBUCKET__CALLBACK_URL
+# Uses WEBHOOKS__SECRET for signing; requires BITBUCKET__ACCESS_TOKEN
+POST {{baseURL}}/projects/my-new-project/webhook/register
+Authorization: Bearer {{adminAccessToken}}
+
+###
+# Unregister project webhook (admin only)
+# Removes the Bitbucket repo hook pointing at BITBUCKET__CALLBACK_URL (no-op if absent)
+POST {{baseURL}}/projects/my-new-project/webhook/unregister
+Authorization: Bearer {{adminAccessToken}}
+
+###
 # Tasks API
 
 ###

@@ -6,6 +6,7 @@ import (
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
+	"github.com/bit-issues/backend/pkg/bitbucket"
 	"github.com/go-core-fx/cachefx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
@@ -73,6 +74,16 @@ func Module() fx.Option {
 					ActionKeywords: cfg.Webhooks.ActionKeywords,
 				}
 			},
+		),
+		fx.Provide(
+			func(cfg Config) bitbucket.Config {
+				return bitbucket.Config{
+					AccessToken: cfg.Bitbucket.AccessToken,
+					CallbackURL: cfg.Bitbucket.CallbackURL,
+					BaseURL:     cfg.Bitbucket.BaseURL,
+				}
+			},
+			bitbucket.NewClient,
 		),
 		fx.Provide(
 			func(cfg Config) webauthn.Config {

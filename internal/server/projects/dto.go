@@ -3,6 +3,7 @@ package projects
 import (
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/dto"
+	"github.com/bit-issues/backend/internal/webhooks"
 	"github.com/samber/lo"
 )
 
@@ -49,6 +50,30 @@ func NewProjectListResponse(items []projects.Project, total int) ProjectListResp
 			},
 		),
 		Total: total,
+	}
+}
+
+// WebhookStatusResponse represents the live Bitbucket webhook state of a
+// project. It never carries the webhook secret.
+type WebhookStatusResponse struct {
+	Status        string `json:"status"                   example:"registered"`
+	HookUUID      string `json:"hook_uuid,omitempty"      example:"{abc-123}"`
+	CallbackURL   string `json:"callback_url"             example:"https://issues.example.com/api/v1/webhooks/bitbucket/push"`
+	FailureReason string `json:"failure_reason,omitempty" example:"insufficient Bitbucket permissions to manage webhooks"`
+	UpdatedAt     string `json:"updated_at,omitempty"     example:"2026-08-20T10:00:00+00:00"`
+}
+
+func NewWebhookStatusResponse(s *webhooks.WebhookStatus) WebhookStatusResponse {
+	if s == nil {
+		return WebhookStatusResponse{}
+	}
+
+	return WebhookStatusResponse{
+		Status:        s.Status,
+		HookUUID:      s.HookUUID,
+		CallbackURL:   s.CallbackURL,
+		FailureReason: "",
+		UpdatedAt:     s.UpdatedAt,
 	}
 }
 
