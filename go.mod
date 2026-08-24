@@ -3,6 +3,7 @@ module github.com/bit-issues/backend
 go 1.25.7
 
 require (
+	github.com/capcom6/go-restkit v0.0.0-20251020103254-764a3b88902f
 	github.com/go-core-fx/bunfx v0.1.0
 	github.com/go-core-fx/cachefx v0.0.2
 	github.com/go-core-fx/config v0.1.0
