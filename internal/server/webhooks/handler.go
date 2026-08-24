@@ -44,7 +44,12 @@ func (h *Handler) Register(r fiber.Router) {
 // handlePush processes a BitBucket push event webhook.
 func (h *Handler) handlePush(c *fiber.Ctx) error {
 	rawBody := c.BodyRaw()
-	sigHeader := c.Get("X-Hub-Signature-256")
+	// Bitbucket Cloud signs WebSub-style deliveries with "X-Hub-Signature";
+	// keep "X-Hub-Signature-256" as a fallback for GitHub-style senders.
+	sigHeader := c.Get("X-Hub-Signature")
+	if sigHeader == "" {
+		sigHeader = c.Get("X-Hub-Signature-256")
+	}
 
 	if err := h.svc.VerifyPushEvent(rawBody, sigHeader); err != nil {
 		if errors.Is(err, webhooks.ErrInvalidSignature) {
