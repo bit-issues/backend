@@ -63,6 +63,14 @@ export interface UserBrief {
   created_at: string
 }
 
+export interface ProjectWebhookStatus {
+  status: 'not_registered' | 'registered' | 'failed' | 'disabled'
+  hook_uuid?: string
+  callback_url?: string
+  failure_reason?: string
+  updated_at?: string
+}
+
 export interface Task {
   id: number
   project_slug: string

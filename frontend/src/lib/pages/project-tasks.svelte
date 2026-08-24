@@ -9,8 +9,10 @@
   import { touchProject } from "$lib/stores/recent-projects.svelte";
   import TaskTable from "$lib/components/TaskTable.svelte";
   import TaskFilters from "$lib/components/TaskFilters.svelte";
+  import ProjectWebhookCard from "$lib/components/ProjectWebhookCard.svelte";
   import * as Card from "$lib/components/ui/card";
   import { Button } from "$lib/components/ui/button";
+  import { isAdmin } from "$lib/stores/auth.svelte";
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
   import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
@@ -209,7 +211,10 @@
         {/if}
       </div>
 
-      <aside>
+      <aside class="flex flex-col gap-6">
+        {#if isAdmin()}
+          <ProjectWebhookCard {slug} />
+        {/if}
         <TaskFilters
           {searchQuery}
           {filterStatuses}
