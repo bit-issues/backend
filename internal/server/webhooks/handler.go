@@ -35,16 +35,21 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Tags			Webhooks
 //	@Accept			json
 //	@Produce		json
-//	@Param			body	body		PushEvent	true	"BitBucket push event payload"
-//	@Success		202		{object}	webhooks.ProcessResult
-//	@Failure		400		{object}	fiberfx.ErrorResponse
-//	@Failure		401		{object}	fiberfx.ErrorResponse
+//	@Param			body			body		PushEvent	true	"BitBucket push event payload"
+//	@Param			X-Hub-Signature	header		string		true	"BitBucket signature header"
+//	@Success		202				{object}	webhooks.ProcessResult
+//	@Failure		400				{object}	fiberfx.ErrorResponse
+//	@Failure		401				{object}	fiberfx.ErrorResponse
 //	@Router			/webhooks/bitbucket/push [post]
 //
 // handlePush processes a BitBucket push event webhook.
 func (h *Handler) handlePush(c *fiber.Ctx) error {
 	rawBody := c.BodyRaw()
-	sigHeader := c.Get("X-Hub-Signature-256")
+
+	sigHeader := c.Get("X-Hub-Signature")
+	if sigHeader == "" {
+		sigHeader = c.Get("X-Hub-Signature-256")
+	}
 
 	if err := h.svc.VerifyPushEvent(rawBody, sigHeader); err != nil {
 		if errors.Is(err, webhooks.ErrInvalidSignature) {

@@ -1942,6 +1942,13 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/webhooks.PushEvent"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "BitBucket signature header",
+                        "name": "X-Hub-Signature",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
