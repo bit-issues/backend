@@ -9,6 +9,7 @@
     unregisterProjectWebhook,
   } from "$lib/api/webhooks";
   import { toast } from "$lib/toast";
+  import { navigate } from "$lib/router/routes";
   import type { ProjectWebhookStatus } from "$lib/types/api";
 
   let { slug }: { slug: string } = $props();
@@ -16,8 +17,12 @@
   let status = $state<ProjectWebhookStatus | null>(null);
   let loading = $state(true);
   let loadError = $state("");
+  let errorCode = $state<number | null>(null);
   let busy = $state(false);
   let showUnregisterDialog = $state(false);
+
+  let oauthRevoked = $derived(errorCode === 401);
+  let permissionDenied = $derived(errorCode === 403);
 
   const badgeColors: Record<string, string> = {
     registered:
@@ -57,10 +62,12 @@
     getProjectWebhookStatus(slug)
       .then((res) => {
         status = res;
+        errorCode = null;
       })
       .catch((e: Error) => {
         status = null;
         loadError = e?.message || "Failed to load webhook status";
+        errorCode = (e as { code?: number })?.code ?? null;
       })
       .finally(() => {
         loading = false;
@@ -114,7 +121,35 @@
     {#if loading}
       <p class="text-muted-foreground text-sm">Loading...</p>
     {:else if loadError}
-      <p class="text-destructive text-sm">{loadError}</p>
+      {#if oauthRevoked}
+        <div
+          class="border-destructive/40 bg-destructive/5 flex flex-col gap-2 rounded-md border p-3"
+        >
+          <p class="text-destructive text-sm font-medium">
+            Bitbucket OAuth connection revoked
+          </p>
+          <p class="text-muted-foreground text-xs">{loadError}</p>
+          <div class="flex gap-2">
+            <Button
+              size="sm"
+              onclick={() => navigate("/admin")}
+            >
+              Reconnect OAuth
+            </Button>
+            <Button size="sm" variant="outline" onclick={loadStatus}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      {:else if permissionDenied}
+        <p class="text-destructive text-sm">{loadError}</p>
+        <p class="text-muted-foreground text-xs">
+          The Bitbucket app needs repository admin permissions to manage
+          webhooks.
+        </p>
+      {:else}
+        <p class="text-destructive text-sm">{loadError}</p>
+      {/if}
     {:else if status}
       <div class="flex flex-col gap-2">
         {#if status.callback_url}
@@ -137,7 +172,7 @@
   </Card.CardContent>
   {#if !loading && (status || loadError)}
     <Card.CardFooter class="justify-end gap-2">
-      {#if loadError && !status}
+      {#if loadError && !status && !oauthRevoked}
         <Button size="sm" variant="outline" onclick={loadStatus}>
           Retry
         </Button>

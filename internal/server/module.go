@@ -4,6 +4,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/auth"
 	"github.com/bit-issues/backend/internal/server/docs"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
+	"github.com/bit-issues/backend/internal/server/oauth"
 	"github.com/bit-issues/backend/internal/server/passkey"
 	"github.com/bit-issues/backend/internal/server/projects"
 	"github.com/bit-issues/backend/internal/server/tasks"
@@ -56,12 +57,13 @@ func Module() fx.Option {
 
 		fx.Provide(
 			webhooks.NewHandler,
+			oauth.NewHandler,
 			fx.Private,
 		),
 
 		fx.Invoke(
 			fx.Annotate(
-				func(handlers []handler.Handler, jwtAuth fiber.Handler, webhookHandler *webhooks.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
+				func(handlers []handler.Handler, jwtAuth fiber.Handler, webhookHandler *webhooks.Handler, oauthHandler *oauth.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
 					// Health endpoint
 					healthHandler.Register(app)
 
@@ -73,12 +75,17 @@ func Module() fx.Option {
 					openapiHandler.Register(v1.Group("/docs"))
 
 					v1.Use(validation.Middleware)
+					// Public OAuth callback: Bitbucket redirects the browser
+					// here, so it must stay outside the JWT middleware.
+					oauthHandler.RegisterPublic(v1)
 					webhookHandler.Register(v1)
 
 					v1.Use(
 						jwtAuth,
 						jwtauth.ErrorsHandler(),
 					)
+
+					oauthHandler.Register(v1)
 
 					for _, h := range handlers {
 						h.Register(v1)

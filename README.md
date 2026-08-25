@@ -51,6 +51,7 @@
   - [CLI Commands](#cli-commands)
   - [API Overview](#api-overview)
   - [Configuration](#configuration)
+  - [Bitbucket OAuth (Optional)](#bitbucket-oauth-optional)
   - [Development Commands](#development-commands)
   - [Deployment](#deployment)
 - [Roadmap](#roadmap)
@@ -246,21 +247,44 @@ A complete API reference with request/response examples is available in [`reques
 
 Configuration is loaded from environment variables with optional YAML override via `CONFIG_PATH`.
 
-| Variable                    | Default                     | Description                            |
-| --------------------------- | --------------------------- | -------------------------------------- |
-| `DATABASE__URL`             | `mariadb://bit-issues:...`  | Database connection string             |
-| `JWT__SECRET`               | `secret`                    | JWT signing key                        |
-| `JWT__ACCESS_TTL`           | `15m`                       | Access token lifetime                  |
-| `STORAGE__URL`              | `s3://bucket/prefix?...`    | S3 storage URL                         |
-| `STORAGE__LINKS_TTL`        | `15m`                       | Presigned URL lifetime                 |
-| `ATTACHMENTS__MAX_SIZE`     | `10485760`                  | Max file size in bytes (10 MB)         |
-| `HTTP__ADDRESS`             | `127.0.0.1:3000`            | Server listen address                  |
-| `AWS_ACCESS_KEY_ID`         | —                           | S3 access key                          |
-| `AWS_SECRET_ACCESS_KEY`     | —                           | S3 secret key                          |
-| `AWS_REGION`                | —                           | S3 region                              |
-| `WEBAUTHN__RP_DISPLAY_NAME` | `BitIssues`                 | Display name shown during registration |
-| `WEBAUTHN__RP_ID`           | `localhost`                 | Relying Party ID (domain)              |
-| `WEBAUTHN__RP_ORIGINS`      | `["http://localhost:5173"]` | Allowed origins JSON array             |
+| Variable                        | Default                     | Description                                                      |
+| ------------------------------- | --------------------------- | ---------------------------------------------------------------- |
+| `DATABASE__URL`                 | `mariadb://bit-issues:...`  | Database connection string                                       |
+| `JWT__SECRET`                   | `secret`                    | JWT signing key                                                  |
+| `JWT__ACCESS_TTL`               | `15m`                       | Access token lifetime                                            |
+| `STORAGE__URL`                  | `s3://bucket/prefix?...`    | S3 storage URL                                                   |
+| `STORAGE__LINKS_TTL`            | `15m`                       | Presigned URL lifetime                                           |
+| `ATTACHMENTS__MAX_SIZE`         | `10485760`                  | Max file size in bytes (10 MB)                                   |
+| `HTTP__ADDRESS`                 | `127.0.0.1:3000`            | Server listen address                                            |
+| `AWS_ACCESS_KEY_ID`             | —                           | S3 access key                                                    |
+| `AWS_SECRET_ACCESS_KEY`         | —                           | S3 secret key                                                    |
+| `AWS_REGION`                    | —                           | S3 region                                                        |
+| `WEBAUTHN__RP_DISPLAY_NAME`     | `BitIssues`                 | Display name shown during registration                           |
+| `WEBAUTHN__RP_ID`               | `localhost`                 | Relying Party ID (domain)                                        |
+| `WEBAUTHN__RP_ORIGINS`          | `["http://localhost:5173"]` | Allowed origins JSON array                                       |
+| `BITBUCKET__CLIENT_ID`          | -                           | Bitbucket OAuth consumer key (optional)                          |
+| `BITBUCKET__CLIENT_SECRET`      | -                           | Bitbucket OAuth consumer secret (optional)                       |
+| `BITBUCKET__OAUTH_REDIRECT_URI` | -                           | OAuth callback URL, ends with `/api/v1/oauth/bitbucket/callback` |
+
+### Bitbucket OAuth (Optional)
+
+Webhook registration can authenticate with a Bitbucket OAuth connection as an alternative to the static `BITBUCKET__ACCESS_TOKEN`.
+
+**What it enables**
+
+- Admin-initiated connect flow from the admin settings page ("Connect with Bitbucket")
+- Automatic token refresh: access tokens (2h lifetime) are proactively refreshed 15 minutes before expiry; refresh tokens are single-use
+- No manual workspace access token creation or rotation for webhook management
+
+**Setup**
+
+1. Create an OAuth consumer in Bitbucket: workspace settings -> OAuth consumers -> Add consumer
+2. Grant the `webhook` scope (the minimum required for webhook management)
+3. Set the consumer callback URL to `https://<your-host>/api/v1/oauth/bitbucket/callback`
+4. Set `BITBUCKET__CLIENT_ID`, `BITBUCKET__CLIENT_SECRET`, and `BITBUCKET__OAUTH_REDIRECT_URI` in `.env`
+5. Connect in the admin settings page
+
+When OAuth is not connected, the static `BITBUCKET__ACCESS_TOKEN` remains the supported permanent fallback. See [docs/oauth-setup.md](docs/oauth-setup.md) for the step-by-step guide, disconnect behavior, and troubleshooting.
 
 ### Development Commands
 

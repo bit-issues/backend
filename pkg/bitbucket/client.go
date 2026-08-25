@@ -13,8 +13,9 @@ const defaultBaseURL = "https://api.bitbucket.org"
 
 // Client talks to the Bitbucket REST API using Bearer token authentication.
 type Client struct {
-	rest        *restkit.Client
-	accessToken string
+	rest          *restkit.Client
+	accessToken   string
+	tokenResolver TokenResolver
 }
 
 // NewClient creates a Bitbucket API client. When cfg.BaseURL is empty the
@@ -34,18 +35,35 @@ func NewClient(cfg Config) (*Client, error) {
 	}
 
 	return &Client{
-		rest:        restClient,
-		accessToken: cfg.AccessToken,
+		rest:          restClient,
+		accessToken:   cfg.AccessToken,
+		tokenResolver: cfg.TokenResolver,
 	}, nil
 }
 
-// do performs an authenticated request against the Bitbucket API. Errors are
-// wrapped to add context; the go-restkit error types remain reachable through
-// the chain via [errors.As] helpers (IsClientError, IsServerError,
-// IsInfrastructureError, AsAPIError).
+// SetTokenResolver overrides the Bearer token source. Passing nil restores
+// the static Config.AccessToken.
+func (c *Client) SetTokenResolver(resolver TokenResolver) {
+	c.tokenResolver = resolver
+}
+
+// do performs an authenticated request against the Bitbucket API. The Bearer
+// token is resolved per call: TokenResolver takes precedence over the static
+// access token. Errors are wrapped to add context; the go-restkit error types
+// remain reachable through the chain via [errors.As] helpers (IsClientError,
+// IsServerError, IsInfrastructureError, AsAPIError).
 func (c *Client) do(ctx context.Context, method, path string, payload, response any) error {
+	accessToken := c.accessToken
+	if c.tokenResolver != nil {
+		resolved, err := c.tokenResolver(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to resolve bitbucket access token: %w", err)
+		}
+		accessToken = resolved
+	}
+
 	headers := http.Header{}
-	headers.Set("Authorization", "Bearer "+c.accessToken)
+	headers.Set("Authorization", "Bearer "+accessToken)
 
 	if err := c.rest.Do(ctx, method, path, headers, payload, response); err != nil {
 		return fmt.Errorf("bitbucket API request failed: %w", err)

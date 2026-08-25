@@ -39,6 +39,7 @@
   const adminNav = [
     { pattern: "/admin/users", label: "Users", icon: UsersIcon },
     { pattern: "/admin/projects", label: "Projects", icon: SettingsIcon },
+    { pattern: "/admin", label: "Settings", icon: SettingsIcon },
   ];
 </script>
 

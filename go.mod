@@ -3,6 +3,7 @@ module github.com/bit-issues/backend
 go 1.25.7
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/capcom6/go-restkit v0.0.0-20251020103254-764a3b88902f
 	github.com/go-core-fx/bunfx v0.1.0
 	github.com/go-core-fx/cachefx v0.0.2
@@ -31,6 +32,7 @@ require (
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.53.0
+	golang.org/x/sync v0.21.0
 )
 
 require (
@@ -111,7 +113,6 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.37.0 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/tools v0.46.0 // indirect

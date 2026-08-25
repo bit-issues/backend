@@ -2,9 +2,11 @@ package webhooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/pkg/bitbucket"
 )
@@ -47,7 +49,11 @@ type ManagementService struct {
 
 	// callbackBaseURL is BITBUCKET__CALLBACK_URL without trailing slashes.
 	callbackBaseURL string
-	client          *bitbucket.Client
+	// staticAccessToken is the permanent static BITBUCKET__ACCESS_TOKEN
+	// fallback used when OAuth is not connected.
+	staticAccessToken string
+	client            *bitbucket.Client
+	oauthSvc          *oauth.Service
 }
 
 // NewManagementService creates the webhook management service. The callback
@@ -59,10 +65,53 @@ func NewManagementService(
 	client *bitbucket.Client,
 ) *ManagementService {
 	return &ManagementService{
-		config:          cfg,
-		callbackBaseURL: strings.TrimRight(bitbucketCfg.CallbackURL, "/"),
-		client:          client,
+		config:            cfg,
+		callbackBaseURL:   strings.TrimRight(bitbucketCfg.CallbackURL, "/"),
+		staticAccessToken: bitbucketCfg.AccessToken,
+		client:            client,
+		oauthSvc:          nil,
 	}
+}
+
+// SetOAuthService wires the OAuth credential service into the Bitbucket
+// client so webhook calls resolve the access token dynamically with
+// singleflight-protected auto-refresh. Passing nil is ignored; the client
+// keeps the static token.
+func (s *ManagementService) SetOAuthService(svc *oauth.Service) {
+	if svc == nil {
+		return
+	}
+	s.oauthSvc = svc
+	s.client.SetTokenResolver(s.resolveToken)
+}
+
+// resolveToken implements the token precedence mandated by the plan:
+// OAuth valid -> OAuth auto-refresh (inside OAuthService.GetToken) -> OAuth
+// revoked error (never a silent static fallback) -> static token fallback ->
+// ErrBitbucketNotConfigured. It never logs or serializes tokens.
+func (s *ManagementService) resolveToken(ctx context.Context) (string, error) {
+	if s.oauthSvc != nil {
+		token, err := s.oauthSvc.GetToken(ctx)
+		if err == nil {
+			return token.AccessToken, nil
+		}
+		if errors.Is(err, oauth.ErrOAuthNotConnected) {
+			return s.staticToken()
+		}
+		return "", fmt.Errorf("%w: %w", oauth.ErrOAuthRevoked, err)
+	}
+
+	return s.staticToken()
+}
+
+// staticToken returns the permanent static fallback token, or
+// ErrBitbucketNotConfigured when no Bitbucket credential is configured.
+func (s *ManagementService) staticToken() (string, error) {
+	if s.staticAccessToken == "" {
+		return "", ErrBitbucketNotConfigured
+	}
+
+	return s.staticAccessToken, nil
 }
 
 // RegisterWebhook ensures the project repository has a Bitbucket webhook

@@ -71,6 +71,17 @@ export interface ProjectWebhookStatus {
   updated_at?: string
 }
 
+export interface BitbucketOAuthStatus {
+  connected: boolean
+  connected_at?: string
+  expires_at?: string
+  scopes?: string[]
+}
+
+export interface BitbucketOAuthAuthorizeResponse {
+  url: string
+}
+
 export interface Task {
   id: number
   project_slug: string

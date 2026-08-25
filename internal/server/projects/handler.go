@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
@@ -354,6 +355,13 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusConflict, err.Error())
 	case errors.Is(err, projects.ErrInvalidURL):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	case errors.Is(err, oauth.ErrOAuthRevoked):
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"Bitbucket OAuth credentials are revoked or invalid; reconnect OAuth in admin settings",
+		)
+	case errors.Is(err, webhooks.ErrBitbucketNotConfigured):
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	case errors.Is(err, webhooks.ErrWebhookSecretNotConfigured):
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	case restkit.IsClientError(err):
@@ -384,7 +392,7 @@ func webhookClientErrorReason(err error) (int, string) {
 	case fiber.StatusBadRequest:
 		reason = "Bitbucket rejected the webhook configuration"
 	case fiber.StatusForbidden:
-		code = fiber.StatusUnprocessableEntity
+		code = fiber.StatusForbidden
 		reason = "insufficient Bitbucket permissions to manage webhooks"
 	}
 

@@ -3,11 +3,13 @@ package bitbucket_test
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/bit-issues/backend/pkg/bitbucket"
@@ -430,4 +432,106 @@ func TestNewClientDefaultsAndValidation(t *testing.T) {
 			t.Errorf("error = %v, want base URL parse failure", err)
 		}
 	})
+}
+
+// TestTokenResolverUsedForAuthorization asserts a configured TokenResolver is
+// invoked on every request and its result is sent as the Bearer token.
+func TestTokenResolverUsedForAuthorization(t *testing.T) {
+	var (
+		resolverCalls atomic.Int32
+		gotAuth       []string
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = append(gotAuth, r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(webhooksPage{})
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := bitbucket.NewClient(bitbucket.Config{
+		BaseURL:     server.URL,
+		AccessToken: testToken,
+		TokenResolver: func(_ context.Context) (string, error) {
+			resolverCalls.Add(1)
+			return "resolved-token", nil
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	ctx := context.Background()
+	if _, listErr := client.ListWebhooks(ctx, "team", "repo"); listErr != nil {
+		t.Fatalf("ListWebhooks() error = %v", listErr)
+	}
+	if _, listErr := client.ListWebhooks(ctx, "team", "repo"); listErr != nil {
+		t.Fatalf("ListWebhooks() error = %v", listErr)
+	}
+
+	if got := resolverCalls.Load(); got != 2 {
+		t.Errorf("resolver calls = %d, want 2 (one per request)", got)
+	}
+	for i, got := range gotAuth {
+		if want := "Bearer resolved-token"; got != want {
+			t.Errorf("request %d Authorization = %q, want %q", i, got, want)
+		}
+	}
+}
+
+// TestTokenResolverErrorPreventsRequest asserts a resolver failure aborts the
+// call before any HTTP request reaches Bitbucket.
+func TestTokenResolverErrorPreventsRequest(t *testing.T) {
+	requests := 0
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(server.Close)
+
+	client, err := bitbucket.NewClient(bitbucket.Config{
+		BaseURL:     server.URL,
+		AccessToken: testToken,
+		TokenResolver: func(context.Context) (string, error) {
+			return "", errors.New("resolver exploded")
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewClient() error = %v", err)
+	}
+
+	_, err = client.ListWebhooks(context.Background(), "team", "repo")
+	if err == nil {
+		t.Fatal("ListWebhooks() error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "failed to resolve bitbucket access token") {
+		t.Errorf("error = %v, want resolver wrap", err)
+	}
+	if requests != 0 {
+		t.Errorf("bitbucket requests = %d, want 0", requests)
+	}
+}
+
+// TestSetTokenResolverOverridesStaticToken asserts the resolver installed
+// after construction takes precedence over the static access token.
+func TestSetTokenResolverOverridesStaticToken(t *testing.T) {
+	var gotAuth string
+
+	client := newTestClient(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(webhooksPage{})
+	}))
+
+	client.SetTokenResolver(func(context.Context) (string, error) {
+		return "setter-token", nil
+	})
+
+	if _, err := client.ListWebhooks(context.Background(), "team", "repo"); err != nil {
+		t.Fatalf("ListWebhooks() error = %v", err)
+	}
+	if gotAuth != "Bearer setter-token" {
+		t.Errorf("Authorization = %q, want Bearer setter-token", gotAuth)
+	}
 }

@@ -45,7 +45,10 @@
     const handler = () => {
       path = (window.location.hash.slice(1) || "/").split("?")[0];
     };
-    path = (window.location.hash.slice(1) || "/").split("?")[0];
+    const hash = window.location.hash.slice(1);
+    // The Bitbucket OAuth callback redirects to /admin?oauth=... without a
+    // hash; treat that pathname landing as the /admin route.
+    path = (hash || (window.location.pathname === "/admin" ? "/admin" : "/")).split("?")[0];
     window.addEventListener("hashchange", handler);
     return () => window.removeEventListener("hashchange", handler);
   });

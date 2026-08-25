@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server"
 	"github.com/bit-issues/backend/internal/storage"
@@ -83,6 +84,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		comments.Module(),
 		webauthn.Module(),
 		webhooks.Module(),
+		oauth.Module(),
 		//
 		fx.Invoke(func(lc fx.Lifecycle, logger *zap.Logger) {
 			lc.Append(fx.Hook{

@@ -64,9 +64,12 @@ type webhooksConfig struct {
 }
 
 type bitbucketConfig struct {
-	AccessToken string `koanf:"access_token"`
-	CallbackURL string `koanf:"callback_url"`
-	BaseURL     string `koanf:"base_url"`
+	AccessToken      string `koanf:"access_token"`
+	CallbackURL      string `koanf:"callback_url"`
+	BaseURL          string `koanf:"base_url"`
+	ClientID         string `koanf:"client_id"`
+	ClientSecret     string `koanf:"client_secret"`
+	OAuthRedirectURI string `koanf:"oauth_redirect_uri"`
 }
 
 type Config struct {
@@ -142,9 +145,12 @@ func Default() Config {
 			},
 		},
 		Bitbucket: bitbucketConfig{
-			AccessToken: "",
-			CallbackURL: "",
-			BaseURL:     "",
+			AccessToken:      "",
+			CallbackURL:      "",
+			BaseURL:          "",
+			ClientID:         "",
+			ClientSecret:     "",
+			OAuthRedirectURI: "",
 		},
 	}
 }

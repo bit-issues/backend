@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
@@ -81,9 +82,15 @@ func Module() fx.Option {
 					AccessToken: cfg.Bitbucket.AccessToken,
 					CallbackURL: cfg.Bitbucket.CallbackURL,
 					BaseURL:     cfg.Bitbucket.BaseURL,
+					// The webhooks module installs the dynamic OAuth resolver
+					// via SetOAuthService; nil keeps the static token default.
+					TokenResolver: nil,
 				}
 			},
 			bitbucket.NewClient,
+		),
+		fx.Provide(
+			oauthConfig,
 		),
 		fx.Provide(
 			func(cfg Config) webauthn.Config {
@@ -102,4 +109,19 @@ func Module() fx.Option {
 			},
 		),
 	)
+}
+
+// oauthConfig maps the application config to the OAuth domain config. Durations
+// left at zero are normalized by the oauth service defaults.
+func oauthConfig(cfg Config) oauth.Config {
+	return oauth.Config{
+		StateTTL:            0,
+		AccessTokenLifetime: 0,
+		RefreshThreshold:    0,
+		ClientID:            cfg.Bitbucket.ClientID,
+		ClientSecret:        cfg.Bitbucket.ClientSecret,
+		RedirectURI:         cfg.Bitbucket.OAuthRedirectURI,
+		AuthorizeURL:        "",
+		TokenURL:            "",
+	}
 }

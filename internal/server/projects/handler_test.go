@@ -15,7 +15,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	serverprojects "github.com/bit-issues/backend/internal/server/projects"
@@ -141,6 +143,20 @@ func newStubBunDB(queries *[]string) *bun.DB {
 func newTestApp(t *testing.T, bbClient *bitbucket.Client, secret string, queries *[]string) *fiber.App {
 	t.Helper()
 
+	return newTestAppWithOAuth(t, bbClient, secret, queries, nil)
+}
+
+// newTestAppWithOAuth builds the production-like Fiber app with OAuth token
+// resolution wired into the webhook management service.
+func newTestAppWithOAuth(
+	t *testing.T,
+	bbClient *bitbucket.Client,
+	secret string,
+	queries *[]string,
+	oauthSvc *oauth.Service,
+) *fiber.App {
+	t.Helper()
+
 	db := newStubBunDB(queries)
 	projectsSvc := projects.NewService(projects.NewRepository(db))
 	webhooksSvc := webhooks.NewManagementService(
@@ -148,6 +164,9 @@ func newTestApp(t *testing.T, bbClient *bitbucket.Client, secret string, queries
 		bitbucket.Config{AccessToken: testAccessToken, CallbackURL: testCallbackURL},
 		bbClient,
 	)
+	if oauthSvc != nil {
+		webhooksSvc.SetOAuthService(oauthSvc)
+	}
 	usersSvc := users.NewService(users.NewRepository(db))
 	jwtSvc := jwt.NewService(jwt.Config{
 		Secret:     testJWTSecret,
@@ -161,6 +180,68 @@ func newTestApp(t *testing.T, bbClient *bitbucket.Client, secret string, queries
 	serverprojects.NewHandler(projectsSvc, webhooksSvc, nil, nil, validator.New()).Register(v1)
 
 	return app
+}
+
+// newOAuthService returns an oauth service backed by a sqlmock repository.
+func newOAuthService(t *testing.T, refresher oauth.TokenRefresher) (*oauth.Service, sqlmock.Sqlmock) {
+	t.Helper()
+
+	sqldb, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("sqlmock.New() error = %v", err)
+	}
+	sqldb.SetMaxOpenConns(1)
+	t.Cleanup(func() {
+		_ = sqldb.Close()
+	})
+
+	// bun's mysqldialect probes the server version inside bun.NewDB, before
+	// test expectations are registered. Consume it up front.
+	mock.ExpectQuery("SELECT version()").
+		WillReturnRows(sqlmock.NewRows([]string{"version()"}).AddRow("8.0.36"))
+
+	db := bun.NewDB(sqldb, mysqldialect.New())
+
+	return oauth.NewService(oauth.Config{}, oauth.NewRepository(db), refresher, zap.NewNop()), mock
+}
+
+// oauthTokenRow mirrors the oauth_tokens row shape used by the repository.
+func oauthTokenRow(token *oauth.Token) *sqlmock.Rows {
+	return sqlmock.NewRows([]string{
+		"singleton_id", "access_token", "refresh_token", "scope",
+		"expires_at", "connected_by_user_id", "created_at", "updated_at",
+	}).AddRow(
+		oauth.SingletonID, token.AccessToken, token.RefreshToken, token.Scope,
+		token.ExpiresAt, token.ConnectedByUserID, token.CreatedAt, token.UpdatedAt,
+	)
+}
+
+// revokedOAuthService returns a service whose stored OAuth credential cannot
+// be refreshed, simulating a revoked or invalid token.
+func revokedOAuthService(t *testing.T) *oauth.Service {
+	t.Helper()
+
+	now := time.Now()
+	svc, mock := newOAuthService(t, func(context.Context, string) (*oauth.Token, error) {
+		return nil, oauth.ErrTokenExchangeFailed
+	})
+	mock.ExpectQuery("(?i)SELECT .* FROM `oauth_tokens`").
+		WillReturnRows(oauthTokenRow(&oauth.Token{
+			AccessToken:       "expired-access-token",
+			RefreshToken:      "expired-refresh-token",
+			Scope:             "webhook",
+			ExpiresAt:         now.Add(-30 * time.Minute),
+			ConnectedByUserID: adminUserID,
+			CreatedAt:         now.Add(-3 * time.Hour),
+			UpdatedAt:         now.Add(-3 * time.Hour),
+		}))
+	t.Cleanup(func() {
+		if err := mock.ExpectationsWereMet(); err != nil {
+			t.Errorf("unmet sqlmock expectations: %v", err)
+		}
+	})
+
+	return svc
 }
 
 // makeToken signs an access token for the given user, mirroring the claims
@@ -602,7 +683,7 @@ func TestRegisterWebhookFailsWhenSecretEmpty(t *testing.T) {
 	assertNoWebhookDBUsage(t, queries)
 }
 
-func TestGetWebhookStatusMapsBitbucket403ToUnprocessableEntity(t *testing.T) {
+func TestGetWebhookStatusMapsBitbucket403ToForbidden(t *testing.T) {
 	client := newBitbucketClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
@@ -615,8 +696,8 @@ func TestGetWebhookStatusMapsBitbucket403ToUnprocessableEntity(t *testing.T) {
 	resp := doRequest(t, app, http.MethodGet, "/api/v1/projects/"+testProjectSlug+"/webhook", adminToken(t))
 	body := readBody(t, resp)
 
-	if resp.StatusCode != fiber.StatusUnprocessableEntity {
-		t.Errorf("status = %d, want %d", resp.StatusCode, fiber.StatusUnprocessableEntity)
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Errorf("status = %d, want %d", resp.StatusCode, fiber.StatusForbidden)
 	}
 	if !strings.Contains(body, "insufficient Bitbucket permissions") {
 		t.Errorf("body = %s, want human-readable failure reason", body)
@@ -625,6 +706,38 @@ func TestGetWebhookStatusMapsBitbucket403ToUnprocessableEntity(t *testing.T) {
 		if strings.Contains(body, leak) {
 			t.Errorf("response leaked %q: %s", leak, body)
 		}
+	}
+
+	assertNoWebhookDBUsage(t, queries)
+}
+
+func TestGetWebhookStatusMapsOAuthRevokedToUnauthorized(t *testing.T) {
+	requests := 0
+
+	client := newBitbucketClient(t, http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	var queries []string
+	app := newTestAppWithOAuth(t, client, testWebhookSecret, &queries, revokedOAuthService(t))
+
+	resp := doRequest(t, app, http.MethodGet, "/api/v1/projects/"+testProjectSlug+"/webhook", adminToken(t))
+	body := readBody(t, resp)
+
+	if resp.StatusCode != fiber.StatusUnauthorized {
+		t.Errorf("status = %d, want %d", resp.StatusCode, fiber.StatusUnauthorized)
+	}
+	if !strings.Contains(body, "reconnect") {
+		t.Errorf("body = %s, want actionable reconnect hint", body)
+	}
+	for _, leak := range []string{testAccessToken, testWebhookSecret, "expired-access-token"} {
+		if strings.Contains(body, leak) {
+			t.Errorf("response leaked %q: %s", leak, body)
+		}
+	}
+	if requests != 0 {
+		t.Errorf("bitbucket requests = %d, want 0", requests)
 	}
 
 	assertNoWebhookDBUsage(t, queries)

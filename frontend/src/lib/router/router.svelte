@@ -12,7 +12,10 @@
   } = $props();
 
   function hashPath(): string {
-    return (window.location.hash.slice(1) || "/").split("?")[0];
+    const hash = window.location.hash.slice(1);
+    // The Bitbucket OAuth callback redirects to /admin?oauth=... without a
+    // hash; treat that pathname landing as the /admin route.
+    return (hash || (window.location.pathname === "/admin" ? "/admin" : "/")).split("?")[0];
   }
 
   let path = $state(hashPath());
