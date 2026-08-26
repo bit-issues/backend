@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
@@ -41,6 +42,11 @@ func Module() fx.Option {
 					MaxIdleConns:    cfg.Database.MaxIdleConns,
 				}
 			},
+			func(cfg Config) cachefx.Config {
+				return cachefx.Config{
+					URL: cfg.Cache.URL,
+				}
+			},
 		),
 		fx.Provide(
 			func(cfg Config) jwt.Config {
@@ -57,15 +63,11 @@ func Module() fx.Option {
 					LinksTTL: cfg.Storage.LinksTTL,
 				}
 			},
-		),
-		fx.Provide(
 			func(cfg Config) attachments.Config {
 				return attachments.Config{
 					MaxSize: cfg.Attachments.MaxSize,
 				}
 			},
-		),
-		fx.Provide(
 			func(cfg Config) webhooks.Config {
 				return webhooks.Config{
 					Secret:         cfg.Webhooks.Secret,
@@ -73,8 +75,6 @@ func Module() fx.Option {
 					ActionKeywords: cfg.Webhooks.ActionKeywords,
 				}
 			},
-		),
-		fx.Provide(
 			func(cfg Config) webauthn.Config {
 				return webauthn.Config{
 					RPDisplayName: cfg.WebAuthn.RPDisplayName,
@@ -82,11 +82,10 @@ func Module() fx.Option {
 					RPOrigins:     cfg.WebAuthn.RPOrigins,
 				}
 			},
-		),
-		fx.Provide(
-			func(cfg Config) cachefx.Config {
-				return cachefx.Config{
-					URL: cfg.Cache.URL,
+			func(cfg Config) oauth.Config {
+				return oauth.Config{
+					ClientID:     cfg.OAuth.ClientID,
+					ClientSecret: cfg.OAuth.ClientSecret,
 				}
 			},
 		),

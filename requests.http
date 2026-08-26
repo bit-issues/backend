@@ -27,7 +27,7 @@ Content-Type: application/json
 # Uses refresh_token from the login response
 # @name adminRefresh
 @adminAccessToken={{adminRefresh.response.body.$.access_token}}
-@adminRefreshToken={{adminRefresh.response.body.$.refresh_token}}
+@adminRefreshToken={{adminLogin.response.body.$.refresh_token}}
 POST {{baseURL}}/auth/refresh
 Content-Type: application/json
 
@@ -478,3 +478,18 @@ X-Hub-Signature-256: sha256=c8d3e58153ab0c75626df9ef241dd1240d748a922592fb05e179
   },
   "actor": {"nickname": "dev1"}
 }
+
+###
+GET {{baseURL}}/oauth/bitbucket/authorize HTTP/1.1
+Authorization: Bearer {{adminAccessToken}}
+
+###
+GET {{baseURL}}/oauth/bitbucket/callback?
+
+###
+GET {{baseURL}}/oauth/bitbucket/status HTTP/1.1
+Authorization: Bearer {{adminAccessToken}}
+
+###
+POST {{baseURL}}/oauth/bitbucket/disconnect HTTP/1.1
+Authorization: Bearer {{adminAccessToken}}
