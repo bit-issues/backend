@@ -7,6 +7,7 @@
     access_denied: "Bitbucket authorization was denied",
     missing_params: "The Bitbucket callback was missing required parameters",
     exchange_failed: "Bitbucket rejected the authorization code",
+    invalid_state: "The connection session expired or was already used. Try again.",
   };
 
   onMount(() => {

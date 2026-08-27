@@ -9,4 +9,8 @@ var (
 
 	// ErrNotFound is returned when a token is not found.
 	ErrNotFound = errors.New("token not found")
+
+	// ErrStateNotFound is returned when an OAuth CSRF state is missing,
+	// expired, or already consumed.
+	ErrStateNotFound = errors.New("oauth state not found")
 )

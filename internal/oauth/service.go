@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-core-fx/cachefx/cache"
 	"go.uber.org/zap"
 	"golang.org/x/sync/singleflight"
 )
@@ -19,10 +20,12 @@ import (
 // persist of the singleton row, so concurrent GetToken calls share one result.
 const singleflightKey = "oauth-token-refresh"
 
-// Service stores the singleton Bitbucket OAuth credential and manages the registration flow.
+// Service stores the per-user Bitbucket OAuth credential and manages the
+// connection flow. CSRF states are persisted in a cache-backed store.
 type Service struct {
 	cfg    Config
 	tokens *Repository
+	states *stateStore
 
 	group singleflight.Group
 	http  *http.Client
@@ -33,12 +36,14 @@ type Service struct {
 func NewService(
 	cfg Config,
 	tokens *Repository,
+	backend cache.Cache,
 
 	logger *zap.Logger,
 ) *Service {
 	return &Service{
 		cfg:    cfg,
 		tokens: tokens,
+		states: newStateStore(backend),
 
 		group: singleflight.Group{},
 		http:  http.DefaultClient,
@@ -47,18 +52,29 @@ func NewService(
 	}
 }
 
-func (s *Service) AuthorizeURL(_ context.Context, userID int64) string {
+func (s *Service) AuthorizeURL(ctx context.Context, userID int64) (string, error) {
+	state, err := generateState()
+	if err != nil {
+		return "", err
+	}
+	if saveErr := s.states.Save(ctx, state, userID); saveErr != nil {
+		return "", saveErr
+	}
+
 	query := url.Values{}
 	query.Set("client_id", s.cfg.ClientID)
 	query.Set("response_type", "code")
 	query.Set("scope", requiredScope)
-	query.Set("state", strconv.FormatInt(userID, 16))
+	query.Set("state", state)
 
-	return defaultAuthorizeURL + "?" + query.Encode()
+	return defaultAuthorizeURL + "?" + query.Encode(), nil
 }
 
 func (s *Service) Exchange(ctx context.Context, state, code string) error {
-	userID, err := s.verifyState(ctx, state)
+	// Consume the single-use CSRF state to recover the initiating user. This
+	// binds the stored token to the admin who started the connection and
+	// rejects forged, expired, or replayed states.
+	userID, err := s.states.Consume(ctx, state)
 	if err != nil {
 		return err
 	}
@@ -107,15 +123,6 @@ func (s *Service) GetToken(ctx context.Context, userID int64) (*Token, error) {
 
 func (s *Service) DeleteToken(ctx context.Context, userID int64) error {
 	return s.tokens.Delete(ctx, userID)
-}
-
-func (s *Service) verifyState(_ context.Context, state string) (int64, error) {
-	userID, err := strconv.ParseInt(state, 16, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse state: %w", err)
-	}
-
-	return userID, nil
 }
 
 // requestToken performs an OAuth token grant. The client authenticates with

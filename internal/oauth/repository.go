@@ -9,7 +9,7 @@ import (
 	"github.com/uptrace/bun"
 )
 
-// Repository persists the singleton OAuth token row and CSRF states.
+// Repository persists the per-user OAuth token row.
 type Repository struct {
 	db *bun.DB
 }

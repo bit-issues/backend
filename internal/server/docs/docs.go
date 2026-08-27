@@ -625,8 +625,8 @@ const docTemplate = `{
                 ],
                 "summary": "Disconnect Bitbucket OAuth",
                 "responses": {
-                    "200": {
-                        "description": "OK"
+                    "204": {
+                        "description": "No Content"
                     },
                     "401": {
                         "description": "Unauthorized",

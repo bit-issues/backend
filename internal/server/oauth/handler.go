@@ -33,7 +33,7 @@ func (h *Handler) RegisterPublic(r fiber.Router) {
 }
 
 func (h *Handler) Register(r fiber.Router) {
-	group := r.Group("/oauth/bitbucket", jwtauth.WithRole(users.RoleAdmin))
+	group := r.Group("/oauth/bitbucket", jwtauth.WithRole(users.RoleAdmin), h.errorHandler)
 	group.Get("/authorize", h.authorize)
 	group.Get("/status", h.status)
 	group.Post("/disconnect", h.disconnect)
@@ -65,6 +65,9 @@ func (h *Handler) callback(c *fiber.Ctx) error {
 
 	if exchErr := h.oauthSvc.Exchange(c.Context(), state, code); exchErr != nil {
 		h.logger.Error("oauth callback token exchange failed", zap.Error(exchErr))
+		if errors.Is(exchErr, oauth.ErrStateNotFound) {
+			return h.redirect(c, "?oauth=error&reason=invalid_state")
+		}
 		return h.redirect(c, "?oauth=error&reason=exchange_failed")
 	}
 
@@ -89,7 +92,11 @@ func (h *Handler) authorize(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	return c.JSON(AuthorizeResponse{URL: h.oauthSvc.AuthorizeURL(c.Context(), user.ID)})
+	url, err := h.oauthSvc.AuthorizeURL(c.Context(), user.ID)
+	if err != nil {
+		return fmt.Errorf("failed to build authorize url: %w", err)
+	}
+	return c.JSON(AuthorizeResponse{URL: url})
 }
 
 //	@Summary		Bitbucket OAuth connection status
@@ -166,4 +173,20 @@ func (h *Handler) redirect(c *fiber.Ctx, query string) error {
 	}
 
 	return nil
+}
+
+func (h *Handler) errorHandler(c *fiber.Ctx) error {
+	err := c.Next()
+	if err == nil {
+		return nil
+	}
+
+	switch {
+	case errors.Is(err, oauth.ErrNotFound),
+		errors.Is(err, oauth.ErrTokenIssueFailed),
+		errors.Is(err, oauth.ErrStateNotFound):
+		return fiber.NewError(fiber.StatusUnauthorized, err.Error())
+	default:
+		return err //nolint:wrapcheck // err is already wrapped
+	}
 }
