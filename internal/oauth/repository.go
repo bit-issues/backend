@@ -27,6 +27,33 @@ func (r *Repository) Upsert(ctx context.Context, userID int64, token *Token) err
 	return nil
 }
 
+// Update persists a refreshed token only if the credential loaded before the
+// refresh still exists and matches currentRefreshToken. It returns false when
+// no row matched, which happens if the token was deleted (or replaced) while
+// the refresh request was in flight.
+func (r *Repository) Update(ctx context.Context, userID int64, currentRefreshToken string, token *Token) (bool, error) {
+	res, err := r.db.NewUpdate().
+		Model((*tokenModel)(nil)).
+		Set("access_token = ?", token.AccessToken).
+		Set("refresh_token = ?", token.RefreshToken).
+		Set("scopes = ?", token.Scopes).
+		Set("expires_at = ?", token.ExpiresAt).
+		Set("updated_at = ?", token.UpdatedAt).
+		Where("user_id = ?", userID).
+		Where("refresh_token = ?", currentRefreshToken).
+		Exec(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to update token: %w", err)
+	}
+
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to read affected rows: %w", err)
+	}
+
+	return n > 0, nil
+}
+
 func (r *Repository) Get(ctx context.Context, userID int64) (*Token, error) {
 	var model tokenModel
 	if err := r.db.NewSelect().Model(&model).

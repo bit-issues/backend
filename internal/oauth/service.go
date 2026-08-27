@@ -178,5 +178,13 @@ func (s *Service) refreshLocked(ctx context.Context, userID int64, current *Toke
 		return nil, fmt.Errorf("failed to refresh oauth token: %w", err)
 	}
 
-	return refreshed, s.tokens.Upsert(ctx, userID, refreshed)
+	ok, err := s.tokens.Update(ctx, userID, current.RefreshToken, refreshed)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	return refreshed, nil
 }

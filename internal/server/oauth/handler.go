@@ -133,7 +133,7 @@ func (h *Handler) status(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200
+//	@Success		204
 //	@Failure		401	{object}	fiberfx.ErrorResponse
 //	@Failure		403	{object}	fiberfx.ErrorResponse
 //	@Router			/oauth/bitbucket/disconnect [post]
