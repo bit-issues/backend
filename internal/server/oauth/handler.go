@@ -155,9 +155,13 @@ func (h *Handler) disconnect(c *fiber.Ctx) error {
 }
 
 // redirect sends the browser to the admin settings page with the given query
-// string. Errors are wrapped per the repository error policy.
+// string. The SPA uses a hash router, so the admin route lives in the
+// fragment and the oauth result is carried as a hash query string
+// (e.g. "/#/admin?oauth=success"). Errors are wrapped per the repository error
+// policy.
 func (h *Handler) redirect(c *fiber.Ctx, query string) error {
-	if err := c.Redirect("/" + query); err != nil {
+	target := "/#/admin" + query
+	if err := c.Redirect(target); err != nil {
 		return fmt.Errorf("failed to redirect to admin settings: %w", err)
 	}
 
