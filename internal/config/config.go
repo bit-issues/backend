@@ -63,6 +63,12 @@ type webhooksConfig struct {
 	ActionKeywords map[string]webhooks.KeywordEntry `koanf:"action_keywords"`
 }
 
+type oauthConfig struct {
+	ClientID           string `koanf:"client_id"`
+	ClientSecret       string `koanf:"client_secret"`
+	TokenEncryptionKey string `koanf:"token_encryption_key"`
+}
+
 type Config struct {
 	HTTP        http              `koanf:"http"`
 	Database    databaseConfig    `koanf:"database"`
@@ -72,6 +78,7 @@ type Config struct {
 	WebAuthn    webauthnConfig    `koanf:"webauthn"`
 	Cache       cacheConfig       `koanf:"cache"`
 	Webhooks    webhooksConfig    `koanf:"webhooks"`
+	OAuth       oauthConfig       `koanf:"oauth"`
 }
 
 func Default() Config {
@@ -133,6 +140,11 @@ func Default() Config {
 				"block":    {Status: "On Hold", Verb: "On Hold"},
 				"on hold":  {Status: "On Hold", Verb: "On Hold"},
 			},
+		},
+		OAuth: oauthConfig{
+			ClientID:           "",
+			ClientSecret:       "",
+			TokenEncryptionKey: "",
 		},
 	}
 }
