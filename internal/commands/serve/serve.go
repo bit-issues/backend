@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/bit-issues/backend/internal/jwt"
+	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server"
 	"github.com/bit-issues/backend/internal/storage"
@@ -75,12 +76,13 @@ func run(ctx context.Context, version healthfx.Version) error {
 		//
 		// BUSINESS MODULES
 		fx.Supply(version),
-		jwt.Module(),
-		users.Module(),
-		projects.Module(),
-		tasks.Module(),
 		attachments.Module(),
 		comments.Module(),
+		jwt.Module(),
+		oauth.Module(),
+		projects.Module(),
+		tasks.Module(),
+		users.Module(),
 		webauthn.Module(),
 		webhooks.Module(),
 		//

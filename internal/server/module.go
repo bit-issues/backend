@@ -4,6 +4,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/auth"
 	"github.com/bit-issues/backend/internal/server/docs"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
+	"github.com/bit-issues/backend/internal/server/oauth"
 	"github.com/bit-issues/backend/internal/server/passkey"
 	"github.com/bit-issues/backend/internal/server/projects"
 	"github.com/bit-issues/backend/internal/server/tasks"
@@ -45,6 +46,7 @@ func Module() fx.Option {
 			fx.Annotate(passkey.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(projects.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(tasks.NewHandler, fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(func(h *oauth.Handler) handler.Handler { return h }, fx.ResultTags(`group:"handlers"`)),
 			fx.Private,
 		),
 
@@ -56,12 +58,21 @@ func Module() fx.Option {
 
 		fx.Provide(
 			webhooks.NewHandler,
+			oauth.NewHandler,
 			fx.Private,
 		),
 
 		fx.Invoke(
 			fx.Annotate(
-				func(handlers []handler.Handler, jwtAuth fiber.Handler, webhookHandler *webhooks.Handler, healthHandler *health.Handler, openapiHandler *openapi.Handler, app *fiber.App) {
+				func(
+					handlers []handler.Handler,
+					jwtAuth fiber.Handler,
+					webhookHandler *webhooks.Handler,
+					oauthHandler *oauth.Handler,
+					healthHandler *health.Handler,
+					openapiHandler *openapi.Handler,
+					app *fiber.App,
+				) {
 					// Health endpoint
 					healthHandler.Register(app)
 
@@ -74,6 +85,7 @@ func Module() fx.Option {
 
 					v1.Use(validation.Middleware)
 					webhookHandler.Register(v1)
+					oauthHandler.RegisterPublic(v1)
 
 					v1.Use(
 						jwtAuth,

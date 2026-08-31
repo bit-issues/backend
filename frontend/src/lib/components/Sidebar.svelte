@@ -39,6 +39,7 @@
   const adminNav = [
     { pattern: "/admin/users", label: "Users", icon: UsersIcon },
     { pattern: "/admin/projects", label: "Projects", icon: SettingsIcon },
+    { pattern: "/admin", label: "Settings", icon: SettingsIcon },
   ];
 </script>
 
@@ -97,9 +98,7 @@
       </button>
 
       {#if pattern === "/projects" && recentProjects.length > 0}
-        <div
-          class="mt-2 ml-1 space-y-0.5 border-l border-border pl-2"
-        >
+        <div class="mt-2 ml-1 space-y-0.5 border-l border-border pl-2">
           <p class="px-2 pb-0.5 text-xs font-medium text-muted-foreground">
             Recent
           </p>
