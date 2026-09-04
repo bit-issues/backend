@@ -18,20 +18,11 @@
   let showDisconnectDialog = $state(false);
 
   let connected = $derived(status?.connected === true);
-  let expired = $derived(
-    connected &&
-      !!status?.expires_at &&
-      new Date(status.expires_at).getTime() <= Date.now(),
-  );
 
-  let badgeLabel = $derived(
-    connected ? (expired ? "Expired/Revoked" : "Connected") : "Disconnected",
-  );
+  let badgeLabel = $derived(connected ? "Connected" : "Disconnected");
   let badgeColor = $derived(
     connected
-      ? expired
-        ? "border-transparent bg-red-100 text-red-700 dark:bg-red-300/15 dark:text-red-300"
-        : "border-transparent bg-green-100 text-green-700 dark:bg-green-300/15 dark:text-green-300"
+      ? "border-transparent bg-green-100 text-green-700 dark:bg-green-300/15 dark:text-green-300"
       : "border-transparent bg-gray-100 text-gray-600 dark:bg-gray-300/15 dark:text-gray-300",
   );
 
@@ -141,11 +132,6 @@
         <Button size="sm" variant="outline" onclick={loadStatus}>Retry</Button>
       {/if}
       {#if status}
-        {#if !connected || expired}
-          <Button size="sm" disabled={busy} onclick={handleConnect}>
-            {busy ? "..." : "Connect with Bitbucket"}
-          </Button>
-        {/if}
         {#if connected}
           <Button
             size="sm"
@@ -154,6 +140,10 @@
             onclick={() => (showDisconnectDialog = true)}
           >
             Disconnect
+          </Button>
+        {:else}
+          <Button size="sm" disabled={busy} onclick={handleConnect}>
+            {busy ? "Connecting..." : "Connect with Bitbucket"}
           </Button>
         {/if}
       {/if}
