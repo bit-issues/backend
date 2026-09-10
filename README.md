@@ -85,6 +85,9 @@ Here's why BitIssues exists:
 - **Rich Filtering & Sorting** — tasks filterable by project, author, assignee, status, priority, date range
 - **Dashboard Queries** — quick access to tasks assigned to or created by the current user
 - **Swagger/OpenAPI** — auto-generated API docs at `/api/v1/docs`
+- **Bitbucket Webhooks** — commit messages (e.g. `fixes #5`) automatically transition task statuses with bot-authored comments
+- **Bitbucket OAuth** — admin "Connect with Bitbucket" flow to manage repository webhooks; tokens encrypted at rest (AES-GCM)
+- **Prometheus Metrics** — built-in metrics endpoint for monitoring
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -246,21 +249,28 @@ A complete API reference with request/response examples is available in [`reques
 
 Configuration is loaded from environment variables with optional YAML override via `CONFIG_PATH`.
 
-| Variable                    | Default                     | Description                            |
-| --------------------------- | --------------------------- | -------------------------------------- |
-| `DATABASE__URL`             | `mariadb://bit-issues:...`  | Database connection string             |
-| `JWT__SECRET`               | `secret`                    | JWT signing key                        |
-| `JWT__ACCESS_TTL`           | `15m`                       | Access token lifetime                  |
-| `STORAGE__URL`              | `s3://bucket/prefix?...`    | S3 storage URL                         |
-| `STORAGE__LINKS_TTL`        | `15m`                       | Presigned URL lifetime                 |
-| `ATTACHMENTS__MAX_SIZE`     | `10485760`                  | Max file size in bytes (10 MB)         |
-| `HTTP__ADDRESS`             | `127.0.0.1:3000`            | Server listen address                  |
-| `AWS_ACCESS_KEY_ID`         | —                           | S3 access key                          |
-| `AWS_SECRET_ACCESS_KEY`     | —                           | S3 secret key                          |
-| `AWS_REGION`                | —                           | S3 region                              |
-| `WEBAUTHN__RP_DISPLAY_NAME` | `BitIssues`                 | Display name shown during registration |
-| `WEBAUTHN__RP_ID`           | `localhost`                 | Relying Party ID (domain)              |
-| `WEBAUTHN__RP_ORIGINS`      | `["http://localhost:5173"]` | Allowed origins JSON array             |
+| Variable                      | Default                     | Description                                         |
+| ----------------------------- | --------------------------- | --------------------------------------------------- |
+| `DATABASE__URL`               | `mariadb://bit-issues:...`  | Database connection string                          |
+| `JWT__SECRET`                 | `secret`                    | JWT signing key                                     |
+| `JWT__ACCESS_TTL`             | `15m`                       | Access token lifetime                               |
+| `JWT__REFRESH_TTL`            | `168h`                      | Refresh token lifetime (7 days)                     |
+| `STORAGE__URL`                | `s3://bucket/prefix?...`    | S3 storage URL                                      |
+| `STORAGE__LINKS_TTL`          | `15m`                       | Presigned URL lifetime                              |
+| `ATTACHMENTS__MAX_SIZE`       | `10485760`                  | Max file size in bytes (10 MB)                      |
+| `HTTP__ADDRESS`               | `127.0.0.1:3000`            | Server listen address                               |
+| `CACHE__URL`                  | `memory://`                 | Cache backend (`memory://` or `redis://...`)        |
+| `AWS_ACCESS_KEY_ID`           | —                           | S3 access key                                       |
+| `AWS_SECRET_ACCESS_KEY`       | —                           | S3 secret key                                       |
+| `AWS_REGION`                  | —                           | S3 region                                           |
+| `WEBAUTHN__RP_DISPLAY_NAME`   | `BitIssues`                 | Display name shown during registration              |
+| `WEBAUTHN__RP_ID`             | `localhost`                 | Relying Party ID (domain)                           |
+| `WEBAUTHN__RP_ORIGINS`        | `["http://localhost:5173"]` | Allowed origins JSON array                          |
+| `WEBHOOKS__SECRET`            | —                           | HMAC-SHA256 secret for webhook payload verification |
+| `WEBHOOKS__BOT_USER_EMAIL`    | `bot@bitissues.local`       | Email of the bot that posts comments                |
+| `OAUTH__CLIENT_ID`            | `empty (disabled)`          | Bitbucket OAuth consumer key                        |
+| `OAUTH__CLIENT_SECRET`        | `empty (disabled)`          | Bitbucket OAuth consumer secret                     |
+| `OAUTH__TOKEN_ENCRYPTION_KEY` | `empty (disabled)`          | AES-256 key for encrypting OAuth tokens at rest     |
 
 ### Development Commands
 
@@ -295,7 +305,7 @@ Pre-built multi-arch Docker images are published to **GHCR** (`ghcr.io/bit-issue
 - [x] WebAuthn/passkey authentication
 - [x] File attachments via S3 presigned URLs
 - [ ] Email notifications
-- [ ] Webhook integration
+- [x] Webhook integration
 - [ ] Multi-language support
 - [ ] Kanban board view
 
@@ -337,6 +347,7 @@ Project Link: [https://github.com/bit-issues/backend](https://github.com/bit-iss
 
 * [Fiber](https://gofiber.io)
 * [Uber Fx](https://github.com/uber-go/fx)
+* [go-core-fx](https://github.com/go-core-fx)
 * [uptrace/bun](https://github.com/uptrace/bun)
 * [pressly/goose](https://github.com/pressly/goose)
 * [MinIO](https://min.io)
