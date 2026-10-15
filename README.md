@@ -85,7 +85,7 @@ Here's why BitIssues exists:
 - **Rich Filtering & Sorting** — tasks filterable by project, author, assignee, status, priority, date range
 - **Dashboard Queries** — quick access to tasks assigned to or created by the current user
 - **Swagger/OpenAPI** — auto-generated API docs at `/api/v1/docs`
-- **Bitbucket Webhooks** — commit messages (e.g. `fixes #5`) automatically transition task statuses with bot-authored comments
+- **Bitbucket Webhooks** — commit messages (e.g. `fixes #5`, or `fixes resto-web#13` for task 13 in project `resto-web`) automatically transition task statuses with bot-authored comments
 - **Bitbucket OAuth** — admin "Connect with Bitbucket" flow to manage repository webhooks; tokens encrypted at rest (AES-GCM)
 - **Prometheus Metrics** — built-in metrics endpoint for monitoring
 

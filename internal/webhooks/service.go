@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -25,7 +26,7 @@ type Service struct {
 	usersSvc    *users.Service
 	logger      *zap.Logger
 
-	keywordParser *KeywordParser
+	keywordParser *commitref.KeywordParser
 	botUserID     int64
 }
 
@@ -52,7 +53,7 @@ func NewService(
 }
 
 func (s *Service) Init(ctx context.Context) error {
-	parser, err := NewKeywordParser(s.config.ActionKeywords)
+	parser, err := commitref.NewKeywordParser(s.config.ActionKeywords)
 	if err != nil {
 		return fmt.Errorf("failed to build keyword parser: %w", err)
 	}
@@ -161,15 +162,42 @@ func (s *Service) processCommit(
 		zap.Int("refs", len(refs)),
 	)
 
+	resolved := make([]resolvedRef, 0, len(refs))
 	for _, ref := range refs {
 		ref.CommitHash = commit.Hash
 		ref.CommitMessage = commit.Message
 
-		task, err := s.tasksSvc.GetByProjectAndNumber(ctx, project.ID, ref.TaskNumber)
+		projectID := project.ID
+		if ref.ProjectSlug != "" {
+			target, err := s.projectsSvc.GetBySlug(ctx, normalizeSlug(ref.ProjectSlug))
+			if err != nil {
+				if errors.Is(err, projects.ErrNotFound) {
+					s.logger.Info("project not found for reference",
+						zap.String("project_slug", ref.ProjectSlug),
+						zap.Int("number", ref.TaskNumber),
+					)
+				} else {
+					s.logger.Error("failed to resolve project for reference",
+						zap.String("project_slug", ref.ProjectSlug),
+						zap.Int("number", ref.TaskNumber),
+						zap.Error(err),
+					)
+				}
+				continue
+			}
+
+			projectID = target.ID
+		}
+
+		resolved = append(resolved, resolvedRef{projectID: projectID, ref: ref})
+	}
+
+	for _, r := range dedupResolvedRefs(resolved) {
+		task, err := s.tasksSvc.GetByProjectAndNumber(ctx, r.projectID, r.ref.TaskNumber)
 		if err != nil {
 			s.logger.Info("task not found for reference",
-				zap.String("project_slug", project.ID),
-				zap.Int("number", ref.TaskNumber),
+				zap.String("project_slug", r.projectID),
+				zap.Int("number", r.ref.TaskNumber),
 				zap.Error(err),
 			)
 			continue
@@ -177,22 +205,64 @@ func (s *Service) processCommit(
 
 		s.logger.Debug("found task for reference",
 			zap.Int64("task_id", task.ID),
-			zap.Int("number", ref.TaskNumber),
+			zap.Int("number", r.ref.TaskNumber),
 			zap.String("current_status", string(task.Status)),
 		)
 
-		if ref.Action != nil {
-			s.applyStatusTransition(ctx, task, ref, result)
+		if r.ref.Action != nil {
+			s.applyStatusTransition(ctx, task, r.ref, result)
 		} else {
-			s.addMentionComment(ctx, task, ref, result)
+			s.addMentionComment(ctx, task, r.ref, result)
 		}
 	}
+}
+
+// normalizeSlug lowercases a project slug before lookup. projects.GetBySlug is
+// an exact match on the slug primary key, so case-insensitive slug matching is
+// the webhooks layer's responsibility.
+func normalizeSlug(slug string) string {
+	return strings.ToLower(slug)
+}
+
+// resolvedRef pairs a parsed reference with the project it resolves to. For a
+// ref without a slug prefix the project is the repository-matched one; for a
+// prefixed ref it is the project returned by the slug lookup.
+type resolvedRef struct {
+	ref       commitref.ParsedReference
+	projectID string
+}
+
+// resolvedRefKey identifies the task a resolved reference points at.
+type resolvedRefKey struct {
+	projectID string
+	number    int
+}
+
+// dedupResolvedRefs collapses references that resolve to the same
+// (project, task number) pair, preserving first-occurrence order. The parser
+// already dedups raw (slug, number) pairs; this is the final pass over resolved
+// targets, so it also collapses a prefixed ref with a bare one when both point
+// at the same project (e.g. "myproj#13" and "#13" while processing myproj).
+func dedupResolvedRefs(refs []resolvedRef) []resolvedRef {
+	seen := make(map[resolvedRefKey]struct{}, len(refs))
+	out := make([]resolvedRef, 0, len(refs))
+
+	for _, r := range refs {
+		key := resolvedRefKey{projectID: r.projectID, number: r.ref.TaskNumber}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, r)
+	}
+
+	return out
 }
 
 func (s *Service) applyStatusTransition(
 	ctx context.Context,
 	task *tasks.Task,
-	ref ParsedReference,
+	ref commitref.ParsedReference,
 	result *ProcessResult,
 ) {
 	if task.Status == ref.Action.Status {
@@ -249,7 +319,9 @@ func (s *Service) applyStatusTransition(
 	result.AddResolved()
 }
 
-func (s *Service) addMentionComment(ctx context.Context, task *tasks.Task, ref ParsedReference, result *ProcessResult) {
+func (s *Service) addMentionComment(
+	ctx context.Context, task *tasks.Task, ref commitref.ParsedReference, result *ProcessResult,
+) {
 	commentContent := fmt.Sprintf("Mentioned in commit <<cset %s>>: %s",
 		ref.CommitHash, firstLine(ref.CommitMessage),
 	)
