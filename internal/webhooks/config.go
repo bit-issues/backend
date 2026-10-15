@@ -1,12 +1,9 @@
 package webhooks
 
-type KeywordEntry struct {
-	Status string `json:"status"`
-	Verb   string `json:"verb"`
-}
+import "github.com/bit-issues/backend/internal/commitref"
 
 type Config struct {
 	Secret         string
 	BotUserEmail   string
-	ActionKeywords map[string]KeywordEntry
+	ActionKeywords map[string]commitref.KeywordEntry
 }
