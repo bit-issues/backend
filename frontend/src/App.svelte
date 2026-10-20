@@ -19,6 +19,7 @@
   import DashboardTasks from "$lib/pages/dashboard-tasks.svelte";
   import ProjectsPage from "$lib/pages/projects.svelte";
   import ProjectTasks from "$lib/pages/project-tasks.svelte";
+  import ProjectWebhooks from "$lib/pages/project-webhooks.svelte";
   import TaskDetailPage from "$lib/pages/task-detail.svelte";
   import TaskNewPage from "$lib/pages/task-new.svelte";
   import TaskEditPage from "$lib/pages/task-edit.svelte";
@@ -69,6 +70,12 @@
     { pattern: "/dashboard/all", component: DashboardTasks, auth: true },
     { pattern: "/projects", component: ProjectsPage, auth: true },
     { pattern: "/projects/:slug", component: ProjectTasks, auth: true },
+    {
+      pattern: "/admin/projects/:slug/webhooks",
+      component: ProjectWebhooks,
+      auth: true,
+      role: "admin",
+    },
     {
       pattern: "/tasks/:slug/:number/edit",
       component: TaskEditPage,

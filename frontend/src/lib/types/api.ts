@@ -74,6 +74,20 @@ export interface BitbucketOAuthAuthorizeResponse {
   url: string
 }
 
+export type WebhookStatusValue =
+  | 'registered'
+  | 'not_registered'
+  | 'failed'
+  | 'unavailable'
+
+export interface WebhookStatus {
+  status: WebhookStatusValue
+  hook_uuid: string | null
+  callback_url: string
+  failure_reason: string | null
+  updated_at: string | null
+}
+
 export interface Task {
   id: number
   project_slug: string

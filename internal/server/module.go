@@ -47,6 +47,7 @@ func Module() fx.Option {
 			fx.Annotate(projects.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(tasks.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(func(h *oauth.Handler) handler.Handler { return h }, fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(webhooks.NewManagementHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Private,
 		),
 

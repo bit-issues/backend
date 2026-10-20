@@ -10,6 +10,7 @@ require (
 	github.com/go-core-fx/fxutil v0.0.2
 	github.com/go-core-fx/goosefx v0.0.1
 	github.com/go-core-fx/healthfx v0.1.0
+	github.com/go-core-fx/httpfx v0.2.0
 	github.com/go-core-fx/logger v0.0.1
 	github.com/go-core-fx/sqlfx v0.1.0
 	github.com/go-core-fx/validatorfx v0.0.2
@@ -29,8 +30,8 @@ require (
 	github.com/urfave/cli/v3 v3.10.0
 	go.uber.org/fx v1.24.0
 	go.uber.org/zap v1.28.0
-	golang.org/x/crypto v0.53.0
-	golang.org/x/sync v0.21.0
+	golang.org/x/crypto v0.54.0
+	golang.org/x/sync v0.22.0
 )
 
 require (
@@ -110,10 +111,10 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
-	golang.org/x/tools v0.46.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/tools v0.47.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 )

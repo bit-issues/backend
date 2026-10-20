@@ -5,6 +5,7 @@
     updateProject,
     deleteProject,
   } from "$lib/api/projects";
+  import { navigate } from "$lib/router/routes";
   import { toast } from "$lib/toast";
   import { Button } from "$lib/components/ui/button";
   import * as Card from "$lib/components/ui/card";
@@ -215,7 +216,7 @@
           <Table.Head>Name</Table.Head>
           <Table.Head>Repo URL</Table.Head>
           <Table.Head>Created</Table.Head>
-          <Table.Head class="w-32">Actions</Table.Head>
+          <Table.Head class="w-48">Actions</Table.Head>
         </Table.Row>
       </Table.Header>
       <Table.Body>
@@ -272,6 +273,13 @@
               </Table.Cell>
               <Table.Cell>
                 <div class="flex gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => navigate(`/admin/projects/${p.id}/webhooks`)}
+                  >
+                    Webhook
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
