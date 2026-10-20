@@ -480,6 +480,43 @@ X-Hub-Signature-256: sha256=c8d3e58153ab0c75626df9ef241dd1240d748a922592fb05e179
 }
 
 ###
+# BitBucket Webhook Management (admin only)
+# Requires: admin JWT, connected Bitbucket OAuth (webhook scope),
+# WEBHOOKS__SECRET and BITBUCKET__CALLBACK_URL configured.
+# GET status: 200 {status: not_registered|registered|failed|unavailable,
+#   hook_uuid, callback_url, failure_reason, updated_at}
+
+###
+# Get project webhook status (admin only)
+# No hook registered -> 200 not_registered
+GET {{baseURL}}/projects/my-new-project/webhook
+Authorization: Bearer {{adminAccessToken}}
+
+###
+# Register project webhook (admin only)
+# -> 200 registered with hook_uuid; re-running repairs a deactivated hook (PUT)
+# OAuth not connected -> 409 "reconnect Bitbucket OAuth" (never 401)
+# WEBHOOKS__SECRET empty -> 501
+# BITBUCKET__CALLBACK_URL empty/invalid -> 501
+POST {{baseURL}}/projects/my-new-project/webhook/register
+Authorization: Bearer {{adminAccessToken}}
+
+###
+# Unregister project webhook (admin only)
+# -> 204; repeat -> idempotent 204
+DELETE {{baseURL}}/projects/my-new-project/webhook
+Authorization: Bearer {{adminAccessToken}}
+
+###
+# Non-admin JWT -> 403 on all three endpoints
+GET {{baseURL}}/projects/my-new-project/webhook
+Authorization: Bearer {{accessToken}}
+
+###
+# No JWT -> 401 from the global middleware
+GET {{baseURL}}/projects/my-new-project/webhook
+
+###
 GET {{baseURL}}/oauth/bitbucket/authorize HTTP/1.1
 Authorization: Bearer {{adminAccessToken}}
 

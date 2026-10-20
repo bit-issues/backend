@@ -23,6 +23,10 @@ type openAPIConfig struct {
 	PublicPath string `koanf:"public_path"`
 }
 
+type httpClientConfig struct {
+	Timeout time.Duration `koanf:"timeout"`
+}
+
 type databaseConfig struct {
 	URL             string        `koanf:"url"`
 	ConnMaxIdleTime time.Duration `koanf:"conn_max_idle_time"`
@@ -69,8 +73,13 @@ type oauthConfig struct {
 	TokenEncryptionKey string `koanf:"token_encryption_key"`
 }
 
+type bitbucketConfig struct {
+	CallbackURL string `koanf:"callback_url"`
+}
+
 type Config struct {
 	HTTP        http              `koanf:"http"`
+	HTTPClient  httpClientConfig  `koanf:"http_client"`
 	Database    databaseConfig    `koanf:"database"`
 	JWT         jwtConfig         `koanf:"jwt"`
 	Storage     storageConfig     `koanf:"storage"`
@@ -79,6 +88,7 @@ type Config struct {
 	Cache       cacheConfig       `koanf:"cache"`
 	Webhooks    webhooksConfig    `koanf:"webhooks"`
 	OAuth       oauthConfig       `koanf:"oauth"`
+	Bitbucket   bitbucketConfig   `koanf:"bitbucket"`
 }
 
 func Default() Config {
@@ -93,6 +103,9 @@ func Default() Config {
 				PublicHost: "",
 				PublicPath: "",
 			},
+		},
+		HTTPClient: httpClientConfig{
+			Timeout: 30 * time.Second,
 		},
 		Database: databaseConfig{
 			URL:             "mariadb://bit-issues:bit-issues@127.0.0.1:3306/bit-issues?charset=utf8mb4&parseTime=True&loc=UTC&clientFoundRows=true",
@@ -145,6 +158,9 @@ func Default() Config {
 			ClientID:           "",
 			ClientSecret:       "",
 			TokenEncryptionKey: "",
+		},
+		Bitbucket: bitbucketConfig{
+			CallbackURL: "",
 		},
 	}
 }
