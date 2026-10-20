@@ -69,6 +69,10 @@ type oauthConfig struct {
 	TokenEncryptionKey string `koanf:"token_encryption_key"`
 }
 
+type bitbucketConfig struct {
+	CallbackURL string `koanf:"callback_url"`
+}
+
 type Config struct {
 	HTTP        http              `koanf:"http"`
 	Database    databaseConfig    `koanf:"database"`
@@ -79,6 +83,7 @@ type Config struct {
 	Cache       cacheConfig       `koanf:"cache"`
 	Webhooks    webhooksConfig    `koanf:"webhooks"`
 	OAuth       oauthConfig       `koanf:"oauth"`
+	Bitbucket   bitbucketConfig   `koanf:"bitbucket"`
 }
 
 func Default() Config {
@@ -145,6 +150,9 @@ func Default() Config {
 			ClientID:           "",
 			ClientSecret:       "",
 			TokenEncryptionKey: "",
+		},
+		Bitbucket: bitbucketConfig{
+			CallbackURL: "",
 		},
 	}
 }

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/oauth"
@@ -73,6 +75,7 @@ func Module() fx.Option {
 					Secret:         cfg.Webhooks.Secret,
 					BotUserEmail:   cfg.Webhooks.BotUserEmail,
 					ActionKeywords: cfg.Webhooks.ActionKeywords,
+					CallbackURL:    strings.TrimRight(cfg.Bitbucket.CallbackURL, "/"),
 				}
 			},
 			func(cfg Config) webauthn.Config {
