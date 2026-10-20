@@ -1,8 +1,8 @@
-import type { ComponentType } from 'svelte'
+import type { Component } from 'svelte'
 
 export interface RouteDef {
   pattern: string
-  component: ComponentType
+  component: Component<any>
   auth?: boolean
   role?: 'admin'
 }

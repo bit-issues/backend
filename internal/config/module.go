@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/jwt"
@@ -8,13 +10,16 @@ import (
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
+	"github.com/bit-issues/backend/internal/webhooks/management"
 	"github.com/go-core-fx/cachefx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
+	"github.com/go-core-fx/httpfx"
 	"github.com/go-core-fx/sqlfx"
 	"go.uber.org/fx"
 )
 
+//nolint:funlen // zero logic
 func Module() fx.Option {
 	return fx.Module(
 		"config",
@@ -48,6 +53,21 @@ func Module() fx.Option {
 					URL: cfg.Cache.URL,
 				}
 			},
+			func(cfg Config) httpfx.Config {
+				return httpfx.Config{
+					ProxyURL:            "",
+					Bypass:              "",
+					Timeout:             cfg.HTTPClient.Timeout,
+					MaxIdleConns:        0,
+					MaxIdleConnsPerHost: 0,
+					IdleConnTimeout:     0,
+					TLS: httpfx.TLSConfig{
+						RootCAFile:          "",
+						RootCAPEM:           "",
+						RootCAReplaceSystem: false,
+					},
+				}
+			},
 		),
 		fx.Provide(
 			func(cfg Config) jwt.Config {
@@ -78,6 +98,12 @@ func Module() fx.Option {
 			func(cfg Config) commitref.Config {
 				return commitref.Config{
 					ActionKeywords: cfg.Commitref.ActionKeywords,
+				}
+			},
+			func(cfg Config) management.Config {
+				return management.Config{
+					Secret:      cfg.Webhooks.Secret,
+					CallbackURL: strings.TrimRight(cfg.Bitbucket.CallbackURL, "/"),
 				}
 			},
 			func(cfg Config) webauthn.Config {

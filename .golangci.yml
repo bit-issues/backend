@@ -243,6 +243,7 @@ linters:
       # Default: []
       ignore-patterns:
         # std libs
+        - ^crypto/tls.Config$
         - ^net.ListenConfig$
         - ^net/http.Client$
         - ^net/http.Cookie$
@@ -284,6 +285,7 @@ linters:
         - ^github.com/testcontainers/testcontainers-go.+Request$
         - ^github.com/testcontainers/testcontainers-go.FromDockerfile$
         - ^github.com/ThreeDotsLabs/watermill.+(Config|Schema|Adapter)$
+        - ^github.com/urfave/cli.v3.+Flag$
         - ^github.com/urfave/cli.v3.ArgumentBase$
         - ^github.com/urfave/cli.v3.Command$
         - ^github.com/urfave/cli.v3.FlagBase$
