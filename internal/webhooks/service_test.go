@@ -19,6 +19,8 @@ import (
 //   - task lookup, status transition, and bot comment for the resolved project
 
 func TestNormalizeSlug(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		in   string
@@ -33,6 +35,8 @@ func TestNormalizeSlug(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			if got := webhooks.NormalizeSlugForTest(tc.in); got != tc.want {
 				t.Fatalf("NormalizeSlugForTest(%q) = %q, want %q", tc.in, got, tc.want)
 			}
@@ -41,6 +45,8 @@ func TestNormalizeSlug(t *testing.T) {
 }
 
 func TestDedupResolvedRefs(t *testing.T) {
+	t.Parallel()
+
 	cases := []struct {
 		name string
 		in   []webhooks.ResolvedRefView
@@ -99,6 +105,8 @@ func TestDedupResolvedRefs(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := webhooks.DedupResolvedRefsForTest(tc.in)
 			if !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("DedupResolvedRefsForTest(%+v) = %+v, want %+v", tc.in, got, tc.want)

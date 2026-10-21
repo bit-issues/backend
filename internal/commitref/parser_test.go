@@ -55,6 +55,8 @@ func equalViews(a, b []refView) bool {
 }
 
 func TestParseCommitMessage_Table(t *testing.T) {
+	t.Parallel()
+
 	kp := testParser(t)
 
 	cases := []struct {
@@ -163,6 +165,8 @@ func TestParseCommitMessage_Table(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			got := toViews(kp.ParseCommitMessage(tc.msg))
 			if !equalViews(got, tc.want) {
 				t.Fatalf("ParseCommitMessage(%q):\n got %+v\nwant %+v", tc.msg, got, tc.want)
@@ -174,6 +178,8 @@ func TestParseCommitMessage_Table(t *testing.T) {
 // TestParseCommitMessage_FieldRouting verifies CommitHash/CommitMessage routing
 // and that Action is nil for bare references and non-nil for keyword references.
 func TestParseCommitMessage_FieldRouting(t *testing.T) {
+	t.Parallel()
+
 	kp := testParser(t)
 
 	refs := kp.ParseCommitMessage("resto-web#13")

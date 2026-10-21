@@ -15,8 +15,9 @@ type Pagination[T DefaultPagination] struct {
 }
 
 func NewPagination[T DefaultPagination](limit, offset int) *Pagination[T] {
-	//nolint:exhaustruct // zero value
+	var def T
 	return &Pagination[T]{
+		def:    def,
 		limit:  limit,
 		offset: offset,
 	}
