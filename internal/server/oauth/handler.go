@@ -193,6 +193,6 @@ func (h *Handler) errorHandler(c *fiber.Ctx) error {
 	case errors.Is(err, oauth.ErrDisabled):
 		return fiber.NewError(fiber.StatusNotImplemented, err.Error())
 	default:
-		return err //nolint:wrapcheck // err is already wrapped
+		return err
 	}
 }
