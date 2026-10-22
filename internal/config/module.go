@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/oauth"
@@ -10,6 +12,7 @@ import (
 	"github.com/go-core-fx/cachefx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
+	"github.com/go-core-fx/httpfx"
 	"github.com/go-core-fx/sqlfx"
 	"go.uber.org/fx"
 )
@@ -47,6 +50,21 @@ func Module() fx.Option {
 					URL: cfg.Cache.URL,
 				}
 			},
+			func(cfg Config) httpfx.Config {
+				return httpfx.Config{
+					ProxyURL:            "",
+					Bypass:              "",
+					Timeout:             cfg.HTTPClient.Timeout,
+					MaxIdleConns:        0,
+					MaxIdleConnsPerHost: 0,
+					IdleConnTimeout:     0,
+					TLS: httpfx.TLSConfig{
+						RootCAFile:          "",
+						RootCAPEM:           "",
+						RootCAReplaceSystem: false,
+					},
+				}
+			},
 		),
 		fx.Provide(
 			func(cfg Config) jwt.Config {
@@ -73,6 +91,7 @@ func Module() fx.Option {
 					Secret:         cfg.Webhooks.Secret,
 					BotUserEmail:   cfg.Webhooks.BotUserEmail,
 					ActionKeywords: cfg.Webhooks.ActionKeywords,
+					CallbackURL:    strings.TrimRight(cfg.Bitbucket.CallbackURL, "/"),
 				}
 			},
 			func(cfg Config) webauthn.Config {

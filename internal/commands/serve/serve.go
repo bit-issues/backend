@@ -23,6 +23,7 @@ import (
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/goosefx"
 	"github.com/go-core-fx/healthfx"
+	"github.com/go-core-fx/httpfx"
 	"github.com/go-core-fx/logger"
 	"github.com/go-core-fx/sqlfx"
 	"github.com/go-core-fx/validatorfx"
@@ -54,6 +55,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		bunfx.Module(),
 		cachefx.Module(),
 		fiberfx.Module(),
+		httpfx.Module(),
 		// gocqlfx.Module(),
 		// gocqlxfx.Module(),
 		sqlfx.Module(),

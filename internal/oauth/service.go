@@ -38,6 +38,7 @@ func NewService(
 	cfg Config,
 	tokens *Repository,
 	backend cache.Cache,
+	httpClient *http.Client,
 
 	logger *zap.Logger,
 ) (*Service, error) {
@@ -57,7 +58,7 @@ func NewService(
 		states: newStateStore(backend),
 
 		group: singleflight.Group{},
-		http:  http.DefaultClient,
+		http:  httpClient,
 
 		logger: logger,
 	}, nil
