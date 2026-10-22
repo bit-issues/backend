@@ -87,13 +87,13 @@ func TestDedupResolvedRefs(t *testing.T) {
 		{
 			name: "first occurrence wins and order preserved",
 			in: []webhooks.ResolvedRefView{
-				{ProjectID: "resto-web", TaskNumber: 13},
-				{ProjectID: "api", TaskNumber: 7},
-				{ProjectID: "resto-web", TaskNumber: 13},
+				{ProjectID: "resto-web", TaskNumber: 13, CommitHash: "aaaaaaa"},
+				{ProjectID: "api", TaskNumber: 7, CommitHash: "bbbbbbb"},
+				{ProjectID: "resto-web", TaskNumber: 13, CommitHash: "ccccccc"},
 			},
 			want: []webhooks.ResolvedRefView{
-				{ProjectID: "resto-web", TaskNumber: 13},
-				{ProjectID: "api", TaskNumber: 7},
+				{ProjectID: "resto-web", TaskNumber: 13, CommitHash: "aaaaaaa"},
+				{ProjectID: "api", TaskNumber: 7, CommitHash: "bbbbbbb"},
 			},
 		},
 		{

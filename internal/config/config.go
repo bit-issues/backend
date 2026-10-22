@@ -58,8 +58,11 @@ type cacheConfig struct {
 }
 
 type webhooksConfig struct {
-	Secret         string                            `koanf:"secret"`
-	BotUserEmail   string                            `koanf:"bot_user_email"`
+	Secret       string `koanf:"secret"`
+	BotUserEmail string `koanf:"bot_user_email"`
+}
+
+type commitrefConfig struct {
 	ActionKeywords map[string]commitref.KeywordEntry `koanf:"action_keywords"`
 }
 
@@ -78,6 +81,7 @@ type Config struct {
 	WebAuthn    webauthnConfig    `koanf:"webauthn"`
 	Cache       cacheConfig       `koanf:"cache"`
 	Webhooks    webhooksConfig    `koanf:"webhooks"`
+	Commitref   commitrefConfig   `koanf:"commitref"`
 	OAuth       oauthConfig       `koanf:"oauth"`
 }
 
@@ -125,6 +129,8 @@ func Default() Config {
 		Webhooks: webhooksConfig{
 			Secret:       "",
 			BotUserEmail: "bot@bitissues.local",
+		},
+		Commitref: commitrefConfig{
 			ActionKeywords: map[string]commitref.KeywordEntry{
 				"fixes":    {Status: "Resolved", Verb: "Resolved"},
 				"fixed":    {Status: "Resolved", Verb: "Resolved"},

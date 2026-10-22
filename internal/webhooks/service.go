@@ -18,20 +18,21 @@ import (
 )
 
 type Service struct {
-	config Config
+	config    Config
+	botUserID int64
 
-	projectsSvc *projects.Service
-	tasksSvc    *tasks.Service
-	commentsSvc *comments.Service
-	usersSvc    *users.Service
-	logger      *zap.Logger
+	projectsSvc  *projects.Service
+	tasksSvc     *tasks.Service
+	commentsSvc  *comments.Service
+	usersSvc     *users.Service
+	commitrefSvc *commitref.Service
 
-	keywordParser *commitref.KeywordParser
-	botUserID     int64
+	logger *zap.Logger
 }
 
 func NewService(
 	cfg Config,
+	commitrefSvc *commitref.Service,
 	projectsSvc *projects.Service,
 	tasksSvc *tasks.Service,
 	commentsSvc *comments.Service,
@@ -39,26 +40,20 @@ func NewService(
 	logger *zap.Logger,
 ) (*Service, error) {
 	return &Service{
-		config: cfg,
+		config:    cfg,
+		botUserID: -1,
 
-		projectsSvc: projectsSvc,
-		tasksSvc:    tasksSvc,
-		commentsSvc: commentsSvc,
-		usersSvc:    usersSvc,
-		logger:      logger,
+		projectsSvc:  projectsSvc,
+		tasksSvc:     tasksSvc,
+		commentsSvc:  commentsSvc,
+		usersSvc:     usersSvc,
+		commitrefSvc: commitrefSvc,
 
-		keywordParser: nil,
-		botUserID:     -1,
+		logger: logger,
 	}, nil
 }
 
 func (s *Service) Init(ctx context.Context) error {
-	parser, err := commitref.NewKeywordParser(s.config.ActionKeywords)
-	if err != nil {
-		return fmt.Errorf("failed to build keyword parser: %w", err)
-	}
-	s.keywordParser = parser
-
 	botUser, err := s.usersSvc.GetByEmail(ctx, s.config.BotUserEmail)
 	if err != nil {
 		return fmt.Errorf("failed to resolve bot user %q: %w", s.config.BotUserEmail, err)
@@ -151,7 +146,7 @@ func (s *Service) processCommit(
 	commit PushCommit,
 	result *ProcessResult,
 ) {
-	refs := s.keywordParser.ParseCommitMessage(commit.Message)
+	refs := s.commitrefSvc.ParseCommitMessage(commit.Message)
 	if len(refs) == 0 {
 		return
 	}
@@ -239,10 +234,19 @@ type resolvedRefKey struct {
 }
 
 // dedupResolvedRefs collapses references that resolve to the same
-// (project, task number) pair, preserving first-occurrence order. The parser
-// already dedups raw (slug, number) pairs; this is the final pass over resolved
-// targets, so it also collapses a prefixed ref with a bare one when both point
-// at the same project (e.g. "myproj#13" and "#13" while processing myproj).
+// (project, task number) pair, keeping the first reference in slice order.
+// The parser already dedups raw (slug, number) pairs; this is the final pass
+// over resolved targets, so it also collapses a prefixed ref with a bare one
+// when both point at the same project (e.g. "myproj#13" and "#13" while
+// processing myproj).
+//
+// Slice order is reference-kind order (keyword, then prefixed, then bare), not
+// message position, so a keyword reference is retained over a plain one for
+// the same resolved task even when it appears later in the commit message
+// (e.g. "resto-web#13; fixes #13"). This mirrors the parser's documented
+// keyword-wins precedence from the original pre-commitref keyword parser and
+// is deliberate: an explicit action keyword outranks a bare mention regardless
+// of position.
 func dedupResolvedRefs(refs []resolvedRef) []resolvedRef {
 	seen := make(map[resolvedRefKey]struct{}, len(refs))
 	out := make([]resolvedRef, 0, len(refs))

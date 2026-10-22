@@ -15,6 +15,7 @@ func NormalizeSlugForTest(slug string) string {
 type ResolvedRefView struct {
 	ProjectID  string
 	TaskNumber int
+	CommitHash string
 }
 
 // DedupResolvedRefsForTest exposes dedupResolvedRefs to the external test
@@ -24,7 +25,7 @@ func DedupResolvedRefsForTest(refs []ResolvedRefView) []ResolvedRefView {
 	for _, r := range refs {
 		in = append(in, resolvedRef{
 			projectID: r.ProjectID,
-			ref:       commitref.ParsedReference{TaskNumber: r.TaskNumber},
+			ref:       commitref.ParsedReference{TaskNumber: r.TaskNumber, CommitHash: r.CommitHash},
 		})
 	}
 
@@ -34,6 +35,7 @@ func DedupResolvedRefsForTest(refs []ResolvedRefView) []ResolvedRefView {
 		views = append(views, ResolvedRefView{
 			ProjectID:  r.projectID,
 			TaskNumber: r.ref.TaskNumber,
+			CommitHash: r.ref.CommitHash,
 		})
 	}
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
 	"github.com/bit-issues/backend/internal/jwt"
@@ -78,6 +79,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		fx.Supply(version),
 		attachments.Module(),
 		comments.Module(),
+		commitref.Module(),
 		jwt.Module(),
 		oauth.Module(),
 		projects.Module(),

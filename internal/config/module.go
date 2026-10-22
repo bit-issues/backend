@@ -2,6 +2,7 @@ package config
 
 import (
 	"github.com/bit-issues/backend/internal/attachments"
+	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/storage"
@@ -70,9 +71,13 @@ func Module() fx.Option {
 			},
 			func(cfg Config) webhooks.Config {
 				return webhooks.Config{
-					Secret:         cfg.Webhooks.Secret,
-					BotUserEmail:   cfg.Webhooks.BotUserEmail,
-					ActionKeywords: cfg.Webhooks.ActionKeywords,
+					Secret:       cfg.Webhooks.Secret,
+					BotUserEmail: cfg.Webhooks.BotUserEmail,
+				}
+			},
+			func(cfg Config) commitref.Config {
+				return commitref.Config{
+					ActionKeywords: cfg.Commitref.ActionKeywords,
 				}
 			},
 			func(cfg Config) webauthn.Config {
