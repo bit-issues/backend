@@ -69,7 +69,7 @@ func TestClientListHooks(t *testing.T) {
 	defer srv.Close()
 
 	// Trailing slash on the base URL must be normalized away.
-	client := bitbucket.NewClient(srv.URL + "/")
+	client := bitbucket.NewClient(srv.URL+"/", srv.Client())
 	hooks, err := client.ListHooks(t.Context(), "acme", "widgets", "tok-123")
 	if err != nil {
 		t.Fatalf("ListHooks failed: %v", err)
@@ -101,7 +101,7 @@ func TestClientListHooksPageCap(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := bitbucket.NewClient(srv.URL)
+	client := bitbucket.NewClient(srv.URL, srv.Client())
 	hooks, err := client.ListHooks(t.Context(), "acme", "widgets", "tok")
 	if err != nil {
 		t.Fatalf("ListHooks failed: %v", err)
@@ -155,7 +155,7 @@ func TestClientCreateHook(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := bitbucket.NewClient(srv.URL)
+	client := bitbucket.NewClient(srv.URL, srv.Client())
 	hook, err := client.CreateHook(t.Context(), "acme", "widgets", "tok", bitbucket.HookInput{
 		Description: "BitIssues push webhook",
 		URL:         hookURL,
@@ -194,7 +194,7 @@ func TestClientUpdateHook(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := bitbucket.NewClient(srv.URL)
+	client := bitbucket.NewClient(srv.URL, srv.Client())
 	hook, err := client.UpdateHook(t.Context(), "acme", "widgets", "{abc-123}", "tok", bitbucket.HookInput{
 		Description: "BitIssues push webhook",
 		URL:         hookURL,
@@ -222,7 +222,7 @@ func TestClientDeleteHook(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	client := bitbucket.NewClient(srv.URL)
+	client := bitbucket.NewClient(srv.URL, srv.Client())
 	if err := client.DeleteHook(t.Context(), "acme", "widgets", "{abc}", "tok"); err != nil {
 		t.Fatalf("DeleteHook failed: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestClientErrorMapping(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client := bitbucket.NewClient(srv.URL)
+			client := bitbucket.NewClient(srv.URL, srv.Client())
 			_, err := client.ListHooks(t.Context(), "acme", "widgets", "tok-secret")
 			if !errors.Is(err, tt.want) {
 				t.Fatalf("got %v, want %v", err, tt.want)
@@ -277,7 +277,7 @@ func TestClientAPIErrorStatus(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client := bitbucket.NewClient(srv.URL)
+			client := bitbucket.NewClient(srv.URL, srv.Client())
 			_, err := client.ListHooks(t.Context(), "acme", "widgets", "tok")
 			var apiErr *bitbucket.APIError
 			if !errors.As(err, &apiErr) {
@@ -295,7 +295,7 @@ func TestClientTransportError(t *testing.T) {
 	url := srv.URL
 	srv.Close()
 
-	client := bitbucket.NewClient(url)
+	client := bitbucket.NewClient(url, srv.Client())
 	_, err := client.ListHooks(t.Context(), "acme", "widgets", "tok-secret")
 	var apiErr *bitbucket.APIError
 	if !errors.As(err, &apiErr) {

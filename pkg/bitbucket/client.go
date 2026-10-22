@@ -24,15 +24,17 @@ type Client struct {
 	http    *http.Client
 }
 
-// NewClient creates a Client for the given API base URL. An empty baseURL
-// selects DefaultBaseURL; a trailing slash is normalized away.
-func NewClient(baseURL string) *Client {
+// NewClient creates a Client for the given API base URL and HTTP client. An
+// empty baseURL selects DefaultBaseURL; a trailing slash is normalized away.
+// The HTTP client carries the request timeout, so it must not be a client
+// without one.
+func NewClient(baseURL string, httpClient *http.Client) *Client {
 	if baseURL == "" {
 		baseURL = DefaultBaseURL
 	}
 	return &Client{
 		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    http.DefaultClient,
+		http:    httpClient,
 	}
 }
 

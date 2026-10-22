@@ -12,6 +12,7 @@ import (
 	"github.com/go-core-fx/cachefx"
 	"github.com/go-core-fx/fiberfx"
 	"github.com/go-core-fx/fiberfx/openapi"
+	"github.com/go-core-fx/httpfx"
 	"github.com/go-core-fx/sqlfx"
 	"go.uber.org/fx"
 )
@@ -47,6 +48,21 @@ func Module() fx.Option {
 			func(cfg Config) cachefx.Config {
 				return cachefx.Config{
 					URL: cfg.Cache.URL,
+				}
+			},
+			func(cfg Config) httpfx.Config {
+				return httpfx.Config{
+					ProxyURL:            "",
+					Bypass:              "",
+					Timeout:             cfg.HTTPClient.Timeout,
+					MaxIdleConns:        0,
+					MaxIdleConnsPerHost: 0,
+					IdleConnTimeout:     0,
+					TLS: httpfx.TLSConfig{
+						RootCAFile:          "",
+						RootCAPEM:           "",
+						RootCAReplaceSystem: false,
+					},
 				}
 			},
 		),

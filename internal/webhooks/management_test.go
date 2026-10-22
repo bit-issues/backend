@@ -2,6 +2,7 @@ package webhooks_test
 
 import (
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -13,7 +14,8 @@ import (
 const testWebhookURL = "https://bitissues.example.com/api/v1/webhooks/bitbucket/push"
 
 func newManagementService(cfg webhooks.Config) *webhooks.ManagementService {
-	return webhooks.NewManagementService(cfg, bitbucket.NewClient(""), nil, nil, zap.NewNop())
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	return webhooks.NewManagementService(cfg, bitbucket.NewClient("", httpClient), nil, nil, zap.NewNop())
 }
 
 func TestValidateCallbackURL(t *testing.T) {

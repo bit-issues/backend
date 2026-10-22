@@ -1,6 +1,8 @@
 package webhooks
 
 import (
+	"net/http"
+
 	"github.com/bit-issues/backend/pkg/bitbucket"
 	"github.com/go-core-fx/logger"
 	"go.uber.org/fx"
@@ -12,8 +14,8 @@ func Module() fx.Option {
 		logger.WithNamedLogger("webhooks"),
 		fx.Provide(NewService),
 		fx.Provide(
-			func() *bitbucket.Client {
-				return bitbucket.NewClient(bitbucket.DefaultBaseURL)
+			func(httpClient *http.Client) *bitbucket.Client {
+				return bitbucket.NewClient(bitbucket.DefaultBaseURL, httpClient)
 			},
 			fx.Private,
 		),
