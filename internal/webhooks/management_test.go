@@ -177,6 +177,24 @@ func TestFindMatchingHook(t *testing.T) {
 	}
 }
 
+func TestFindMatchingHookRequiresPushEvent(t *testing.T) {
+	// A hook on the same callback URL that does not subscribe to the managed
+	// push event is not the managed hook and must not be reported, updated or
+	// deleted as such.
+	other := testHook("{a}", testWebhookURL, true)
+	other.Events = []string{"pullrequest:created"}
+	managed := testHook("{b}", testWebhookURL, true)
+
+	got := webhooks.FindMatchingHookForTest([]bitbucket.Hook{other, managed}, testWebhookURL)
+	if got == nil || got.UUID != "{b}" {
+		t.Fatalf("got %+v, want hook {b}", got)
+	}
+
+	if webhooks.FindMatchingHookForTest([]bitbucket.Hook{other}, testWebhookURL) != nil {
+		t.Fatalf("expected no match for a hook without the push event")
+	}
+}
+
 func TestWebhookStatusFromHook(t *testing.T) {
 	// No hook -> not_registered with null uuid and updated_at.
 	st := webhooks.WebhookStatusFromHookForTest(nil, testWebhookURL)

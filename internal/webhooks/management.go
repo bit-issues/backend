@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -279,10 +280,15 @@ func (s *ManagementService) unavailable(err error) *WebhookStatus {
 	}
 }
 
-// findMatchingHook returns the hook whose URL equals our webhook URL, or nil.
+// findMatchingHook returns the hook whose URL equals our webhook URL and
+// which subscribes to the managed push event, or nil. A hook on the same URL
+// without that event is not the managed hook and is left untouched.
 func findMatchingHook(hooks []bitbucket.Hook, webhookURL string) *bitbucket.Hook {
 	for i := range hooks {
-		if hooks[i].URL == webhookURL {
+		if hooks[i].URL != webhookURL {
+			continue
+		}
+		if slices.Contains(hooks[i].Events, repoPushEvent) {
 			return &hooks[i]
 		}
 	}
