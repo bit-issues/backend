@@ -173,9 +173,12 @@ func classifyWebhookError(err error) error {
 	case errors.Is(err, bitbucket.ErrNotFound):
 		return fiber.NewError(fiber.StatusNotFound, "Bitbucket repository or workspace not found.")
 	case errors.Is(err, webhooks.ErrNotBitbucketRepo):
-		return fiber.NewError(fiber.StatusUnprocessableEntity, err.Error())
+		return fiber.NewError(
+			fiber.StatusUnprocessableEntity,
+			"Project repository is not a bitbucket.org repository.",
+		)
 	case errors.Is(err, projects.ErrNotFound):
-		return fiber.NewError(fiber.StatusNotFound, err.Error())
+		return fiber.NewError(fiber.StatusNotFound, "Project not found.")
 	default:
 		var apiErr *bitbucket.APIError
 		if errors.As(err, &apiErr) {

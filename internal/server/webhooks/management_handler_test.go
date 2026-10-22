@@ -51,7 +51,7 @@ func TestClassifyWebhookError(t *testing.T) {
 			"not bitbucket repo",
 			internalwebhooks.ErrNotBitbucketRepo,
 			fiber.StatusUnprocessableEntity,
-			"not a bitbucket repository",
+			"not a bitbucket.org repository",
 		},
 		{"project not found", projects.ErrNotFound, fiber.StatusNotFound, "project not found"},
 		{
@@ -91,6 +91,25 @@ func TestClassifyWebhookError(t *testing.T) {
 				t.Fatalf("message %q does not contain %q", fe.Message, tt.wantMessage)
 			}
 		})
+	}
+}
+
+func TestClassifyWebhookErrorRedactsRepositoryURL(t *testing.T) {
+	// The repository URL is user supplied and may carry credentials, so the
+	// 422 response must not echo it back.
+	repoURL := "https://user:token@github.com/org/repo"
+	err := fmt.Errorf("%w: %s", internalwebhooks.ErrNotBitbucketRepo, repoURL)
+
+	got := serverwebhooks.ClassifyWebhookErrorForTest(err)
+	var fe *fiber.Error
+	if !errors.As(got, &fe) {
+		t.Fatalf("expected fiber error, got %v", got)
+	}
+	if fe.Code != fiber.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want %d", fe.Code, fiber.StatusUnprocessableEntity)
+	}
+	if strings.Contains(fe.Message, repoURL) || strings.Contains(fe.Message, "user:token") {
+		t.Fatalf("message %q must not contain the repository URL", fe.Message)
 	}
 }
 
