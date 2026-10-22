@@ -1,22 +1,25 @@
 package commitref_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/bit-issues/backend/internal/commitref"
 )
 
-func testParser(t *testing.T) *commitref.KeywordParser {
+func testService(t *testing.T) *commitref.Service {
 	t.Helper()
-	kp, err := commitref.NewKeywordParser(map[string]commitref.KeywordEntry{
-		"fixes":    {Status: "Resolved", Verb: "Resolved"},
-		"closes":   {Status: "Closed", Verb: "Closed"},
-		"resolves": {Status: "Resolved", Verb: "Resolved"},
+	svc, err := commitref.NewService(commitref.Config{
+		ActionKeywords: map[string]commitref.KeywordEntry{
+			"fixes":    {Status: "Resolved", Verb: "Resolved"},
+			"closes":   {Status: "Closed", Verb: "Closed"},
+			"resolves": {Status: "Resolved", Verb: "Resolved"},
+		},
 	})
 	if err != nil {
-		t.Fatalf("failed to build parser: %v", err)
+		t.Fatalf("failed to build service: %v", err)
 	}
-	return kp
+	return svc
 }
 
 // refView is a comparable projection of ParsedReference for table assertions.
@@ -57,7 +60,7 @@ func equalViews(a, b []refView) bool {
 func TestParseCommitMessage_Table(t *testing.T) {
 	t.Parallel()
 
-	kp := testParser(t)
+	svc := testService(t)
 
 	cases := []struct {
 		name string
@@ -167,7 +170,7 @@ func TestParseCommitMessage_Table(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := toViews(kp.ParseCommitMessage(tc.msg))
+			got := toViews(svc.ParseCommitMessage(tc.msg))
 			if !equalViews(got, tc.want) {
 				t.Fatalf("ParseCommitMessage(%q):\n got %+v\nwant %+v", tc.msg, got, tc.want)
 			}
@@ -180,9 +183,9 @@ func TestParseCommitMessage_Table(t *testing.T) {
 func TestParseCommitMessage_FieldRouting(t *testing.T) {
 	t.Parallel()
 
-	kp := testParser(t)
+	svc := testService(t)
 
-	refs := kp.ParseCommitMessage("resto-web#13")
+	refs := svc.ParseCommitMessage("resto-web#13")
 	if len(refs) != 1 {
 		t.Fatalf("want 1 ref, got %d", len(refs))
 	}
@@ -196,8 +199,47 @@ func TestParseCommitMessage_FieldRouting(t *testing.T) {
 		t.Fatalf("CommitHash should be empty from parser: %q", refs[0].CommitHash)
 	}
 
-	refs = kp.ParseCommitMessage("fixes #13")
+	refs = svc.ParseCommitMessage("fixes #13")
 	if len(refs) != 1 || refs[0].Action == nil {
 		t.Fatalf("keyword ref should have non-nil Action, got %+v", refs)
+	}
+}
+
+// TestNewService_InvalidConfig verifies that an invalid keyword configuration
+// is rejected so the app fails at startup instead of ignoring references.
+func TestNewService_InvalidConfig(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name    string
+		cfg     commitref.Config
+		wantErr error
+	}{
+		{
+			name:    "empty keyword map",
+			cfg:     commitref.Config{ActionKeywords: map[string]commitref.KeywordEntry{}},
+			wantErr: commitref.ErrEmptyKeyword,
+		},
+		{
+			name: "invalid status",
+			cfg: commitref.Config{ActionKeywords: map[string]commitref.KeywordEntry{
+				"fixes": {Status: "Bogus"},
+			}},
+			wantErr: commitref.ErrInvalidStatus,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			svc, err := commitref.NewService(tc.cfg)
+			if err == nil {
+				t.Fatalf("want error, got service %+v", svc)
+			}
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("want error %v, got %v", tc.wantErr, err)
+			}
+		})
 	}
 }

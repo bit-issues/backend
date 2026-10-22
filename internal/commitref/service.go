@@ -21,25 +21,26 @@ var hashRefPattern = regexp.MustCompile(`(?:^|\W)#(\d+)\b`)
 // by a non-capturing group and the slug is captured in submatch 1.
 var prefixedRefPattern = regexp.MustCompile(`(?i)(?:^|[\s\[("'])([a-z0-9][a-z0-9_-]*?)#(\d+)\b`)
 
-// KeywordParser holds the configured keyword-to-action mappings and a compiled
-// regex for matching them in commit messages.
-type KeywordParser struct {
+// Service parses commit messages for task references and maps action keywords
+// to task status transitions.
+type Service struct {
 	actions map[string]KeywordAction
 	pattern *regexp.Regexp
 }
 
-// NewKeywordParser builds a KeywordParser from a config map of keyword entries.
-// It validates each status and defaults the Verb to the title-cased keyword
-// when empty. The regex is compiled from sorted keys for determinism.
-func NewKeywordParser(entries map[string]KeywordEntry) (*KeywordParser, error) {
-	if len(entries) == 0 {
+// NewService builds a Service from cfg. It validates every keyword status and
+// compiles the keyword matcher from the sorted keyword list. An invalid
+// configuration is returned as an error so the app fails at startup instead of
+// silently ignoring commit references.
+func NewService(cfg Config) (*Service, error) {
+	if len(cfg.ActionKeywords) == 0 {
 		return nil, fmt.Errorf("%w: action_keywords", ErrEmptyKeyword)
 	}
 
-	actions := make(map[string]KeywordAction, len(entries))
-	keys := make([]string, 0, len(entries))
+	actions := make(map[string]KeywordAction, len(cfg.ActionKeywords))
+	keys := make([]string, 0, len(cfg.ActionKeywords))
 
-	for keyword, entry := range entries {
+	for keyword, entry := range cfg.ActionKeywords {
 		if keyword == "" {
 			return nil, fmt.Errorf("%w: keyword", ErrEmptyKeyword)
 		}
@@ -64,7 +65,7 @@ func NewKeywordParser(entries map[string]KeywordEntry) (*KeywordParser, error) {
 		`(?i)\b(` + strings.Join(keys, "|") + `)\s+(?:([a-z0-9][a-z0-9_-]*?)#|#)(\d+)\b`,
 	)
 
-	return &KeywordParser{actions: actions, pattern: pattern}, nil
+	return &Service{actions: actions, pattern: pattern}, nil
 }
 
 // ParseCommitMessage scans a commit message for task references.
@@ -73,10 +74,10 @@ func NewKeywordParser(entries map[string]KeywordEntry) (*KeywordParser, error) {
 // a bare "#NUMBER" keeps ProjectSlug == "" and refers to the current project.
 // If both a keyword and bare reference exist for the same (slug, number), the
 // keyword wins.
-func (kp *KeywordParser) ParseCommitMessage(message string) []ParsedReference {
+func (s *Service) ParseCommitMessage(message string) []ParsedReference {
 	seen := make(map[refKey]bool)
 
-	keywordRefs, keywordRanges := kp.parseKeywordRefs(message, seen)
+	keywordRefs, keywordRanges := s.parseKeywordRefs(message, seen)
 	prefixedRefs, prefixedRanges := parsePrefixedRefs(message, seen, keywordRanges)
 	bareRefs := parseBareRefs(message, seen, keywordRanges, prefixedRanges)
 
@@ -90,8 +91,8 @@ func (kp *KeywordParser) ParseCommitMessage(message string) []ParsedReference {
 
 // parseKeywordRefs scans keyword matches and records each unique reference,
 // returning the references and the message ranges they occupy.
-func (kp *KeywordParser) parseKeywordRefs(message string, seen map[refKey]bool) ([]ParsedReference, []matchRange) {
-	keywordMatches := kp.pattern.FindAllStringSubmatchIndex(message, -1)
+func (s *Service) parseKeywordRefs(message string, seen map[refKey]bool) ([]ParsedReference, []matchRange) {
+	keywordMatches := s.pattern.FindAllStringSubmatchIndex(message, -1)
 
 	var refs []ParsedReference
 	var ranges []matchRange
@@ -113,7 +114,7 @@ func (kp *KeywordParser) parseKeywordRefs(message string, seen map[refKey]bool) 
 
 		ranges = append(ranges, matchRange{start: m[0], end: m[1]})
 
-		action := kp.actions[keyword]
+		action := s.actions[keyword]
 		refs = append(refs, ParsedReference{
 			TaskNumber:    number,
 			ProjectSlug:   slug,
@@ -217,15 +218,6 @@ func parseBareRefs(message string, seen map[refKey]bool, keywordRanges, prefixed
 	}
 
 	return refs
-}
-
-// ParsedReference represents a single task reference found in a commit message.
-type ParsedReference struct {
-	TaskNumber    int
-	ProjectSlug   string         // empty means the current project
-	Action        *KeywordAction // nil if bare #N with no keyword
-	CommitHash    string
-	CommitMessage string
 }
 
 // titleCase capitalises the first letter of each space-separated word.
