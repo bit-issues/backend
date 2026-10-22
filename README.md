@@ -268,6 +268,7 @@ Configuration is loaded from environment variables with optional YAML override v
 | `WEBAUTHN__RP_ORIGINS`        | `["http://localhost:5173"]` | Allowed origins JSON array                          |
 | `WEBHOOKS__SECRET`            | —                           | HMAC-SHA256 secret for webhook payload verification |
 | `WEBHOOKS__BOT_USER_EMAIL`    | `bot@bitissues.local`       | Email of the bot that posts comments                |
+| `COMMITREF__ACTION_KEYWORDS`  | see `.env.example`          | Commit keyword → task status transition map (JSON)  |
 | `OAUTH__CLIENT_ID`            | `empty (disabled)`          | Bitbucket OAuth consumer key                        |
 | `OAUTH__CLIENT_SECRET`        | `empty (disabled)`          | Bitbucket OAuth consumer secret                     |
 | `OAUTH__TOKEN_ENCRYPTION_KEY` | `empty (disabled)`          | AES-256 key for encrypting OAuth tokens at rest     |
