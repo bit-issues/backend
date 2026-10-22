@@ -56,6 +56,7 @@ func (h *ManagementHandler) Register(r fiber.Router) {
 //	@Failure		409		{object}	fiberfx.ErrorResponse
 //	@Failure		422		{object}	fiberfx.ErrorResponse
 //	@Failure		502		{object}	fiberfx.ErrorResponse
+//	@Failure		503		{object}	fiberfx.ErrorResponse
 //	@Router			/projects/{slug}/webhook [get]
 //
 // status returns the live webhook status (admin only).
@@ -88,6 +89,7 @@ func (h *ManagementHandler) status(c *fiber.Ctx) error {
 //	@Failure		422		{object}	fiberfx.ErrorResponse
 //	@Failure		501		{object}	fiberfx.ErrorResponse
 //	@Failure		502		{object}	fiberfx.ErrorResponse
+//	@Failure		503		{object}	fiberfx.ErrorResponse
 //	@Router			/projects/{slug}/webhook/register [post]
 //
 // register creates or repairs the project webhook (admin only).
@@ -120,6 +122,7 @@ func (h *ManagementHandler) register(c *fiber.Ctx) error {
 //	@Failure		422	{object}	fiberfx.ErrorResponse
 //	@Failure		501	{object}	fiberfx.ErrorResponse
 //	@Failure		502	{object}	fiberfx.ErrorResponse
+//	@Failure		503	{object}	fiberfx.ErrorResponse
 //	@Router			/projects/{slug}/webhook [delete]
 //
 // unregister deletes the project webhook (admin only).
@@ -182,9 +185,10 @@ func classifyWebhookError(err error) error {
 	default:
 		var apiErr *bitbucket.APIError
 		if errors.As(err, &apiErr) {
-			if apiErr.StatusCode == 0 || apiErr.StatusCode >= http.StatusInternalServerError {
-				return fiber.NewError(fiber.StatusBadGateway, "Bitbucket API unavailable")
+			if apiErr.StatusCode == http.StatusTooManyRequests {
+				return fiber.NewError(fiber.StatusServiceUnavailable, "Bitbucket API rate limit exceeded")
 			}
+			return fiber.NewError(fiber.StatusBadGateway, "Bitbucket API unavailable")
 		}
 		return fmt.Errorf("failed to manage webhook: %w", err)
 	}

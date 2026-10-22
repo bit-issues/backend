@@ -69,8 +69,14 @@ func TestClassifyWebhookError(t *testing.T) {
 		{
 			"upstream 429",
 			&bitbucket.APIError{StatusCode: fiber.StatusTooManyRequests, Message: "bitbucket api error"},
-			fiber.StatusInternalServerError,
-			"",
+			fiber.StatusServiceUnavailable,
+			"rate limit",
+		},
+		{
+			"upstream 400",
+			&bitbucket.APIError{StatusCode: fiber.StatusBadRequest, Message: "bitbucket api error"},
+			fiber.StatusBadGateway,
+			"Bitbucket API unavailable",
 		},
 		{"unknown error", io.ErrUnexpectedEOF, fiber.StatusInternalServerError, ""},
 	}
