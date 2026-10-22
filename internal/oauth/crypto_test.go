@@ -18,6 +18,8 @@ func testEncryptor(t *testing.T) *oauth.Encryptor {
 }
 
 func TestEncryptor_RoundTrip(t *testing.T) {
+	t.Parallel()
+
 	enc := testEncryptor(t)
 
 	cases := []string{
@@ -44,6 +46,8 @@ func TestEncryptor_RoundTrip(t *testing.T) {
 }
 
 func TestEncryptor_Empty(t *testing.T) {
+	t.Parallel()
+
 	enc := testEncryptor(t)
 	ct, err := enc.Encrypt("")
 	if err != nil || ct != "" {
@@ -56,6 +60,8 @@ func TestEncryptor_Empty(t *testing.T) {
 }
 
 func TestEncryptor_TamperFails(t *testing.T) {
+	t.Parallel()
+
 	enc := testEncryptor(t)
 	ct, err := enc.Encrypt("top-secret")
 	if err != nil {
@@ -73,6 +79,8 @@ func TestEncryptor_TamperFails(t *testing.T) {
 }
 
 func TestNewEncryptorFromConfig_Errors(t *testing.T) {
+	t.Parallel()
+
 	if _, err := oauth.NewEncryptorFromConfig(""); err == nil {
 		t.Fatalf("expected error for empty key")
 	}
@@ -90,6 +98,8 @@ func TestNewEncryptorFromConfig_Errors(t *testing.T) {
 }
 
 func TestNewEncryptorFromConfig_HexKeyPrecedence(t *testing.T) {
+	t.Parallel()
+
 	// A 32-char hex string is also valid base64; ensure it is interpreted as
 	// raw hex bytes (16 bytes -> AES-128), not as 24 base64-decoded bytes.
 	hexKey := "000102030405060708090a0b0c0d0e0f"

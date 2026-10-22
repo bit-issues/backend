@@ -85,7 +85,7 @@ Here's why BitIssues exists:
 - **Rich Filtering & Sorting** — tasks filterable by project, author, assignee, status, priority, date range
 - **Dashboard Queries** — quick access to tasks assigned to or created by the current user
 - **Swagger/OpenAPI** — auto-generated API docs at `/api/v1/docs`
-- **Bitbucket Webhooks** — commit messages (e.g. `fixes #5`) automatically transition task statuses with bot-authored comments
+- **Bitbucket Webhooks** — commit messages (e.g. `fixes #5`, or `fixes resto-web#13` for task 13 in project `resto-web`) automatically transition task statuses with bot-authored comments
 - **Bitbucket OAuth** — admin "Connect with Bitbucket" flow to manage repository webhooks; tokens encrypted at rest (AES-GCM)
 - **Prometheus Metrics** — built-in metrics endpoint for monitoring
 
@@ -268,6 +268,7 @@ Configuration is loaded from environment variables with optional YAML override v
 | `WEBAUTHN__RP_ORIGINS`        | `["http://localhost:5173"]` | Allowed origins JSON array                          |
 | `WEBHOOKS__SECRET`            | —                           | HMAC-SHA256 secret for webhook payload verification |
 | `WEBHOOKS__BOT_USER_EMAIL`    | `bot@bitissues.local`       | Email of the bot that posts comments                |
+| `COMMITREF__ACTION_KEYWORDS`  | see `.env.example`          | Commit keyword → task status transition map (JSON)  |
 | `OAUTH__CLIENT_ID`            | `empty (disabled)`          | Bitbucket OAuth consumer key                        |
 | `OAUTH__CLIENT_SECRET`        | `empty (disabled)`          | Bitbucket OAuth consumer secret                     |
 | `OAUTH__TOKEN_ENCRYPTION_KEY` | `empty (disabled)`          | AES-256 key for encrypting OAuth tokens at rest     |
