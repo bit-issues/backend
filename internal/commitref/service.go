@@ -28,10 +28,11 @@ type Service struct {
 	pattern *regexp.Regexp
 }
 
-// NewService builds a Service from cfg. It validates every keyword status and
-// compiles the keyword matcher from the sorted keyword list. An invalid
-// configuration is returned as an error so the app fails at startup instead of
-// silently ignoring commit references.
+// NewService builds a Service from cfg. It validates every keyword status,
+// rejects keywords that collide after case normalization, and compiles the
+// keyword matcher from the sorted keyword list. An invalid configuration is
+// returned as an error so the app fails at startup instead of silently
+// ignoring commit references.
 func NewService(cfg Config) (*Service, error) {
 	if len(cfg.ActionKeywords) == 0 {
 		return nil, fmt.Errorf("%w: action_keywords", ErrEmptyKeyword)
@@ -45,6 +46,10 @@ func NewService(cfg Config) (*Service, error) {
 			return nil, fmt.Errorf("%w: keyword", ErrEmptyKeyword)
 		}
 		kw := strings.ToLower(keyword)
+		if _, exists := actions[kw]; exists {
+			return nil, fmt.Errorf("%w: %q", ErrDuplicateKeyword, kw)
+		}
+
 		status := tasks.Status(entry.Status)
 		if !status.IsValid() {
 			return nil, fmt.Errorf("%w: status %q for keyword %q", ErrInvalidStatus, entry.Status, keyword)

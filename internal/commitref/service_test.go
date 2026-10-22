@@ -227,6 +227,14 @@ func TestNewService_InvalidConfig(t *testing.T) {
 			}},
 			wantErr: commitref.ErrInvalidStatus,
 		},
+		{
+			name: "duplicate keyword after case normalization",
+			cfg: commitref.Config{ActionKeywords: map[string]commitref.KeywordEntry{
+				"Fixes": {Status: "Resolved"},
+				"fixes": {Status: "Closed"},
+			}},
+			wantErr: commitref.ErrDuplicateKeyword,
+		},
 	}
 
 	for _, tc := range cases {
