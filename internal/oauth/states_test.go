@@ -7,6 +7,8 @@ import (
 )
 
 func TestGenerateStateUnique(t *testing.T) {
+	t.Parallel()
+
 	seen := make(map[string]struct{}, 100)
 	for range 100 {
 		s, err := oauth.GenerateState()

@@ -26,8 +26,9 @@ func (e *sessionEntry) Marshal() ([]byte, error) {
 }
 
 func (e *sessionEntry) Unmarshal(data []byte) error {
-	e.SessionData = &webauthn.SessionData{} //nolint:exhaustruct // populated by Unmarshal
-	if err := json.Unmarshal(data, e.SessionData); err != nil {
+	var sd webauthn.SessionData
+	e.SessionData = &sd
+	if err := json.Unmarshal(data, &sd); err != nil {
 		return fmt.Errorf("unmarshal session data: %w", err)
 	}
 	return nil
