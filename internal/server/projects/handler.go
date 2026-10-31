@@ -236,6 +236,6 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 	case errors.Is(err, projects.ErrInvalidURL):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	default:
-		return err //nolint:wrapcheck // err is already wrapped
+		return err
 	}
 }
