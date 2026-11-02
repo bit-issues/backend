@@ -5,6 +5,7 @@ import type {
   TaskListResponse,
   TaskCreateRequest,
   TaskUpdateRequest,
+  TaskFeedResponse,
   PaginatedResponse,
 } from '$lib/types/api'
 
@@ -49,6 +50,19 @@ export function getTask(id: number): Promise<TaskDetails> {
 
 export function getTaskByProjectAndNumber(slug: string, number: number): Promise<TaskDetails> {
   return apiRequest<TaskDetails>('GET', `/tasks/${slug}/${number}`)
+}
+
+export function getTaskFeed(
+  slug: string,
+  number: number,
+  limit = 20,
+  offset = 0,
+): Promise<TaskFeedResponse> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  })
+  return apiRequest<TaskFeedResponse>('GET', `/tasks/${slug}/${number}/feed?${params}`)
 }
 
 export function createTask(data: TaskCreateRequest): Promise<TaskDetails> {

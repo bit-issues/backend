@@ -1,0 +1,78 @@
+package tasks
+
+import (
+	"strconv"
+	"time"
+
+	"github.com/bit-issues/backend/internal/server/dto"
+	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/users"
+)
+
+// HistoryChangeResponse represents a single field change in task history.
+//
+//	@Description	Field-level task change with old and new values.
+type HistoryChangeResponse struct {
+	Field    string  `json:"field"`
+	OldValue *string `json:"old_value"`
+	NewValue *string `json:"new_value"`
+}
+
+// HistoryEntryResponse represents a single task history entry.
+//
+//	@Description	Task history entry with actor and field changes.
+type HistoryEntryResponse struct {
+	ID        int64                   `json:"id"`
+	Action    string                  `json:"action"`
+	Actor     dto.UserBrief           `json:"actor"`
+	Changes   []HistoryChangeResponse `json:"changes"`
+	CreatedAt string                  `json:"created_at"`
+}
+
+func toHistoryEntryResponse(
+	entry *tasks.TaskHistoryEntry,
+	usersMap map[int64]users.User,
+) HistoryEntryResponse {
+	changes := make([]HistoryChangeResponse, 0, len(entry.Changes))
+	for _, change := range entry.Changes {
+		changes = append(changes, HistoryChangeResponse{
+			Field:    change.Field,
+			OldValue: resolveHistoryValue(change.Field, change.OldValue, usersMap),
+			NewValue: resolveHistoryValue(change.Field, change.NewValue, usersMap),
+		})
+	}
+
+	return HistoryEntryResponse{
+		ID:        entry.ID,
+		Action:    string(entry.Action),
+		Actor:     *dto.ResolveUserBrief(&entry.ActorID, usersMap),
+		Changes:   changes,
+		CreatedAt: entry.CreatedAt.UTC().Format(time.RFC3339),
+	}
+}
+
+func resolveHistoryValue(
+	field string,
+	value *string,
+	usersMap map[int64]users.User,
+) *string {
+	if value == nil {
+		return nil
+	}
+
+	if field == tasks.HistoryFieldAssignee {
+		id, err := strconv.ParseInt(*value, 10, 64)
+		if err == nil {
+			if user, ok := usersMap[id]; ok {
+				name := user.Name
+				return &name
+			}
+
+			fallback := "#" + *value
+			return &fallback
+		}
+	}
+
+	resolved := *value
+	return &resolved
+}
