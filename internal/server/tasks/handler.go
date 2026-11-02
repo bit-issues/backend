@@ -71,6 +71,7 @@ func (h *Handler) Register(r fiber.Router) {
 	tasks.Get("/me", h.myTasks)
 	tasks.Get("/:id", h.get)
 	tasks.Get("/:slug/:number", h.getByProjectAndNumber)
+	tasks.Get("/:slug/:number/feed", h.feed)
 	tasks.Post("/",
 		validation.DecorateWithBodyEx(h.Validator, h.post),
 	)
@@ -275,7 +276,7 @@ func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
 	update := req.toTaskUpdate()
 
 	// Update task via service
-	task, err := h.tasksSvc.Update(c.Context(), id, update)
+	task, err := h.tasksSvc.Update(c.Context(), id, update, user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update task: %w", err)
 	}

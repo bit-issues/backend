@@ -87,7 +87,12 @@ func (s *Service) List(
 
 // Update modifies an existing task with the provided data.
 // Returns the updated task or an error if not found or validation fails.
-func (s *Service) Update(ctx context.Context, id int64, update TaskUpdate) (*Task, error) {
+func (s *Service) Update(
+	ctx context.Context,
+	id int64,
+	update TaskUpdate,
+	actorID int64,
+) (*Task, error) {
 	if update.IsEmpty() {
 		return nil, fmt.Errorf("%w: no update data provided", ErrValidationFailed)
 	}
@@ -96,13 +101,20 @@ func (s *Service) Update(ctx context.Context, id int64, update TaskUpdate) (*Tas
 		return nil, err
 	}
 
-	// Perform update
-	if err := s.tasks.Update(ctx, id, update); err != nil {
-		return nil, err
+	if actorID <= 0 {
+		return nil, fmt.Errorf("%w: actor_id must be positive", ErrValidationFailed)
 	}
 
-	// Return the updated task
-	return s.tasks.GetByID(ctx, id)
+	return s.tasks.Update(ctx, id, update, actorID)
+}
+
+// ListHistory retrieves task history entries newest-first.
+func (s *Service) ListHistory(
+	ctx context.Context,
+	taskID int64,
+	limit, offset int,
+) ([]TaskHistoryEntry, int, error) {
+	return s.tasks.ListHistory(ctx, taskID, limit, offset)
 }
 
 // Delete soft-deletes a task.

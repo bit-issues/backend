@@ -162,6 +162,41 @@ export interface CommentUpdateRequest {
   content: string
 }
 
+export interface HistoryChange {
+  field: string
+  old_value: string | null
+  new_value: string | null
+}
+
+export interface HistoryEntry {
+  id: number
+  action: 'created' | 'updated'
+  actor: UserBrief
+  changes: HistoryChange[]
+  created_at: string
+}
+
+export interface CommentFeedItem {
+  type: 'comment'
+  id: number
+  created_at: string
+  comment: Comment
+}
+
+export interface HistoryFeedItem {
+  type: 'history'
+  id: number
+  created_at: string
+  history: HistoryEntry
+}
+
+export type FeedItem = CommentFeedItem | HistoryFeedItem
+
+export interface TaskFeedResponse {
+  items: FeedItem[]
+  total: number
+}
+
 export interface Attachment {
   id: number
   task_id: number
