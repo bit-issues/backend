@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { untrack } from "svelte";
   import { getProject } from "$lib/api/projects";
   import {
     listTasks,
@@ -13,43 +12,41 @@
   import { Button } from "$lib/components/ui/button";
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
-  import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
+  import {
+    parseFilters,
+    replaceFilters,
+    type FilterState,
+  } from "$lib/router/filter-url";
   import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   // svelte-ignore a11y_click_events_have_key_events
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let slug = $derived(params.slug || "");
-  let routeKey = $derived(`/projects/${slug}`);
 
   let project = $state<Project | null>(null);
   let tasks = $state<Task[]>([]);
   let total = $state(0);
   let loading = $state(true);
   let error = $state("");
-  let currentRouteKey = $state("");
-  let sort = $state("-created_at");
-  let offset = $state(0);
   const limit = 50;
   const requestGuard = createLatestRequestGuard();
 
-  let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
-  let filterPriorities = $state<string[]>([]);
-  let searchQuery = $state("");
+  const FILTER_DEFAULTS: FilterState = {
+    project: "",
+    statuses: [...ACTIVE_STATUSES],
+    priorities: [],
+    search: "",
+    sort: "-created_at",
+    offset: 0,
+  };
 
-  $effect(() => {
-    const key = routeKey;
-    const saved = untrack(() => getSnapshot(key));
-    if (saved) {
-      filterStatuses = saved.filterStatuses;
-      filterPriorities = saved.filterPriorities;
-      sort = saved.sort;
-      offset = saved.offset;
-    } else {
-      searchQuery = "";
-      sort = "-created_at";
-    }
-  });
+  const initial = parseFilters(window.location.hash, FILTER_DEFAULTS);
+  let filterStatuses = $state(initial.statuses);
+  let filterPriorities = $state(initial.priorities);
+  let searchQuery = $state(initial.search);
+  let sort = $state(initial.sort);
+  let offset = $state(initial.offset);
   let lastSlug = "";
 
   function toggleStatus(s: string) {
@@ -100,13 +97,19 @@
           project = proj;
           tasks = res.items;
           total = res.total;
+          const pageOffset = Math.floor(offset / limit) * limit;
+          const lastOffset =
+            total > 0 ? Math.floor((total - 1) / limit) * limit : 0;
+          const nextOffset = Math.min(pageOffset, lastOffset);
+          if (offset !== nextOffset) {
+            offset = nextOffset;
+          }
           touchProject({ id: proj.id, name: proj.name });
         },
         onError: (e) => {
           error = (e as Error).message || "Failed to load data";
         },
         onFinally: () => {
-          currentRouteKey = routeKey;
           loading = false;
         },
       },
@@ -116,13 +119,34 @@
   $effect(load);
 
   $effect(() => {
-    if (routeKey !== currentRouteKey) return;
-    saveSnapshot(routeKey, {
-      filterStatuses: [...filterStatuses],
-      filterPriorities: [...filterPriorities],
-      sort,
-      offset,
-    });
+    replaceFilters(
+      {
+        project: "",
+        statuses: [...filterStatuses],
+        priorities: [...filterPriorities],
+        search: searchQuery,
+        sort,
+        offset,
+      },
+      FILTER_DEFAULTS,
+    );
+  });
+
+  $effect(() => {
+    const handler = () => {
+      const next = parseFilters(window.location.hash, FILTER_DEFAULTS);
+      if (filterStatuses.join(",") !== next.statuses.join(",")) {
+        filterStatuses = next.statuses;
+      }
+      if (filterPriorities.join(",") !== next.priorities.join(",")) {
+        filterPriorities = next.priorities;
+      }
+      if (searchQuery !== next.search) searchQuery = next.search;
+      if (sort !== next.sort) sort = next.sort;
+      if (offset !== next.offset) offset = next.offset;
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
   });
 
   function handleSort(field: string) {
