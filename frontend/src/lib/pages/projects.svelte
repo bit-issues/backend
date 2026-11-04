@@ -13,18 +13,33 @@
   import SearchIcon from "@lucide/svelte/icons/search";
   import XIcon from "@lucide/svelte/icons/x";
   import type { Project } from "$lib/types/api";
+  import {
+    parseFilters,
+    replaceFilters,
+    type FilterState,
+  } from "$lib/router/filter-url";
   import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
+
+  const FILTER_DEFAULTS: FilterState = {
+    project: "",
+    statuses: [],
+    priorities: [],
+    search: "",
+    sort: "-created_at",
+    offset: 0,
+  };
 
   let projects = $state<Project[]>([]);
   let total = $state(0);
   let loading = $state(true);
   let error = $state("");
-  let offset = $state(0);
   const limit = 20;
-  let searchTerm = $state("");
-  let debouncedSearch = $state("");
+  const initial = parseFilters(window.location.hash, FILTER_DEFAULTS);
+  let offset = $state(initial.offset);
+  let searchTerm = $state(initial.search);
+  let debouncedSearch = $state(initial.search);
   let searchTimeout: ReturnType<typeof setTimeout> | null = null;
   const requestGuard = createLatestRequestGuard();
 
@@ -55,6 +70,13 @@
         onSuccess: (res) => {
           projects = res.items;
           total = res.total;
+          const pageOffset = Math.floor(offset / limit) * limit;
+          const lastOffset =
+            total > 0 ? Math.floor((total - 1) / limit) * limit : 0;
+          const nextOffset = Math.min(pageOffset, lastOffset);
+          if (offset !== nextOffset) {
+            offset = nextOffset;
+          }
           enrichRecentFromProjects(res.items);
         },
         onError: (e) => {
@@ -66,6 +88,33 @@
       },
     );
   }
+
+  $effect(() => {
+    replaceFilters(
+      {
+        project: "",
+        statuses: [],
+        priorities: [],
+        search: debouncedSearch,
+        sort: FILTER_DEFAULTS.sort,
+        offset,
+      },
+      FILTER_DEFAULTS,
+    );
+  });
+
+  $effect(() => {
+    const handler = () => {
+      if (searchTimeout) clearTimeout(searchTimeout);
+      searchTimeout = null;
+      const next = parseFilters(window.location.hash, FILTER_DEFAULTS);
+      if (searchTerm !== next.search) searchTerm = next.search;
+      if (debouncedSearch !== next.search) debouncedSearch = next.search;
+      if (offset !== next.offset) offset = next.offset;
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
+  });
 
   $effect(load);
 </script>

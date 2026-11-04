@@ -9,12 +9,23 @@
   import * as Card from "$lib/components/ui/card";
   import type { Task, Project } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
-  import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
+  import {
+    parseFilters,
+    replaceFilters,
+    type FilterState,
+  } from "$lib/router/filter-url";
   import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
-  const ROUTE_KEY = "/dashboard";
+  const FILTER_DEFAULTS: FilterState = {
+    project: "",
+    statuses: [...ACTIVE_STATUSES],
+    priorities: [],
+    search: "",
+    sort: "-created_at",
+    offset: 0,
+  };
 
   let createdTasks = $state<Task[]>([]);
   let assignedTasks = $state<Task[]>([]);
@@ -23,19 +34,12 @@
   let error = $state("");
   let activeTab = $state<"created" | "assigned">("assigned");
 
-  let filterProject = $state("");
-  let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
-  let filterPriorities = $state<string[]>([]);
-  let searchQuery = $state("");
-  let sort = $state("-created_at");
-
-  let saved = getSnapshot(ROUTE_KEY);
-  if (saved) {
-    filterProject = saved.filterProject ?? "";
-    filterStatuses = saved.filterStatuses;
-    filterPriorities = saved.filterPriorities;
-    sort = saved.sort;
-  }
+  const initial = parseFilters(window.location.hash, FILTER_DEFAULTS);
+  let filterProject = $state(initial.project);
+  let filterStatuses = $state(initial.statuses);
+  let filterPriorities = $state(initial.priorities);
+  let searchQuery = $state(initial.search);
+  let sort = $state(initial.sort);
 
   const requestGuard = createLatestRequestGuard();
 
@@ -75,13 +79,34 @@
   }
 
   $effect(() => {
-    saveSnapshot(ROUTE_KEY, {
-      filterProject: filterProject || undefined,
-      filterStatuses: [...filterStatuses],
-      filterPriorities: [...filterPriorities],
-      sort,
-      offset: 0,
-    });
+    replaceFilters(
+      {
+        project: filterProject,
+        statuses: [...filterStatuses],
+        priorities: [...filterPriorities],
+        search: searchQuery,
+        sort,
+        offset: 0,
+      },
+      FILTER_DEFAULTS,
+    );
+  });
+
+  $effect(() => {
+    const handler = () => {
+      const next = parseFilters(window.location.hash, FILTER_DEFAULTS);
+      if (filterProject !== next.project) filterProject = next.project;
+      if (filterStatuses.join(",") !== next.statuses.join(",")) {
+        filterStatuses = next.statuses;
+      }
+      if (filterPriorities.join(",") !== next.priorities.join(",")) {
+        filterPriorities = next.priorities;
+      }
+      if (searchQuery !== next.search) searchQuery = next.search;
+      if (sort !== next.sort) sort = next.sort;
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
   });
 
   $effect(() => {
