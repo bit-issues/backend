@@ -86,7 +86,6 @@
       if (requestGeneration !== generation) return;
 
       error = e instanceof Error ? e.message : "Failed to load activity";
-      items = [];
       total = 0;
     } finally {
       if (requestGeneration === generation) {
@@ -204,11 +203,15 @@
 <div class="space-y-4">
   <CommentForm {taskId} onSubmit={handleAddComment} />
 
+  {#if error && items.length > 0}
+    <p class="text-destructive py-4 text-center text-sm">{error}</p>
+  {/if}
+
   {#if loading && items.length === 0}
     <p class="text-muted-foreground py-4 text-center text-sm">
       Loading activity...
     </p>
-  {:else if error}
+  {:else if error && items.length === 0}
     <p class="text-destructive py-4 text-center text-sm">{error}</p>
   {:else if items.length === 0}
     <p class="text-muted-foreground text-sm italic">No activity yet</p>
