@@ -88,7 +88,6 @@
       if (requestGeneration !== generation) return;
 
       error = e instanceof Error ? e.message : "Failed to load activity";
-      total = 0;
     } finally {
       if (requestGeneration === generation) {
         loading = false;
@@ -260,11 +259,13 @@
                       <span class="text-muted-foreground"
                         >{fieldLabel(change.field)}:</span
                       >
-                      <span class="text-muted-foreground"
+                      <span class="text-muted-foreground whitespace-pre-wrap"
                         >{formatOldValue(change)}</span
                       >
                       <span class="text-muted-foreground">&rarr;</span>
-                      <span>{formatChangeValue(change)}</span>
+                      <span class="whitespace-pre-wrap"
+                        >{formatChangeValue(change)}</span
+                      >
                     </li>
                   {/each}
                 </ul>
