@@ -47,6 +47,7 @@
 
   let items = $state<FeedItem[]>([]);
   let total = $state(0);
+  let nextOffset = $state(0);
   let loading = $state(true);
   let loadingMore = $state(false);
   let error = $state("");
@@ -82,6 +83,7 @@
 
       items = response.items;
       total = response.total;
+      nextOffset = response.items.length;
     } catch (e) {
       if (requestGeneration !== generation) return;
 
@@ -95,7 +97,7 @@
   }
 
   async function loadMore() {
-    if (loading || loadingMore || items.length >= total) return;
+    if (loading || loadingMore || nextOffset >= total) return;
 
     const requestGeneration = generation;
     loadingMore = true;
@@ -105,7 +107,7 @@
         slug,
         number,
         PAGE_SIZE,
-        items.length,
+        nextOffset,
       );
       if (requestGeneration !== generation) return;
 
@@ -113,6 +115,10 @@
       const next = response.items.filter((item) => !seen.has(feedKey(item)));
       items = [...items, ...next];
       total = response.total;
+      nextOffset =
+        response.items.length > 0
+          ? nextOffset + response.items.length
+          : Math.max(nextOffset, total);
     } catch (e) {
       toast.error(
         e instanceof Error ? e.message : "Failed to load older activity",
@@ -148,6 +154,7 @@
     );
     if (items.length < before) {
       total = Math.max(0, total - 1);
+      nextOffset = Math.max(0, nextOffset - 1);
     }
   }
 
@@ -272,7 +279,7 @@
       {/each}
     </div>
 
-    {#if items.length < total}
+    {#if nextOffset < total}
       <div class="flex justify-center">
         <Button
           variant="outline"
