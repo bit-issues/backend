@@ -199,10 +199,6 @@
       }
     }
 
-    if (value.length > 140) {
-      return `${value.slice(0, 140)}…`;
-    }
-
     return value;
   }
 </script>
@@ -260,7 +256,7 @@
               {#if item.history.action === "updated" && item.history.changes.length > 0}
                 <ul class="space-y-1 text-sm">
                   {#each item.history.changes as change}
-                    <li>
+                    <li class="break-words">
                       <span class="text-muted-foreground"
                         >{fieldLabel(change.field)}:</span
                       >
