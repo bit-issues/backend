@@ -11,12 +11,23 @@
   import { Button } from "$lib/components/ui/button";
   import type { Project, Task } from "$lib/types/api";
   import { ACTIVE_STATUSES } from "$lib/types/api";
-  import { getSnapshot, saveSnapshot } from "$lib/stores/task-filters.svelte";
+  import {
+    parseFilters,
+    replaceFilters,
+    type FilterState,
+  } from "$lib/router/filter-url";
   import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
 
-  const ROUTE_KEY = "/dashboard/all";
+  const FILTER_DEFAULTS: FilterState = {
+    project: "",
+    statuses: [...ACTIVE_STATUSES],
+    priorities: [],
+    search: "",
+    sort: "-created_at",
+    offset: 0,
+  };
 
   let tasks = $state<Task[]>([]);
   let total = $state(0);
@@ -24,22 +35,14 @@
   let loading = $state(true);
   let error = $state("");
 
-  let filterProject = $state("");
-  let filterStatuses = $state<string[]>([...ACTIVE_STATUSES]);
-  let filterPriorities = $state<string[]>([]);
-  let searchQuery = $state("");
-  let sort = $state("-created_at");
-  let offset = $state(0);
+  const initial = parseFilters(window.location.hash, FILTER_DEFAULTS);
+  let filterProject = $state(initial.project);
+  let filterStatuses = $state(initial.statuses);
+  let filterPriorities = $state(initial.priorities);
+  let searchQuery = $state(initial.search);
+  let sort = $state(initial.sort);
+  let offset = $state(initial.offset);
   const limit = 50;
-
-  let saved = getSnapshot(ROUTE_KEY);
-  if (saved) {
-    filterProject = saved.filterProject ?? "";
-    filterStatuses = saved.filterStatuses;
-    filterPriorities = saved.filterPriorities;
-    sort = saved.sort;
-    offset = saved.offset;
-  }
 
   const requestGuard = createLatestRequestGuard();
 
@@ -98,6 +101,13 @@
           projects = projectItems;
           tasks = taskRes.items;
           total = taskRes.total;
+          const pageOffset = Math.floor(offset / limit) * limit;
+          const lastOffset =
+            total > 0 ? Math.floor((total - 1) / limit) * limit : 0;
+          const nextOffset = Math.min(pageOffset, lastOffset);
+          if (offset !== nextOffset) {
+            offset = nextOffset;
+          }
         },
         onError: (e) => {
           error = (e as Error).message || "Failed to load tasks";
@@ -120,13 +130,35 @@
   $effect(load);
 
   $effect(() => {
-    saveSnapshot(ROUTE_KEY, {
-      filterProject: filterProject || undefined,
-      filterStatuses: [...filterStatuses],
-      filterPriorities: [...filterPriorities],
-      sort,
-      offset,
-    });
+    replaceFilters(
+      {
+        project: filterProject,
+        statuses: [...filterStatuses],
+        priorities: [...filterPriorities],
+        search: searchQuery,
+        sort,
+        offset,
+      },
+      FILTER_DEFAULTS,
+    );
+  });
+
+  $effect(() => {
+    const handler = () => {
+      const next = parseFilters(window.location.hash, FILTER_DEFAULTS);
+      if (filterProject !== next.project) filterProject = next.project;
+      if (filterStatuses.join(",") !== next.statuses.join(",")) {
+        filterStatuses = next.statuses;
+      }
+      if (filterPriorities.join(",") !== next.priorities.join(",")) {
+        filterPriorities = next.priorities;
+      }
+      if (searchQuery !== next.search) searchQuery = next.search;
+      if (sort !== next.sort) sort = next.sort;
+      if (offset !== next.offset) offset = next.offset;
+    };
+    window.addEventListener("hashchange", handler);
+    return () => window.removeEventListener("hashchange", handler);
   });
 
   function handleTaskClick(task: Task) {
