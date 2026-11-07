@@ -79,6 +79,7 @@ Here's why BitIssues exists:
 - **Tasks** — full lifecycle with priority (trivial → blocker), status (new → closed), kind (bug, enhancement, task, proposal), assignees, and due dates
 - **Comments** — per-task discussion with markdown support
 - **Activity Feed** — per-task timeline merging comments, field-level changes and attachment events, newest-first
+- **Live Updates** — Server-Sent Events stream (`/api/v1/events/stream`) pushes comment changes to open task pages in real time
 - **File Attachments** — two-phase upload via S3 presigned URLs (client uploads directly to storage, bypassing the server)
 - **JWT Authentication** — HS256 tokens with Argon2id password hashing
 - **WebAuthn/Passkey Authentication** — passwordless login via platform authenticators (fingerprint, Face ID, security keys)
