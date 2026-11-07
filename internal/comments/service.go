@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/users"
 	"go.uber.org/zap"
 )
@@ -20,16 +21,18 @@ type Service struct {
 	comments *Repository
 
 	usersSvc *users.Service
+	hub      *events.Hub
 
 	logger *zap.Logger
 }
 
 // NewService creates a new Service instance with the given dependencies.
-func NewService(comments *Repository, usersSvc *users.Service, logger *zap.Logger) *Service {
+func NewService(comments *Repository, usersSvc *users.Service, hub *events.Hub, logger *zap.Logger) *Service {
 	return &Service{
 		comments: comments,
 
 		usersSvc: usersSvc,
+		hub:      hub,
 
 		logger: logger,
 	}
@@ -43,7 +46,14 @@ func (s *Service) Create(ctx context.Context, input CommentInput) (*Comment, err
 	}
 
 	// Create comment
-	return s.comments.Create(ctx, input)
+	comment, err := s.comments.Create(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	s.publishCommentEvent(events.TypeCommentCreated, comment.TaskID, comment.ID)
+
+	return comment, nil
 }
 
 // Import creates a comment with explicit timestamps for import.
@@ -94,7 +104,14 @@ func (s *Service) Update(ctx context.Context, userID int64, taskID, id int64, up
 	}
 
 	// Return the updated comment
-	return s.comments.GetByID(ctx, id)
+	updated, err := s.comments.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	s.publishCommentEvent(events.TypeCommentUpdated, updated.TaskID, updated.ID)
+
+	return updated, nil
 }
 
 // Delete soft-deletes a comment.
@@ -116,7 +133,21 @@ func (s *Service) Delete(ctx context.Context, userID int64, taskID, id int64) er
 	}
 
 	// Perform soft delete
-	return s.comments.Delete(ctx, id)
+	if delErr := s.comments.Delete(ctx, id); delErr != nil {
+		return delErr
+	}
+
+	s.publishCommentEvent(events.TypeCommentDeleted, taskID, id)
+
+	return nil
+}
+
+func (s *Service) publishCommentEvent(eventType string, taskID, commentID int64) {
+	s.hub.Publish(events.Event{
+		Type:      eventType,
+		TaskID:    taskID,
+		CommentID: commentID,
+	})
 }
 
 func (s *Service) validateAuthor(ctx context.Context, userID int64, authorID int64) error {
