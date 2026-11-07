@@ -74,6 +74,41 @@ func (r *Repository) List(ctx context.Context, taskID int64) ([]Comment, error) 
 	return comments, nil
 }
 
+// ListPage retrieves paginated comments for a specific task, newest-first.
+func (r *Repository) ListPage(
+	ctx context.Context,
+	taskID int64,
+	limit, offset int,
+) ([]Comment, int, error) {
+	if limit <= 0 {
+		limit = DefaultLimit
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	models := make([]commentModel, 0)
+	query := r.db.NewSelect().
+		Model(&models).
+		Where("task_id = ?", taskID).
+		OrderExpr("created_at DESC").
+		OrderExpr("id DESC").
+		Limit(limit).
+		Offset(offset)
+
+	total, err := query.ScanAndCount(ctx, &models)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list comments by task: %w", err)
+	}
+
+	comments := make([]Comment, 0, len(models))
+	for i := range models {
+		comments = append(comments, *models[i].toDomain())
+	}
+
+	return comments, total, nil
+}
+
 // Update modifies an existing comment with the provided content.
 func (r *Repository) Update(ctx context.Context, id int64, content string) error {
 	if _, err := r.db.NewUpdate().

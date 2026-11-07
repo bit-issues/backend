@@ -65,6 +65,15 @@ func (s *Service) ListByTask(ctx context.Context, taskID int64) ([]Comment, erro
 	return s.comments.List(ctx, taskID)
 }
 
+// ListByTaskPage retrieves paginated comments for a specific task, newest-first.
+func (s *Service) ListByTaskPage(
+	ctx context.Context,
+	taskID int64,
+	limit, offset int,
+) ([]Comment, int, error) {
+	return s.comments.ListPage(ctx, taskID, limit, offset)
+}
+
 // Update modifies an existing comment with the provided content.
 // Returns an error if the comment is not found, validation fails, or the user is not authorized.
 func (s *Service) Update(ctx context.Context, userID int64, taskID, id int64, update CommentUpdate) (*Comment, error) {

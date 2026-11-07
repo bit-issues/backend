@@ -255,6 +255,11 @@ GET {{baseURL}}/tasks/my-new-project/1
 Authorization: Bearer {{accessToken}}
 
 ###
+# Get task activity feed (comments and field changes, newest-first)
+GET {{baseURL}}/tasks/my-new-project/1/feed?limit=20&offset=0
+Authorization: Bearer {{accessToken}}
+
+###
 # Create a new task
 # POST to /tasks
 # @name createTask

@@ -78,6 +78,7 @@ Here's why BitIssues exists:
 - **Projects** — create and manage projects with auto-generated slug-based routing
 - **Tasks** — full lifecycle with priority (trivial → blocker), status (new → closed), kind (bug, enhancement, task, proposal), assignees, and due dates
 - **Comments** — per-task discussion with markdown support
+- **Activity Feed** — per-task timeline merging comments and field-level changes, newest-first
 - **File Attachments** — two-phase upload via S3 presigned URLs (client uploads directly to storage, bypassing the server)
 - **JWT Authentication** — HS256 tokens with Argon2id password hashing
 - **WebAuthn/Passkey Authentication** — passwordless login via platform authenticators (fingerprint, Face ID, security keys)
@@ -238,6 +239,7 @@ All endpoints are under `/api/v1`. Full documentation is available via Swagger U
 | Users       | `/users`                     | JWT (admin for management)    |
 | Projects    | `/projects`                  | JWT                           |
 | Tasks       | `/tasks`                     | JWT                           |
+| Activity    | `/tasks/:slug/:number/feed`  | JWT                           |
 | Comments    | `/tasks/:taskId/comments`    | JWT                           |
 | Attachments | `/tasks/:taskId/attachments` | JWT                           |
 | Passkeys    | `/auth/passkey`              | Public (login) / JWT (manage) |
