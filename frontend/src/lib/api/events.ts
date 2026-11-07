@@ -119,14 +119,14 @@ async function runAttempt(controller: AbortController): Promise<void> {
   })
 
   if (res.status === 401) {
-    const refreshed = await refreshTokens()
-    if (!refreshed) {
+    const retryToken = (await refreshTokens()) ? getAccessToken() : null
+    if (!retryToken) {
       failUnauthorized()
       controller.abort()
       return
     }
     res = await fetch(ENDPOINT, {
-      headers: { Authorization: `Bearer ${getAccessToken()}` },
+      headers: { Authorization: `Bearer ${retryToken}` },
       signal,
     })
   }
