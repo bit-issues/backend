@@ -86,6 +86,11 @@ func (h *Handler) stream(c *fiber.Ctx) error {
 }
 
 func (h *Handler) runEventStream(w *bufio.Writer, sub <-chan events.Event, done <-chan struct{}) {
+	if err := writeEvent(w, events.Event{Type: events.TypeStreamConnected, TaskID: 0, CommentID: 0}); err != nil {
+		h.logger.Debug("event stream connect flush failed, closing", zap.Error(err))
+		return
+	}
+
 	ticker := time.NewTicker(h.heartbeat)
 	defer ticker.Stop()
 
@@ -122,6 +127,9 @@ func writeEvent(w *bufio.Writer, ev events.Event) error {
 
 	if _, err = w.WriteString("event: " + ev.Type + "\n"); err != nil {
 		return fmt.Errorf("write event type: %w", err)
+	}
+	if _, err = w.WriteString("data: "); err != nil {
+		return fmt.Errorf("write event data prefix: %w", err)
 	}
 	if _, err = w.Write(payload); err != nil {
 		return fmt.Errorf("write event data: %w", err)
