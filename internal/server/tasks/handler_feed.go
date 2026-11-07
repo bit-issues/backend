@@ -37,6 +37,7 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 	}
 
 	query := new(FeedQuery)
+	query.Limit = 20
 	if parseErr := h.QueryParserValidator(c, query); parseErr != nil {
 		return fmt.Errorf("failed to parse query: %w", parseErr)
 	}

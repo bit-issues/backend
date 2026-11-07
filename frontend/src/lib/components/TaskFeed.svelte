@@ -286,7 +286,7 @@
         >
           {loadingMore
             ? "Loading..."
-            : `Load older (${total - items.length} remaining)`}
+            : `Load older (${total - nextOffset} remaining)`}
         </Button>
       </div>
     {/if}
