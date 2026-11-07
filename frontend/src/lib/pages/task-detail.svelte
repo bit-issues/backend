@@ -26,6 +26,8 @@
   import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
   import type { AutoLinkContext } from "$lib/autolink";
   import { toast } from "$lib/toast";
+  import { onStreamEvent } from "$lib/api/events";
+  import { createLatestRequestGuard, runLatest } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let slug = $derived(params.slug || "");
@@ -140,15 +142,63 @@
     // Refetch the task so the freshly-confirmed inline attachment is present in
     // task.attachments (attachmentUrls derives from it), letting the newly
     // posted comment's inline image resolve without a manual page refresh.
-    const refreshed = await getTaskByProjectAndNumber(slug, number);
-    task = refreshed;
+    refreshTask();
   }
 
   async function handleEditComment(commentId: number, content: string) {
     await updateComment(taskId, commentId, { content });
-    const refreshed = await getTaskByProjectAndNumber(slug, number);
-    task = refreshed;
+    refreshTask();
   }
+
+  // Refetches the whole task through a latest-request guard so a mutation
+  // refetch and an event-driven refetch cannot interleave and clobber each
+  // other. Control state (status/assignee) is only synced when the user has
+  // not diverged from the last loaded value.
+  const refreshGuard = createLatestRequestGuard();
+
+  function refreshTask() {
+    const currentSlug = slug;
+    const currentNumber = number;
+    runLatest(
+      refreshGuard,
+      () => getTaskByProjectAndNumber(currentSlug, currentNumber),
+      {
+        onSuccess: (t) => {
+          if (currentSlug !== slug || currentNumber !== number) return;
+          applyRefreshed(t);
+        },
+      },
+    );
+  }
+
+  function applyRefreshed(t: TaskDetails) {
+    const prevStatus = task?.status;
+    const prevAssignee = task?.assignee?.id ?? null;
+
+    task = t;
+    taskId = t.id;
+    ready = true;
+
+    if (selectedStatus === prevStatus) selectedStatus = t.status;
+    if (assigneeId === prevAssignee) assigneeId = t.assignee?.id ?? null;
+  }
+
+  // Live updates: refetch when another client (or the Bitbucket bot) changes a
+  // comment on the task currently on screen.
+  $effect(() => {
+    const currentId = taskId;
+    if (!currentId) return;
+
+    return onStreamEvent((event) => {
+      if (event.type === "stream.connected") {
+        refreshTask();
+        return;
+      }
+      if (event.task_id === currentId && event.type.startsWith("comment.")) {
+        refreshTask();
+      }
+    });
+  });
 
   async function handleDeleteComment(commentId: number) {
     await deleteComment(taskId, commentId);
