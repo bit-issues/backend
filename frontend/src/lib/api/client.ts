@@ -8,7 +8,12 @@ export function setOnUnauthorized(cb: () => void) {
   onUnauthorized = cb
 }
 
-async function refreshTokens(): Promise<boolean> {
+export function failUnauthorized(): void {
+  clear()
+  onUnauthorized?.()
+}
+
+export async function refreshTokens(): Promise<boolean> {
   const refreshTokenSnapshot = getRefreshToken()
   if (!refreshTokenSnapshot) return false
   if (refreshInFlight) return refreshInFlight
@@ -79,15 +84,13 @@ export async function apiRequest<T>(
         body: requestBody,
       })
     } else {
-      clear()
-      onUnauthorized?.()
+      failUnauthorized()
       throw new ApiErrorResponse(401, 'Unauthorized')
     }
   }
 
   if (res.status === 401) {
-    clear()
-    onUnauthorized?.()
+    failUnauthorized()
   }
 
   if (!res.ok) {

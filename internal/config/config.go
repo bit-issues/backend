@@ -80,6 +80,10 @@ type bitbucketConfig struct {
 	CallbackURL string `koanf:"callback_url"`
 }
 
+type eventsConfig struct {
+	HeartbeatInterval time.Duration `koanf:"heartbeat_interval"`
+}
+
 type Config struct {
 	HTTP        http              `koanf:"http"`
 	HTTPClient  httpClientConfig  `koanf:"http_client"`
@@ -93,6 +97,7 @@ type Config struct {
 	Commitref   commitrefConfig   `koanf:"commitref"`
 	OAuth       oauthConfig       `koanf:"oauth"`
 	Bitbucket   bitbucketConfig   `koanf:"bitbucket"`
+	Events      eventsConfig      `koanf:"events"`
 }
 
 func Default() Config {
@@ -167,6 +172,9 @@ func Default() Config {
 		},
 		Bitbucket: bitbucketConfig{
 			CallbackURL: "",
+		},
+		Events: eventsConfig{
+			HeartbeatInterval: 15 * time.Second,
 		},
 	}
 }

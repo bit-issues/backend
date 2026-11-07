@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/bit-issues/backend/internal/server/auth"
 	"github.com/bit-issues/backend/internal/server/docs"
+	"github.com/bit-issues/backend/internal/server/events"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/server/oauth"
 	"github.com/bit-issues/backend/internal/server/passkey"
@@ -46,6 +47,7 @@ func Module() fx.Option {
 			fx.Annotate(passkey.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(projects.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(tasks.NewHandler, fx.ResultTags(`group:"handlers"`)),
+			fx.Annotate(events.NewHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(func(h *oauth.Handler) handler.Handler { return h }, fx.ResultTags(`group:"handlers"`)),
 			fx.Annotate(webhooks.NewManagementHandler, fx.ResultTags(`group:"handlers"`)),
 			fx.Private,
