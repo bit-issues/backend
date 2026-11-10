@@ -1676,7 +1676,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns comments and field-level task changes merged newest-first.",
+                "description": "Returns comments, field-level task changes and attachment events merged newest-first.",
                 "consumes": [
                     "application/json"
                 ],

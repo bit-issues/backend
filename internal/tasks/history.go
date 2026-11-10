@@ -8,8 +8,10 @@ import (
 type HistoryAction string
 
 const (
-	HistoryActionCreated HistoryAction = "created"
-	HistoryActionUpdated HistoryAction = "updated"
+	HistoryActionCreated           HistoryAction = "created"
+	HistoryActionUpdated           HistoryAction = "updated"
+	HistoryActionAttachmentAdded   HistoryAction = "attachment_added"
+	HistoryActionAttachmentRemoved HistoryAction = "attachment_removed"
 )
 
 const (
@@ -20,6 +22,7 @@ const (
 	HistoryFieldKind        = "kind"
 	HistoryFieldAssignee    = "assignee"
 	HistoryFieldDueDate     = "due_date"
+	HistoryFieldAttachment  = "attachment"
 )
 
 type FieldChange struct {
@@ -95,6 +98,18 @@ func newOptionalChange(field string, oldValue, newValue *string) FieldChange {
 		OldValue: oldValue,
 		NewValue: newValue,
 	}
+}
+
+// attachmentChange builds the field change carried by an attachment history
+// entry. The file name lands in NewValue for additions and in OldValue for
+// removals, mirroring the before/after state of other field changes.
+func attachmentChange(action HistoryAction, fileName string) FieldChange {
+	name := fileName
+	if action == HistoryActionAttachmentRemoved {
+		return newOptionalChange(HistoryFieldAttachment, &name, nil)
+	}
+
+	return newOptionalChange(HistoryFieldAttachment, nil, &name)
 }
 
 func formatAssignee(id *int64) *string {

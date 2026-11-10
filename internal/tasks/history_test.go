@@ -120,6 +120,30 @@ func TestDiffTaskSetsOptionalFields(t *testing.T) {
 	}
 }
 
+func TestAttachmentChange(t *testing.T) {
+	t.Parallel()
+
+	added := tasks.AttachmentChangeForTest(tasks.HistoryActionAttachmentAdded, "log.txt")
+	wantAdded := tasks.FieldChange{
+		Field:    tasks.HistoryFieldAttachment,
+		OldValue: nil,
+		NewValue: ptr("log.txt"),
+	}
+	if !reflect.DeepEqual(added, wantAdded) {
+		t.Errorf("attachmentChange(added) mismatch\n got: %#v\nwant: %#v", added, wantAdded)
+	}
+
+	removed := tasks.AttachmentChangeForTest(tasks.HistoryActionAttachmentRemoved, "log.txt")
+	wantRemoved := tasks.FieldChange{
+		Field:    tasks.HistoryFieldAttachment,
+		OldValue: ptr("log.txt"),
+		NewValue: nil,
+	}
+	if !reflect.DeepEqual(removed, wantRemoved) {
+		t.Errorf("attachmentChange(removed) mismatch\n got: %#v\nwant: %#v", removed, wantRemoved)
+	}
+}
+
 func ptr[T any](value T) *T {
 	return &value
 }

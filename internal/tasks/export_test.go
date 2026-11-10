@@ -7,3 +7,6 @@ func DiffTaskForTest(current *Task, update TaskUpdate) []FieldChange {
 
 // NewTaskImportForTest exposes newTaskImport to the external test package.
 var NewTaskImportForTest = newTaskImport
+
+// AttachmentChangeForTest exposes attachmentChange to the external test package.
+var AttachmentChangeForTest = attachmentChange

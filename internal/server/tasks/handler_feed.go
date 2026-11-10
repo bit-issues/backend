@@ -13,7 +13,7 @@ import (
 )
 
 //	@Summary		Get task activity feed
-//	@Description	Returns comments and field-level task changes merged newest-first.
+//	@Description	Returns comments, field-level task changes and attachment events merged newest-first.
 //	@Tags			Tasks
 //	@Accept			json
 //	@Produce		json

@@ -14,6 +14,12 @@ func (r *Repository) insertHistory(ctx context.Context, idb bun.IDB, history *hi
 	return nil
 }
 
+// recordHistory appends a standalone history entry outside a mutation
+// transaction, for events reported by other modules after their own write.
+func (r *Repository) recordHistory(ctx context.Context, history *historyModel) error {
+	return r.insertHistory(ctx, r.db, history)
+}
+
 // ListHistory retrieves task history entries newest-first.
 func (r *Repository) ListHistory(
 	ctx context.Context,

@@ -169,11 +169,27 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 		return nil, ErrUnauthorized
 	}
 
+	wasUploaded := attachment.Status == StatusUploaded
+
 	if confirmErr := s.attachments.Confirm(ctx, id); confirmErr != nil {
 		return nil, confirmErr
 	}
 
 	attachment.Status = StatusUploaded
+
+	// A re-confirm of an already uploaded attachment is not a new feed event.
+	if !wasUploaded {
+		if recordErr := s.tasksSvc.RecordAttachmentAdded(
+			ctx, attachment.TaskID, uploaderID, attachment.FileName,
+		); recordErr != nil {
+			s.logger.Warn("failed to record attachment upload in task history",
+				zap.Int64("task_id", attachment.TaskID),
+				zap.String("file_name", attachment.FileName),
+				zap.Error(recordErr),
+			)
+		}
+	}
+
 	return attachment, nil
 }
 
@@ -194,6 +210,16 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 
 	if delErr := s.attachments.Delete(ctx, id); delErr != nil {
 		return delErr
+	}
+
+	if recordErr := s.tasksSvc.RecordAttachmentRemoved(
+		ctx, attachment.TaskID, user.ID, attachment.FileName,
+	); recordErr != nil {
+		s.logger.Warn("failed to record attachment removal in task history",
+			zap.Int64("task_id", attachment.TaskID),
+			zap.String("file_name", attachment.FileName),
+			zap.Error(recordErr),
+		)
 	}
 
 	if delErr := s.storageSvc.Delete(ctx, attachment.StorageKey); delErr != nil {

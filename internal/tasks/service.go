@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/bit-issues/backend/internal/projects"
 	"go.uber.org/zap"
@@ -115,6 +116,33 @@ func (s *Service) ListHistory(
 	limit, offset int,
 ) ([]TaskHistoryEntry, int, error) {
 	return s.tasks.ListHistory(ctx, taskID, limit, offset)
+}
+
+// RecordAttachmentAdded appends an attachment-added entry to the task history
+// so a confirmed upload shows up in the activity feed.
+func (s *Service) RecordAttachmentAdded(ctx context.Context, taskID, actorID int64, fileName string) error {
+	return s.recordAttachmentEvent(ctx, taskID, actorID, HistoryActionAttachmentAdded, fileName)
+}
+
+// RecordAttachmentRemoved appends an attachment-removed entry to the task
+// history so a deletion shows up in the activity feed.
+func (s *Service) RecordAttachmentRemoved(ctx context.Context, taskID, actorID int64, fileName string) error {
+	return s.recordAttachmentEvent(ctx, taskID, actorID, HistoryActionAttachmentRemoved, fileName)
+}
+
+func (s *Service) recordAttachmentEvent(
+	ctx context.Context,
+	taskID, actorID int64,
+	action HistoryAction,
+	fileName string,
+) error {
+	return s.tasks.recordHistory(ctx, newHistoryModel(
+		taskID,
+		actorID,
+		action,
+		[]FieldChange{attachmentChange(action, fileName)},
+		time.Now(),
+	))
 }
 
 // Delete soft-deletes a task.
