@@ -63,7 +63,7 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list comments: %w", err)
 	}
 
-	historyList, historyTotal, err := h.historySvc.List(c.Context(), task.ID, window, 0)
+	historyList, historyTotal, err := h.historySvc.List(c.Context(), history.SubjectTask, task.ID, window, 0)
 	if err != nil {
 		return fmt.Errorf("failed to list task history: %w", err)
 	}

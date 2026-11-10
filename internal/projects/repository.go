@@ -145,17 +145,36 @@ func (r *Repository) Update(ctx context.Context, slug string, update ProjectUpda
 // tasks, comments, and attachments will be automatically deleted.
 // Returns ErrNotFound if the project does not exist.
 func (r *Repository) Delete(ctx context.Context, slug string) error {
-	result, err := r.db.NewDelete().Model((*projectModel)(nil)).Where("id = ?", slug).Exec(ctx)
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		// History rows reference tasks polymorphically (no FK cascade), so drop
+		// them for the project's tasks - including soft-deleted ones - before
+		// the project delete cascades the tasks away. The subject vocabulary
+		// mirrors history.SubjectTask in the history module.
+		if _, histErr := tx.NewDelete().
+			Table("history").
+			Where("subject_type = 'task'").
+			Where("subject_id IN (SELECT id FROM tasks WHERE project_slug = ?)", slug).
+			Exec(ctx); histErr != nil {
+			return fmt.Errorf("failed to delete task history: %w", histErr)
+		}
+
+		result, delErr := tx.NewDelete().Model((*projectModel)(nil)).Where("id = ?", slug).Exec(ctx)
+		if delErr != nil {
+			return fmt.Errorf("failed to delete project row: %w", delErr)
+		}
+
+		rows, rowsErr := result.RowsAffected()
+		if rowsErr != nil {
+			return fmt.Errorf("failed to get affected rows: %w", rowsErr)
+		}
+		if rows == 0 {
+			return ErrNotFound
+		}
+
+		return nil
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete project: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-	if rows == 0 {
-		return ErrNotFound
 	}
 
 	return nil

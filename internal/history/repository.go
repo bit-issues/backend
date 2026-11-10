@@ -20,7 +20,14 @@ func NewRepository(db *bun.DB) *Repository {
 // RecordWithin appends an entry using the caller's transaction so a
 // cross-module use case can commit the event together with its trigger.
 func (r *Repository) RecordWithin(ctx context.Context, idb bun.IDB, entry Entry) error {
-	model := newHistoryModel(entry.TaskID, entry.ActorID, entry.Action, entry.Changes, entry.CreatedAt)
+	model := newHistoryModel(
+		entry.SubjectType,
+		entry.SubjectID,
+		entry.ActorID,
+		entry.Action,
+		entry.Changes,
+		entry.CreatedAt,
+	)
 	if _, err := idb.NewInsert().Model(model).Exec(ctx); err != nil {
 		return fmt.Errorf("failed to insert history entry: %w", err)
 	}
@@ -28,10 +35,11 @@ func (r *Repository) RecordWithin(ctx context.Context, idb bun.IDB, entry Entry)
 	return nil
 }
 
-// List retrieves history entries for a task newest-first.
+// List retrieves history entries for a subject newest-first.
 func (r *Repository) List(
 	ctx context.Context,
-	taskID int64,
+	subjectType SubjectType,
+	subjectID int64,
 	limit, offset int,
 ) ([]Entry, int, error) {
 	if limit <= 0 {
@@ -44,7 +52,8 @@ func (r *Repository) List(
 	models := make([]historyModel, 0)
 	query := r.db.NewSelect().
 		Model(&models).
-		Where("task_id = ?", taskID).
+		Where("subject_type = ?", subjectType).
+		Where("subject_id = ?", subjectID).
 		OrderExpr("created_at DESC").
 		OrderExpr("id DESC").
 		Limit(limit).

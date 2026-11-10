@@ -15,11 +15,12 @@ func NewService(history *Repository) *Service {
 	return &Service{history: history}
 }
 
-// List retrieves history entries for a task newest-first.
+// List retrieves history entries for a subject newest-first.
 func (s *Service) List(
 	ctx context.Context,
-	taskID int64,
+	subjectType SubjectType,
+	subjectID int64,
 	limit, offset int,
 ) ([]Entry, int, error) {
-	return s.history.List(ctx, taskID, limit, offset)
+	return s.history.List(ctx, subjectType, subjectID, limit, offset)
 }

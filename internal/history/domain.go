@@ -28,6 +28,14 @@ const (
 	FieldAttachment  = "attachment"
 )
 
+// SubjectType identifies what a history entry is about.
+type SubjectType string
+
+const (
+	// SubjectTask marks entries about a task.
+	SubjectTask SubjectType = "task"
+)
+
 // FieldChange is a single field-level change carried by a history entry.
 type FieldChange struct {
 	Field    string  `json:"field"`
@@ -35,14 +43,15 @@ type FieldChange struct {
 	NewValue *string `json:"new_value"`
 }
 
-// Entry is one append-only activity event about a task.
+// Entry is one append-only activity event about a subject.
 type Entry struct {
-	ID        int64
-	TaskID    int64
-	ActorID   int64
-	Action    Action
-	Changes   []FieldChange
-	CreatedAt time.Time
+	ID          int64
+	SubjectType SubjectType
+	SubjectID   int64
+	ActorID     int64
+	Action      Action
+	Changes     []FieldChange
+	CreatedAt   time.Time
 }
 
 // NewStringChange builds a field change whose old and new values are strings.
@@ -68,24 +77,26 @@ func NewOptionalChange(field string, oldValue, newValue *string) FieldChange {
 // NewCreatedEntry builds the entry recording a task creation.
 func NewCreatedEntry(taskID, actorID int64, createdAt time.Time) Entry {
 	return Entry{
-		ID:        0,
-		TaskID:    taskID,
-		ActorID:   actorID,
-		Action:    ActionCreated,
-		Changes:   nil,
-		CreatedAt: createdAt,
+		ID:          0,
+		SubjectType: SubjectTask,
+		SubjectID:   taskID,
+		ActorID:     actorID,
+		Action:      ActionCreated,
+		Changes:     nil,
+		CreatedAt:   createdAt,
 	}
 }
 
 // NewUpdatedEntry builds the entry recording applied field changes.
 func NewUpdatedEntry(taskID, actorID int64, changes []FieldChange, createdAt time.Time) Entry {
 	return Entry{
-		ID:        0,
-		TaskID:    taskID,
-		ActorID:   actorID,
-		Action:    ActionUpdated,
-		Changes:   changes,
-		CreatedAt: createdAt,
+		ID:          0,
+		SubjectType: SubjectTask,
+		SubjectID:   taskID,
+		ActorID:     actorID,
+		Action:      ActionUpdated,
+		Changes:     changes,
+		CreatedAt:   createdAt,
 	}
 }
 
@@ -93,12 +104,13 @@ func NewUpdatedEntry(taskID, actorID int64, changes []FieldChange, createdAt tim
 // file name lands in NewValue, mirroring before/after state semantics.
 func NewAttachmentAddedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
 	return Entry{
-		ID:        0,
-		TaskID:    taskID,
-		ActorID:   actorID,
-		Action:    ActionAttachmentAdded,
-		Changes:   []FieldChange{newAttachmentChange(ActionAttachmentAdded, fileName)},
-		CreatedAt: createdAt,
+		ID:          0,
+		SubjectType: SubjectTask,
+		SubjectID:   taskID,
+		ActorID:     actorID,
+		Action:      ActionAttachmentAdded,
+		Changes:     []FieldChange{newAttachmentChange(ActionAttachmentAdded, fileName)},
+		CreatedAt:   createdAt,
 	}
 }
 
@@ -106,12 +118,13 @@ func NewAttachmentAddedEntry(taskID, actorID int64, fileName string, createdAt t
 // name lands in OldValue, mirroring before/after state semantics.
 func NewAttachmentRemovedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
 	return Entry{
-		ID:        0,
-		TaskID:    taskID,
-		ActorID:   actorID,
-		Action:    ActionAttachmentRemoved,
-		Changes:   []FieldChange{newAttachmentChange(ActionAttachmentRemoved, fileName)},
-		CreatedAt: createdAt,
+		ID:          0,
+		SubjectType: SubjectTask,
+		SubjectID:   taskID,
+		ActorID:     actorID,
+		Action:      ActionAttachmentRemoved,
+		Changes:     []FieldChange{newAttachmentChange(ActionAttachmentRemoved, fileName)},
+		CreatedAt:   createdAt,
 	}
 }
 
