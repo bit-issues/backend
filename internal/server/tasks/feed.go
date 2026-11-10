@@ -10,6 +10,10 @@ import (
 
 type feedEntryKind string
 
+// maxFeedWindow bounds offset+limit so a single feed request cannot force the
+// comment and history queries to load an unbounded window.
+const maxFeedWindow = 5000
+
 const (
 	feedEntryKindComment feedEntryKind = "comment"
 	feedEntryKindHistory feedEntryKind = "history"
@@ -84,6 +88,16 @@ func compareFeedEntries(a, b feedEntry) int {
 	}
 
 	return 0
+}
+
+// feedWindow returns the merged-feed query window (offset+limit), reporting
+// false when it would exceed maxFeedWindow.
+func feedWindow(offset, limit int) (int, bool) {
+	if offset > maxFeedWindow-limit {
+		return 0, false
+	}
+
+	return offset + limit, true
 }
 
 func pageFeedEntries(entries []feedEntry, offset, limit int) []feedEntry {

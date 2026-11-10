@@ -20,8 +20,8 @@ import (
 //	@Security		BearerAuth
 //	@Param			slug	path		string	true	"Project slug"
 //	@Param			number	path		int		true	"Task number within project"
-//	@Param			limit	query		int		false	"Page limit (max 100)"	default(20)
-//	@Param			offset	query		int		false	"Page offset"			default(0)
+//	@Param			limit	query		int		false	"Page limit (max 100)"								default(20)
+//	@Param			offset	query		int		false	"Page offset (offset+limit must not exceed 5000)"	default(0)
 //	@Success		200		{object}	FeedResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
@@ -48,7 +48,11 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
-	window := query.Offset + query.Limit
+	window, ok := feedWindow(query.Offset, query.Limit)
+	if !ok {
+		return fiber.NewError(fiber.StatusBadRequest, "offset is too large")
+	}
+
 	commentList, commentTotal, err := h.commentsSvc.List(
 		c.Context(),
 		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},

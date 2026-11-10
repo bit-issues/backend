@@ -69,3 +69,34 @@ func TestFeedPagination(t *testing.T) {
 		t.Fatalf("expected empty page, got %#v", empty)
 	}
 }
+
+func TestFeedWindow(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		offset int
+		limit  int
+		want   int
+		wantOK bool
+	}{
+		{"first page", 0, 20, 20, true},
+		{"within bound", 4900, 100, 5000, true},
+		{"exactly at bound", 0, 5000, 5000, true},
+		{"one past bound", 1, 5000, 0, false},
+		{"huge offset", 1 << 40, 20, 0, false},
+		{"overflow offset", 9223372036854775807, 20, 0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, ok := servertasks.FeedWindowForTest(tt.offset, tt.limit)
+			if ok != tt.wantOK || got != tt.want {
+				t.Fatalf("feedWindow(%d, %d) = (%d, %v), want (%d, %v)",
+					tt.offset, tt.limit, got, ok, tt.want, tt.wantOK)
+			}
+		})
+	}
+}

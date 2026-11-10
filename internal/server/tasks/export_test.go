@@ -32,3 +32,8 @@ func FeedPageForTest(
 
 	return views
 }
+
+// FeedWindowForTest exposes feedWindow to the external test package.
+func FeedWindowForTest(offset, limit int) (int, bool) {
+	return feedWindow(offset, limit)
+}

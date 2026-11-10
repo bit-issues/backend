@@ -1712,7 +1712,7 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "default": 0,
-                        "description": "Page offset",
+                        "description": "Page offset (offset+limit must not exceed 5000)",
                         "name": "offset",
                         "in": "query"
                     }
