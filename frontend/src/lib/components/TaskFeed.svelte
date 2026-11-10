@@ -10,7 +10,7 @@
   import CommentForm from "$lib/components/CommentForm.svelte";
   import CommentItem from "$lib/components/CommentItem.svelte";
   import type { AutoLinkContext } from "$lib/autolink";
-  import type { FeedItem, HistoryChange } from "$lib/types/api";
+  import type { FeedItem, HistoryChange, HistoryEntry } from "$lib/types/api";
   import { toast } from "$lib/toast";
 
   const PAGE_SIZE = 20;
@@ -178,6 +178,22 @@
     return FIELD_LABELS[field] ?? field;
   }
 
+  function actionLabel(history: HistoryEntry): string {
+    if (history.action === "created") return "created this task";
+    if (history.action === "attachment_added") return "attached a file";
+    if (history.action === "attachment_removed") return "removed a file";
+    return "updated the task";
+  }
+
+  function isAttachmentAction(action: HistoryEntry["action"]): boolean {
+    return action === "attachment_added" || action === "attachment_removed";
+  }
+
+  function attachmentFileName(history: HistoryEntry): string {
+    const change = history.changes.find((c) => c.field === "attachment");
+    return change?.new_value ?? change?.old_value ?? "";
+  }
+
   function formatChangeValue(change: HistoryChange): string {
     const value = change.new_value;
     return formatValue(change.field, value);
@@ -244,11 +260,7 @@
                 <span class="font-medium text-foreground"
                   >{item.history.actor.name || "Unknown user"}</span
                 >
-                <span
-                  >{item.history.action === "created"
-                    ? "created this task"
-                    : "updated the task"}</span
-                >
+                <span>{actionLabel(item.history)}</span>
                 &middot;
                 <span>{formatDateTime(item.history.created_at)}</span>
               </div>
@@ -269,6 +281,10 @@
                     </li>
                   {/each}
                 </ul>
+              {:else if isAttachmentAction(item.history.action) && item.history.changes.length > 0}
+                <p class="break-words text-sm font-medium">
+                  {attachmentFileName(item.history)}
+                </p>
               {/if}
             </div>
           </div>

@@ -169,7 +169,7 @@ export interface HistoryChange {
 
 export interface HistoryEntry {
   id: number
-  action: 'created' | 'updated'
+  action: 'created' | 'updated' | 'attachment_added' | 'attachment_removed'
   actor: UserBrief
   changes: HistoryChange[]
   created_at: string
