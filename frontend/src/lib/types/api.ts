@@ -106,7 +106,6 @@ export interface Task {
 
 export interface TaskDetails extends Task {
   project: Project
-  comments: Comment[]
   attachments: Attachment[]
 }
 

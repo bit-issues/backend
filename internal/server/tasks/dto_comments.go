@@ -45,13 +45,3 @@ func toCommentResponse(comment *comments.Comment, usersMap map[int64]users.User)
 		UpdatedAt: comment.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
-
-// toCommentsList converts a list of comments to an API response.
-func toCommentsList(items []comments.Comment, usersMap map[int64]users.User) []CommentResponse {
-	comments := make([]CommentResponse, 0, len(items))
-	for _, item := range items {
-		comments = append(comments, toCommentResponse(&item, usersMap))
-	}
-
-	return comments
-}

@@ -3405,12 +3405,6 @@ const docTemplate = `{
                 "author": {
                     "$ref": "#/definitions/dto.UserBrief"
                 },
-                "comments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tasks.CommentResponse"
-                    }
-                },
                 "created_at": {
                     "type": "string"
                 },

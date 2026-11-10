@@ -373,7 +373,7 @@ DELETE {{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}
 Authorization: Bearer {{accessToken}}
 
 ###
-# Get task with comments (comments are included in task details)
+# Get task details (project and attachments are included)
 GET {{baseURL}}/tasks/{{taskId}}
 Authorization: Bearer {{accessToken}}
 
