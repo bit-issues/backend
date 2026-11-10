@@ -75,7 +75,7 @@ func (h *Handler) attachmentConfirmUpload(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	attachment, err := h.attachmentsSvc.ConfirmUpload(c.Context(), id, user.ID)
+	attachment, err := h.usecasesSvc.ConfirmAttachment(c.Context(), id, user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to confirm attachment upload: %w", err)
 	}
@@ -151,7 +151,7 @@ func (h *Handler) attachmentDelete(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	if delErr := h.attachmentsSvc.Delete(c.Context(), user, id); delErr != nil {
+	if delErr := h.usecasesSvc.DeleteAttachment(c.Context(), user, id); delErr != nil {
 		return fmt.Errorf("failed to delete attachment: %w", delErr)
 	}
 

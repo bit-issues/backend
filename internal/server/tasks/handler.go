@@ -9,10 +9,12 @@ import (
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/usecases"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/validation"
@@ -26,6 +28,8 @@ type Handler struct {
 	handler.Base
 
 	tasksSvc       *tasks.Service
+	historySvc     *history.Service
+	usecasesSvc    *usecases.Service
 	commentsSvc    *comments.Service
 	attachmentsSvc *attachments.Service
 	usersSvc       *users.Service
@@ -37,6 +41,8 @@ type Handler struct {
 // NewHandler creates a new Handler instance with the given dependencies.
 func NewHandler(
 	tasksSvc *tasks.Service,
+	historySvc *history.Service,
+	usecasesSvc *usecases.Service,
 	commentsSvc *comments.Service,
 	attachmentsSvc *attachments.Service,
 	usersSvc *users.Service,
@@ -48,6 +54,8 @@ func NewHandler(
 		Base: handler.Base{Validator: validate},
 
 		tasksSvc:       tasksSvc,
+		historySvc:     historySvc,
+		usecasesSvc:    usecasesSvc,
 		commentsSvc:    commentsSvc,
 		attachmentsSvc: attachmentsSvc,
 		usersSvc:       usersSvc,
@@ -232,8 +240,8 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 	// Convert DTO to domain input
 	input := req.toTaskInput(user.ID)
 
-	// Create task via service
-	task, err := h.tasksSvc.Create(c.Context(), input)
+	// Create task via the use case (task + created history entry, one tx)
+	task, err := h.usecasesSvc.CreateTask(c.Context(), input)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %w", err)
 	}
@@ -275,8 +283,8 @@ func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
 	// Convert DTO to domain update
 	update := req.toTaskUpdate()
 
-	// Update task via service
-	task, err := h.tasksSvc.Update(c.Context(), id, update, user.ID)
+	// Apply the task update via the use case (task + updated history entry, one tx)
+	task, err := h.usecasesSvc.UpdateTask(c.Context(), id, update, user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update task: %w", err)
 	}

@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/server/dto"
-	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 )
 
@@ -30,7 +30,7 @@ type HistoryEntryResponse struct {
 }
 
 func toHistoryEntryResponse(
-	entry *tasks.TaskHistoryEntry,
+	entry *history.Entry,
 	usersMap map[int64]users.User,
 ) HistoryEntryResponse {
 	changes := make([]HistoryChangeResponse, 0, len(entry.Changes))
@@ -60,7 +60,7 @@ func resolveHistoryValue(
 		return nil
 	}
 
-	if field == tasks.HistoryFieldAssignee {
+	if field == history.FieldAssignee {
 		id, err := strconv.ParseInt(*value, 10, 64)
 		if err == nil {
 			if user, ok := usersMap[id]; ok {

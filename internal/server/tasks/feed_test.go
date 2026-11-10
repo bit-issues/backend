@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/history"
 	servertasks "github.com/bit-issues/backend/internal/server/tasks"
-	"github.com/bit-issues/backend/internal/tasks"
 )
 
 func TestFeedMergeOrder(t *testing.T) {
@@ -19,7 +19,7 @@ func TestFeedMergeOrder(t *testing.T) {
 		{ID: 11, CreatedAt: base.Add(2 * time.Hour)},
 		{ID: 12, CreatedAt: base},
 	}
-	historyList := []tasks.TaskHistoryEntry{
+	historyList := []history.Entry{
 		{ID: 20, CreatedAt: base.Add(time.Hour)},
 		{ID: 21, CreatedAt: base.Add(2 * time.Hour)},
 		{ID: 22, CreatedAt: base},
@@ -48,7 +48,7 @@ func TestFeedPagination(t *testing.T) {
 		{ID: 10, CreatedAt: base},
 		{ID: 11, CreatedAt: base.Add(2 * time.Hour)},
 	}
-	historyList := []tasks.TaskHistoryEntry{
+	historyList := []history.Entry{
 		{ID: 20, CreatedAt: base.Add(time.Hour)},
 	}
 

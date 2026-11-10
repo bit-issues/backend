@@ -9,9 +9,11 @@ import (
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/usecases"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/pkg/miniofx"
 	"github.com/go-core-fx/bunfx"
@@ -60,8 +62,10 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		users.Module(),
 		projects.Module(),
 		tasks.Module(),
+		history.Module(),
 		attachments.Module(),
 		comments.Module(),
+		usecases.Module(),
 
 		fx.Supply(parseConfig(cmd)),
 

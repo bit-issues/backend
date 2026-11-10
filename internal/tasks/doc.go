@@ -13,9 +13,10 @@
 //   - Service layer (service.go): Business logic and coordination
 //
 // Integration:
-//   - Depends on projects.Service for project existence validation
+//   - Mutations that record history live in the use-case layer (internal/usecases),
+//     which drives tasks.Repository inside its own transactions
 //   - Uses bun.DB for MySQL persistence
-//   - Provides tasks.Service for HTTP handlers
+//   - Provides tasks.Service (reads, soft delete) for HTTP handlers
 //
 // Example usage:
 //

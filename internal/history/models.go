@@ -1,4 +1,4 @@
-package tasks
+package history
 
 import (
 	"time"
@@ -13,14 +13,14 @@ type historyModel struct {
 	ID        int64         `bun:"id,pk,autoincrement"`
 	TaskID    int64         `bun:"task_id,notnull"`
 	ActorID   int64         `bun:"actor_id,notnull"`
-	Action    HistoryAction `bun:"action,notnull"`
+	Action    Action        `bun:"action,notnull"`
 	Changes   []FieldChange `bun:"type:json,notnull"`
 	CreatedAt time.Time     `bun:"created_at,notnull"`
 }
 
 func newHistoryModel(
 	taskID, actorID int64,
-	action HistoryAction,
+	action Action,
 	changes []FieldChange,
 	createdAt time.Time,
 ) *historyModel {
@@ -38,7 +38,7 @@ func newHistoryModel(
 	}
 }
 
-func (m *historyModel) toDomain() *TaskHistoryEntry {
+func (m *historyModel) toDomain() *Entry {
 	if m == nil {
 		return nil
 	}
@@ -46,7 +46,7 @@ func (m *historyModel) toDomain() *TaskHistoryEntry {
 	changes := make([]FieldChange, len(m.Changes))
 	copy(changes, m.Changes)
 
-	return &TaskHistoryEntry{
+	return &Entry{
 		ID:        m.ID,
 		TaskID:    m.TaskID,
 		ActorID:   m.ActorID,

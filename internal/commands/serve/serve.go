@@ -9,12 +9,14 @@ import (
 	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/usecases"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
@@ -83,10 +85,12 @@ func run(ctx context.Context, version healthfx.Version) error {
 		attachments.Module(),
 		comments.Module(),
 		commitref.Module(),
+		history.Module(),
 		jwt.Module(),
 		oauth.Module(),
 		projects.Module(),
 		tasks.Module(),
+		usecases.Module(),
 		users.Module(),
 		webauthn.Module(),
 		webhooks.Module(),

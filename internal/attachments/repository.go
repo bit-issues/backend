@@ -69,8 +69,10 @@ func (r *Repository) ListByTask(ctx context.Context, taskID int64) ([]Attachment
 	return result, nil
 }
 
-func (r *Repository) Confirm(ctx context.Context, id int64) error {
-	_, err := r.db.NewUpdate().
+// ConfirmWithin marks an attachment uploaded inside the caller's transaction,
+// so a use case can commit it together with its history entry atomically.
+func (r *Repository) ConfirmWithin(ctx context.Context, idb bun.IDB, id int64) error {
+	_, err := idb.NewUpdate().
 		Model((*attachmentModel)(nil)).
 		Set("status = ?", StatusUploaded).
 		Where("id = ?", id).
@@ -82,8 +84,9 @@ func (r *Repository) Confirm(ctx context.Context, id int64) error {
 	return nil
 }
 
-func (r *Repository) Delete(ctx context.Context, id int64) error {
-	if _, err := r.db.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx); err != nil {
+// DeleteWithin removes an attachment row inside the caller's transaction.
+func (r *Repository) DeleteWithin(ctx context.Context, idb bun.IDB, id int64) error {
+	if _, err := idb.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx); err != nil {
 		return fmt.Errorf("failed to delete attachment: %w", err)
 	}
 

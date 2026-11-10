@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/tasks"
 )
 
@@ -30,18 +31,18 @@ func TestDiffTaskAllFields(t *testing.T) {
 	}
 
 	got := tasks.DiffTaskForTest(current, update)
-	want := []tasks.FieldChange{
-		{Field: tasks.HistoryFieldTitle, OldValue: ptr("Old title"), NewValue: ptr("New title")},
+	want := []history.FieldChange{
+		{Field: history.FieldTitle, OldValue: ptr("Old title"), NewValue: ptr("New title")},
 		{
-			Field:    tasks.HistoryFieldDescription,
+			Field:    history.FieldDescription,
 			OldValue: ptr("Old description"),
 			NewValue: ptr("New description"),
 		},
-		{Field: tasks.HistoryFieldPriority, OldValue: ptr("Major"), NewValue: ptr("Critical")},
-		{Field: tasks.HistoryFieldStatus, OldValue: ptr("New"), NewValue: ptr("In Progress")},
-		{Field: tasks.HistoryFieldKind, OldValue: ptr("Bug"), NewValue: ptr("Task")},
-		{Field: tasks.HistoryFieldAssignee, OldValue: ptr("7"), NewValue: ptr("8")},
-		{Field: tasks.HistoryFieldDueDate, OldValue: ptr("2026-11-01"), NewValue: ptr("2026-12-31")},
+		{Field: history.FieldPriority, OldValue: ptr("Major"), NewValue: ptr("Critical")},
+		{Field: history.FieldStatus, OldValue: ptr("New"), NewValue: ptr("In Progress")},
+		{Field: history.FieldKind, OldValue: ptr("Bug"), NewValue: ptr("Task")},
+		{Field: history.FieldAssignee, OldValue: ptr("7"), NewValue: ptr("8")},
+		{Field: history.FieldDueDate, OldValue: ptr("2026-11-01"), NewValue: ptr("2026-12-31")},
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -90,9 +91,9 @@ func TestDiffTaskClearsOptionalFields(t *testing.T) {
 	}
 
 	got := tasks.DiffTaskForTest(current, update)
-	want := []tasks.FieldChange{
-		{Field: tasks.HistoryFieldAssignee, OldValue: ptr("7"), NewValue: nil},
-		{Field: tasks.HistoryFieldDueDate, OldValue: ptr("2026-11-01"), NewValue: nil},
+	want := []history.FieldChange{
+		{Field: history.FieldAssignee, OldValue: ptr("7"), NewValue: nil},
+		{Field: history.FieldDueDate, OldValue: ptr("2026-11-01"), NewValue: nil},
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -110,37 +111,13 @@ func TestDiffTaskSetsOptionalFields(t *testing.T) {
 	}
 
 	got := tasks.DiffTaskForTest(current, update)
-	want := []tasks.FieldChange{
-		{Field: tasks.HistoryFieldAssignee, OldValue: nil, NewValue: ptr("9")},
-		{Field: tasks.HistoryFieldDueDate, OldValue: nil, NewValue: ptr("2026-12-31")},
+	want := []history.FieldChange{
+		{Field: history.FieldAssignee, OldValue: nil, NewValue: ptr("9")},
+		{Field: history.FieldDueDate, OldValue: nil, NewValue: ptr("2026-12-31")},
 	}
 
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("diff mismatch\n got: %#v\nwant: %#v", got, want)
-	}
-}
-
-func TestAttachmentChange(t *testing.T) {
-	t.Parallel()
-
-	added := tasks.AttachmentChangeForTest(tasks.HistoryActionAttachmentAdded, "log.txt")
-	wantAdded := tasks.FieldChange{
-		Field:    tasks.HistoryFieldAttachment,
-		OldValue: nil,
-		NewValue: ptr("log.txt"),
-	}
-	if !reflect.DeepEqual(added, wantAdded) {
-		t.Errorf("attachmentChange(added) mismatch\n got: %#v\nwant: %#v", added, wantAdded)
-	}
-
-	removed := tasks.AttachmentChangeForTest(tasks.HistoryActionAttachmentRemoved, "log.txt")
-	wantRemoved := tasks.FieldChange{
-		Field:    tasks.HistoryFieldAttachment,
-		OldValue: ptr("log.txt"),
-		NewValue: nil,
-	}
-	if !reflect.DeepEqual(removed, wantRemoved) {
-		t.Errorf("attachmentChange(removed) mismatch\n got: %#v\nwant: %#v", removed, wantRemoved)
 	}
 }
 

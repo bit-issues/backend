@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/bit-issues/backend/internal/comments"
-	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/history"
 )
 
 type feedEntryKind string
@@ -24,7 +24,7 @@ type feedEntry struct {
 	ID        int64
 	CreatedAt time.Time
 	Comment   *comments.Comment
-	History   *tasks.TaskHistoryEntry
+	History   *history.Entry
 }
 
 func newCommentFeedEntry(comment *comments.Comment) feedEntry {
@@ -37,19 +37,19 @@ func newCommentFeedEntry(comment *comments.Comment) feedEntry {
 	}
 }
 
-func newHistoryFeedEntry(history *tasks.TaskHistoryEntry) feedEntry {
+func newHistoryFeedEntry(entry *history.Entry) feedEntry {
 	return feedEntry{
 		Kind:      feedEntryKindHistory,
-		ID:        history.ID,
-		CreatedAt: history.CreatedAt,
+		ID:        entry.ID,
+		CreatedAt: entry.CreatedAt,
 		Comment:   nil,
-		History:   history,
+		History:   entry,
 	}
 }
 
 func mergeFeedEntries(
 	commentList []comments.Comment,
-	historyList []tasks.TaskHistoryEntry,
+	historyList []history.Entry,
 ) []feedEntry {
 	entries := make([]feedEntry, 0, len(commentList)+len(historyList))
 

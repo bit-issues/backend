@@ -9,13 +9,14 @@ import (
 //
 // The module provides:
 //   - tasks.Service (public) - for use by HTTP handlers and other modules
-//   - tasks.Repository (private) - internal data access layer
+//   - tasks.Repository (public) - consumed by the use-case layer, which
+//     performs task mutations inside its own cross-module transactions
 //   - Named logger "tasks" for structured logging
 func Module() fx.Option {
 	return fx.Module(
 		"tasks",
 		logger.WithNamedLogger("tasks"),
-		fx.Provide(NewRepository, fx.Private),
+		fx.Provide(NewRepository),
 		fx.Provide(NewService),
 	)
 }

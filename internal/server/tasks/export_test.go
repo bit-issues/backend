@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/bit-issues/backend/internal/comments"
-	"github.com/bit-issues/backend/internal/tasks"
+	"github.com/bit-issues/backend/internal/history"
 )
 
 // FeedEntryView is a test-only projection of a feed entry.
@@ -17,7 +17,7 @@ type FeedEntryView struct {
 // FeedPageForTest exposes mergeFeedEntries and pageFeedEntries to the external test package.
 func FeedPageForTest(
 	commentList []comments.Comment,
-	historyList []tasks.TaskHistoryEntry,
+	historyList []history.Entry,
 	offset, limit int,
 ) []FeedEntryView {
 	entries := pageFeedEntries(mergeFeedEntries(commentList, historyList), offset, limit)
