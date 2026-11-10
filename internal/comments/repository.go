@@ -56,49 +56,27 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Comment, error) {
 	return model.toDomain(), nil
 }
 
-// List retrieves all comments for a specific task.
-func (r *Repository) List(ctx context.Context, taskID int64) ([]Comment, error) {
-	models := make([]commentModel, 0)
-
-	query := r.db.NewSelect().Model(&models).Where("task_id = ?", taskID)
-
-	if err := query.OrderExpr("created_at ASC").Scan(ctx); err != nil {
-		return nil, fmt.Errorf("failed to list comments by task: %w", err)
-	}
-
-	comments := make([]Comment, 0, len(models))
-	for _, model := range models {
-		comments = append(comments, *model.toDomain())
-	}
-
-	return comments, nil
-}
-
-// ListPage retrieves paginated comments for a specific task, newest-first.
-func (r *Repository) ListPage(
+// List retrieves comments with filtering, sorting, and pagination.
+// A nil pagination returns all matching comments.
+func (r *Repository) List(
 	ctx context.Context,
-	taskID int64,
-	limit, offset int,
+	filter CommentFilter,
+	sort SortOrder,
+	pagination *Pagination,
 ) ([]Comment, int, error) {
-	if limit <= 0 {
-		limit = DefaultLimit
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
 	models := make([]commentModel, 0)
-	query := r.db.NewSelect().
-		Model(&models).
-		Where("task_id = ?", taskID).
-		OrderExpr("created_at DESC").
-		OrderExpr("id DESC").
-		Limit(limit).
-		Offset(offset)
+	query := r.db.NewSelect().Model(&models)
+
+	query = filter.apply(query)
+	query = sort.apply(query)
+
+	if pagination != nil {
+		query = pagination.Apply(query)
+	}
 
 	total, err := query.ScanAndCount(ctx, &models)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to list comments by task: %w", err)
+		return nil, 0, fmt.Errorf("failed to list comments: %w", err)
 	}
 
 	comments := make([]Comment, 0, len(models))

@@ -428,7 +428,12 @@ func (h *Handler) prepareDetailsResponse(
 	ctx context.Context,
 	task *tasks.Task,
 ) (*TaskDetailsResponse, error) {
-	comments, err := h.commentsSvc.ListByTask(ctx, task.ID)
+	commentsList, _, err := h.commentsSvc.List(
+		ctx,
+		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
+		comments.SortOrderCreatedAtAsc,
+		nil,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get comments: %w", err)
 	}
@@ -439,7 +444,7 @@ func (h *Handler) prepareDetailsResponse(
 	}
 
 	// Fetch users for author and assignee enrichment
-	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task}, comments)
+	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task}, commentsList)
 	if err != nil {
 		return nil, err
 	}
@@ -453,7 +458,7 @@ func (h *Handler) prepareDetailsResponse(
 		projectResp = dto.ToProject(proj)
 	}
 
-	return newTaskDetailsResponse(task, usersMap, comments, attachmentList, projectResp), nil
+	return newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.

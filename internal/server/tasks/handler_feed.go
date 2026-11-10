@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/gofiber/fiber/v2"
@@ -48,7 +49,12 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 	}
 
 	window := query.Offset + query.Limit
-	commentList, commentTotal, err := h.commentsSvc.ListByTaskPage(c.Context(), task.ID, window, 0)
+	commentList, commentTotal, err := h.commentsSvc.List(
+		c.Context(),
+		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
+		comments.SortOrderDefault,
+		comments.NewPagination(window, 0),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to list comments: %w", err)
 	}

@@ -20,8 +20,12 @@
 //
 // List comments for a task:
 //
-//	pagination := &db.Pagination{}
-//	comments, err := svc.ListByTask(ctx, taskID, pagination)
+//	comments, total, err := svc.List(
+//	    ctx,
+//	    comments.CommentFilter{TaskID: &taskID, AuthorID: nil},
+//	    comments.SortOrderCreatedAtAsc,
+//	    comments.NewPagination(20, 0),
+//	)
 //
 // Update a comment:
 //
