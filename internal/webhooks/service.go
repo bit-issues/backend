@@ -13,7 +13,6 @@ import (
 	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/tasks"
-	"github.com/bit-issues/backend/internal/usecases"
 	"github.com/bit-issues/backend/internal/users"
 	"go.uber.org/zap"
 )
@@ -24,7 +23,6 @@ type Service struct {
 
 	projectsSvc  *projects.Service
 	tasksSvc     *tasks.Service
-	usecasesSvc  *usecases.Service
 	commentsSvc  *comments.Service
 	usersSvc     *users.Service
 	commitrefSvc *commitref.Service
@@ -37,7 +35,6 @@ func NewService(
 	commitrefSvc *commitref.Service,
 	projectsSvc *projects.Service,
 	tasksSvc *tasks.Service,
-	usecasesSvc *usecases.Service,
 	commentsSvc *comments.Service,
 	usersSvc *users.Service,
 	logger *zap.Logger,
@@ -48,7 +45,6 @@ func NewService(
 
 		projectsSvc:  projectsSvc,
 		tasksSvc:     tasksSvc,
-		usecasesSvc:  usecasesSvc,
 		commentsSvc:  commentsSvc,
 		usersSvc:     usersSvc,
 		commitrefSvc: commitrefSvc,
@@ -292,7 +288,7 @@ func (s *Service) applyStatusTransition(
 		AssigneeID:  nil,
 		DueDate:     nil,
 	}
-	if _, err := s.usecasesSvc.UpdateTask(ctx, task.ID, update, s.botUserID); err != nil {
+	if _, err := s.tasksSvc.Update(ctx, task.ID, update, s.botUserID); err != nil {
 		s.logger.Error("failed to update task status",
 			zap.Int64("task_id", task.ID),
 			zap.Int("number", ref.TaskNumber),

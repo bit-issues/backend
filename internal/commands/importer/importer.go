@@ -13,7 +13,6 @@ import (
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/tasks"
-	"github.com/bit-issues/backend/internal/usecases"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/pkg/bitbucket"
 	"go.uber.org/fx"
@@ -22,7 +21,7 @@ import (
 
 type importer struct {
 	config         Config
-	usecasesSvc    *usecases.Service
+	tasksSvc       *tasks.Service
 	commentsSvc    *comments.Service
 	usersSvc       *users.Service
 	attachmentsSvc *attachments.Service
@@ -33,7 +32,7 @@ type importer struct {
 
 func newImporter(
 	config Config,
-	usecasesSvc *usecases.Service,
+	tasksSvc *tasks.Service,
 	commentsSvc *comments.Service,
 	usersSvc *users.Service,
 	attachmentsSvc *attachments.Service,
@@ -42,7 +41,7 @@ func newImporter(
 ) *importer {
 	return &importer{
 		config:         config,
-		usecasesSvc:    usecasesSvc,
+		tasksSvc:       tasksSvc,
 		commentsSvc:    commentsSvc,
 		usersSvc:       usersSvc,
 		attachmentsSvc: attachmentsSvc,
@@ -121,7 +120,7 @@ func (i *importer) importIssues(
 			continue
 		}
 
-		task, importErr := i.importIssue(ctx, i.usecasesSvc, i.config.ProjectSlug, defaultUser, &issue)
+		task, importErr := i.importIssue(ctx, i.tasksSvc, i.config.ProjectSlug, defaultUser, &issue)
 		if importErr != nil {
 			result.IssuesSkipped++
 			logger.Warn("Failed to import issue", zap.Int("issueID", issue.ID), zap.Error(importErr))
@@ -233,7 +232,7 @@ func (i *importer) importAttachments(
 // importIssue imports a single issue.
 func (i *importer) importIssue(
 	ctx context.Context,
-	usecasesSvc *usecases.Service,
+	tasksSvc *tasks.Service,
 	projectSlug string,
 	author *users.User,
 	issue *bitbucket.Issue,
@@ -267,7 +266,7 @@ func (i *importer) importIssue(
 
 	// Import task
 	var err error
-	if task, err = usecasesSvc.ImportTask(ctx, *task); err != nil {
+	if task, err = tasksSvc.Import(ctx, *task); err != nil {
 		return nil, fmt.Errorf("failed to import task: %w", err)
 	}
 

@@ -103,7 +103,6 @@ main.go
         │     └── Fx container
         │           ├── Core (logger, db, storage, validator, health)
         │           ├── Server (handlers, middlewares, routes, swagger)
-        │           ├── Use cases (atomic cross-module flows: tasks + history, attachments + history)
         │           └── Domains (users, projects, tasks, history, comments, attachments, webauthn)
         └── import command      # Bitbucket import CLI
 ```

@@ -16,7 +16,6 @@ import (
 	"github.com/bit-issues/backend/internal/server"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
-	"github.com/bit-issues/backend/internal/usecases"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/internal/webauthn"
 	"github.com/bit-issues/backend/internal/webhooks"
@@ -90,7 +89,6 @@ func run(ctx context.Context, version healthfx.Version) error {
 		oauth.Module(),
 		projects.Module(),
 		tasks.Module(),
-		usecases.Module(),
 		users.Module(),
 		webauthn.Module(),
 		webhooks.Module(),

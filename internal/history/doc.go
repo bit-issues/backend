@@ -3,13 +3,13 @@
 // entries written when a task is created.
 //
 // The module owns the event vocabulary (subject types, actions and field
-// names), the entry constructors, and the history table - a polymorphic,
-// append-only stream keyed by (subject_type, subject_id). Writes happen either
-// through the use-case layer, which passes its own transaction to
-// RecordWithin, or through reads via the Service.
+// names), the entry builders, and the history table - a polymorphic,
+// append-only stream keyed by (subject_type, subject_id). A writing module
+// starts its own transaction, writes its data, then passes the transaction to
+// a Service record method so event and trigger commit atomically.
 //
 // Integration:
-//   - Provides history.Service for HTTP handlers (feed composition)
-//   - Provides history.Repository for the use-case layer (cross-module tx)
+//   - Provides history.Service for HTTP handlers (feed composition) and for
+//     writing modules (RecordCreated/RecordUpdated/RecordAttachment*)
 //   - Depends on bun.DB for MySQL persistence
 package history

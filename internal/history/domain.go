@@ -74,8 +74,8 @@ func NewOptionalChange(field string, oldValue, newValue *string) FieldChange {
 	}
 }
 
-// NewCreatedEntry builds the entry recording a task creation.
-func NewCreatedEntry(taskID, actorID int64, createdAt time.Time) Entry {
+// newCreatedEntry builds the entry recording a task creation.
+func newCreatedEntry(taskID, actorID int64, createdAt time.Time) Entry {
 	return Entry{
 		ID:          0,
 		SubjectType: SubjectTask,
@@ -87,8 +87,8 @@ func NewCreatedEntry(taskID, actorID int64, createdAt time.Time) Entry {
 	}
 }
 
-// NewUpdatedEntry builds the entry recording applied field changes.
-func NewUpdatedEntry(taskID, actorID int64, changes []FieldChange, createdAt time.Time) Entry {
+// newUpdatedEntry builds the entry recording applied field changes.
+func newUpdatedEntry(taskID, actorID int64, changes []FieldChange, createdAt time.Time) Entry {
 	return Entry{
 		ID:          0,
 		SubjectType: SubjectTask,
@@ -100,9 +100,9 @@ func NewUpdatedEntry(taskID, actorID int64, changes []FieldChange, createdAt tim
 	}
 }
 
-// NewAttachmentAddedEntry builds the entry recording a confirmed upload; the
+// newAttachmentAddedEntry builds the entry recording a confirmed upload; the
 // file name lands in NewValue, mirroring before/after state semantics.
-func NewAttachmentAddedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
+func newAttachmentAddedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
 	return Entry{
 		ID:          0,
 		SubjectType: SubjectTask,
@@ -114,9 +114,9 @@ func NewAttachmentAddedEntry(taskID, actorID int64, fileName string, createdAt t
 	}
 }
 
-// NewAttachmentRemovedEntry builds the entry recording a deletion; the file
+// newAttachmentRemovedEntry builds the entry recording a deletion; the file
 // name lands in OldValue, mirroring before/after state semantics.
-func NewAttachmentRemovedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
+func newAttachmentRemovedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
 	return Entry{
 		ID:          0,
 		SubjectType: SubjectTask,

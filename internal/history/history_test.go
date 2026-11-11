@@ -12,7 +12,7 @@ func TestNewAttachmentAddedEntry(t *testing.T) {
 	t.Parallel()
 
 	at := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
-	got := history.NewAttachmentAddedEntry(7, 3, "log.txt", at)
+	got := history.NewAttachmentAddedEntryForTest(7, 3, "log.txt", at)
 
 	want := history.Entry{
 		SubjectType: history.SubjectTask,
@@ -31,7 +31,7 @@ func TestNewAttachmentRemovedEntry(t *testing.T) {
 	t.Parallel()
 
 	at := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
-	got := history.NewAttachmentRemovedEntry(7, 3, "log.txt", at)
+	got := history.NewAttachmentRemovedEntryForTest(7, 3, "log.txt", at)
 
 	want := history.Entry{
 		SubjectType: history.SubjectTask,
