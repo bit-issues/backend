@@ -2,12 +2,20 @@ package tasks
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/bit-issues/backend/internal/history"
-	"github.com/uptrace/bun"
+	"go.uber.org/zap"
 )
+
+// FieldChange is one field-level change derived at read time from recorded
+// value payloads. The Field* vocabulary above names the fields; history never
+// sees this type.
+type FieldChange struct {
+	Field    string  `json:"field"`
+	OldValue *string `json:"old_value"`
+	NewValue *string `json:"new_value"`
+}
 
 // SubjectTypeTask is the activity-history subject type written for task
 // events; history stores subject types as opaque strings and this module
@@ -27,43 +35,111 @@ const (
 	FieldDueDate     = "due_date"
 )
 
+func newStringChange(field, oldValue, newValue string) FieldChange {
+	oldCopy := oldValue
+	newCopy := newValue
+	return FieldChange{
+		Field:    field,
+		OldValue: &oldCopy,
+		NewValue: &newCopy,
+	}
+}
+
+func newOptionalChange(field string, oldValue, newValue *string) FieldChange {
+	return FieldChange{
+		Field:    field,
+		OldValue: oldValue,
+		NewValue: newValue,
+	}
+}
+
+// TaskPayload snapshots the tracked fields of a task as written values. The
+// keys mirror the Field* vocabulary so readers can derive changes by
+// comparing consecutive snapshots.
+func TaskPayload(task *Task) map[string]*string {
+	title := task.Title
+	description := task.Description
+	priority := string(task.Priority)
+	status := string(task.Status)
+	kind := string(task.Kind)
+
+	return map[string]*string{
+		FieldTitle:       &title,
+		FieldDescription: &description,
+		FieldPriority:    &priority,
+		FieldStatus:      &status,
+		FieldKind:        &kind,
+		FieldAssignee:    formatAssignee(task.AssigneeID),
+		FieldDueDate:     task.DueDate,
+	}
+}
+
+// DeriveChanges compares a newer payload against its next-older snapshot and
+// returns the fields that differ, in trackedFields order.
+func DeriveChanges(newer, older map[string]*string) []FieldChange {
+	// Derivation order doubles as wire order so renders stay deterministic.
+	trackedFields := []string{
+		FieldTitle,
+		FieldDescription,
+		FieldPriority,
+		FieldStatus,
+		FieldKind,
+		FieldAssignee,
+		FieldDueDate,
+	}
+	changes := make([]FieldChange, 0, len(trackedFields))
+
+	for _, field := range trackedFields {
+		newValue, ok := newer[field]
+		if !ok {
+			continue
+		}
+		oldValue := older[field]
+		if !optionalStringsEqual(oldValue, newValue) {
+			changes = append(changes, newOptionalChange(field, oldValue, newValue))
+		}
+	}
+
+	return changes
+}
+
 // diffTask computes the field-level changes between the current task state
 // and an update. An empty result means the update is a no-op.
-func diffTask(current *Task, update TaskUpdate) []history.FieldChange {
-	changes := make([]history.FieldChange, 0)
+func diffTask(current *Task, update TaskUpdate) []FieldChange {
+	changes := make([]FieldChange, 0)
 
 	if update.Title != nil && *update.Title != current.Title {
-		changes = append(changes, history.NewStringChange(FieldTitle, current.Title, *update.Title))
+		changes = append(changes, newStringChange(FieldTitle, current.Title, *update.Title))
 	}
 	if update.Description != nil && *update.Description != current.Description {
 		changes = append(
 			changes,
-			history.NewStringChange(FieldDescription, current.Description, *update.Description),
+			newStringChange(FieldDescription, current.Description, *update.Description),
 		)
 	}
 	if update.Priority != nil && *update.Priority != current.Priority {
 		changes = append(
 			changes,
-			history.NewStringChange(FieldPriority, string(current.Priority), string(*update.Priority)),
+			newStringChange(FieldPriority, string(current.Priority), string(*update.Priority)),
 		)
 	}
 	if update.Status != nil && *update.Status != current.Status {
 		changes = append(
 			changes,
-			history.NewStringChange(FieldStatus, string(current.Status), string(*update.Status)),
+			newStringChange(FieldStatus, string(current.Status), string(*update.Status)),
 		)
 	}
 	if update.Kind != nil && *update.Kind != current.Kind {
 		changes = append(
 			changes,
-			history.NewStringChange(FieldKind, string(current.Kind), string(*update.Kind)),
+			newStringChange(FieldKind, string(current.Kind), string(*update.Kind)),
 		)
 	}
 	if update.AssigneeID != nil {
 		currentAssignee := formatAssignee(current.AssigneeID)
 		newAssignee := formatAssignee(update.AssigneeID)
 		if !optionalStringsEqual(currentAssignee, newAssignee) {
-			changes = append(changes, history.NewOptionalChange(FieldAssignee, currentAssignee, newAssignee))
+			changes = append(changes, newOptionalChange(FieldAssignee, currentAssignee, newAssignee))
 		}
 	}
 	if update.DueDate != nil {
@@ -73,7 +149,7 @@ func diffTask(current *Task, update TaskUpdate) []history.FieldChange {
 			newDueDate = update.DueDate
 		}
 		if !optionalStringsEqual(currentDueDate, newDueDate) {
-			changes = append(changes, history.NewOptionalChange(FieldDueDate, currentDueDate, newDueDate))
+			changes = append(changes, newOptionalChange(FieldDueDate, currentDueDate, newDueDate))
 		}
 	}
 
@@ -96,36 +172,39 @@ func optionalStringsEqual(a, b *string) bool {
 	return *a == *b
 }
 
-// auditCreated is the repository audit callback recording a task creation
-// inside the mutation transaction.
-func (s *Service) auditCreated(ctx context.Context, tx bun.IDB, task *Task) error {
-	if recordErr := s.historySvc.Record(ctx, tx, history.EntryBase{
+// recordCreated best-effort appends the creation event after the task write
+// has committed; failures are logged, never surfaced - the task matters, the
+// feed does not.
+func (s *Service) recordCreated(ctx context.Context, task *Task) {
+	if err := s.historySvc.Record(ctx, history.EntryBase{
 		SubjectType: SubjectTypeTask,
 		SubjectID:   task.ID,
 		ActorID:     task.AuthorID,
 		Action:      history.ActionCreated,
-		Changes:     nil,
-	}); recordErr != nil {
-		return fmt.Errorf("failed to record history: %w", recordErr)
+		Payload:     TaskPayload(task),
+	}); err != nil {
+		s.logger.Warn("failed to record history entry",
+			zap.String("action", string(history.ActionCreated)),
+			zap.Int64("subject_id", task.ID),
+			zap.Error(err),
+		)
 	}
-
-	return nil
 }
 
-// auditUpdated returns the repository audit callback recording the applied
-// field changes inside the mutation transaction.
-func (s *Service) auditUpdated(actorID int64) func(context.Context, bun.IDB, *Task, []history.FieldChange) error {
-	return func(ctx context.Context, tx bun.IDB, task *Task, changes []history.FieldChange) error {
-		if recordErr := s.historySvc.Record(ctx, tx, history.EntryBase{
-			SubjectType: SubjectTypeTask,
-			SubjectID:   task.ID,
-			ActorID:     actorID,
-			Action:      history.ActionUpdated,
-			Changes:     changes,
-		}); recordErr != nil {
-			return fmt.Errorf("failed to record history: %w", recordErr)
-		}
-
-		return nil
+// recordUpdated best-effort appends the update event after the write
+// committed, carrying the actual written values.
+func (s *Service) recordUpdated(ctx context.Context, task *Task, actorID int64) {
+	if err := s.historySvc.Record(ctx, history.EntryBase{
+		SubjectType: SubjectTypeTask,
+		SubjectID:   task.ID,
+		ActorID:     actorID,
+		Action:      history.ActionUpdated,
+		Payload:     TaskPayload(task),
+	}); err != nil {
+		s.logger.Warn("failed to record history entry",
+			zap.String("action", string(history.ActionUpdated)),
+			zap.Int64("subject_id", task.ID),
+			zap.Error(err),
+		)
 	}
 }

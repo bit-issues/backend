@@ -5,9 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/history"
 	servertasks "github.com/bit-issues/backend/internal/server/tasks"
+	"github.com/bit-issues/backend/internal/tasks"
 )
 
 func TestFeedMergeOrder(t *testing.T) {
@@ -98,5 +100,42 @@ func TestFeedWindow(t *testing.T) {
 					tt.offset, tt.limit, got, ok, tt.want, tt.wantOK)
 			}
 		})
+	}
+}
+
+func TestDeriveHistoryChanges(t *testing.T) {
+	t.Parallel()
+
+	str := func(v string) *string { return &v }
+	state := func(status string) map[string]*string {
+		return map[string]*string{tasks.FieldStatus: str(status)}
+	}
+	withFile := func(payload map[string]*string, value string) map[string]*string {
+		payload[attachments.FieldAttachment] = &value
+		return payload
+	}
+
+	entries := []history.Entry{
+		{EntryBase: history.EntryBase{Action: history.ActionUpdated, Payload: state("In Progress")}},
+		{EntryBase: history.EntryBase{
+			Action:  history.ActionAttachmentAdded,
+			Payload: withFile(state("Open"), "a.txt"),
+		}},
+		{EntryBase: history.EntryBase{
+			Action:  history.ActionAttachmentRemoved,
+			Payload: withFile(state("Open"), "b.txt"),
+		}},
+		{EntryBase: history.EntryBase{Action: history.ActionCreated, Payload: state("Open")}},
+	}
+
+	got := servertasks.DeriveHistoryChangesForTest(entries)
+	want := [][]tasks.FieldChange{
+		{{Field: tasks.FieldStatus, OldValue: str("Open"), NewValue: str("In Progress")}},
+		{{Field: attachments.FieldAttachment, OldValue: nil, NewValue: str("a.txt")}},
+		{{Field: attachments.FieldAttachment, OldValue: str("b.txt"), NewValue: nil}},
+		nil,
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("derive mismatch\n got: %#v\nwant: %#v", got, want)
 	}
 }

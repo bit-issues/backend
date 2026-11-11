@@ -55,7 +55,7 @@ func toFeedResponse(
 		}
 
 		if entry.Kind == feedEntryKindHistory && entry.History != nil {
-			history := toHistoryEntryResponse(entry.History, usersMap)
+			history := toHistoryEntryResponse(entry.History, entry.Changes, usersMap)
 			items = append(items, FeedItemResponse{
 				Type:      string(entry.Kind),
 				ID:        entry.ID,

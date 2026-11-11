@@ -54,7 +54,13 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 		return nil, ErrProjectNotFound
 	}
 
-	return s.tasks.Create(ctx, input, s.auditCreated)
+	task, err := s.tasks.Create(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	s.recordCreated(ctx, task)
+	return task, nil
 }
 
 // Import creates a task with explicit number, timestamps, and kind for
@@ -64,7 +70,13 @@ func (s *Service) Import(
 	ctx context.Context,
 	input Task,
 ) (*Task, error) {
-	return s.tasks.Import(ctx, input, s.auditCreated)
+	task, err := s.tasks.Import(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	s.recordCreated(ctx, task)
+	return task, nil
 }
 
 // Exists checks if a task with the given ID exists.
@@ -114,7 +126,16 @@ func (s *Service) Update(
 		return nil, fmt.Errorf("%w: actor_id must be positive", ErrValidationFailed)
 	}
 
-	return s.tasks.Update(ctx, id, update, s.auditUpdated(actorID))
+	task, changed, err := s.tasks.Update(ctx, id, update)
+	if err != nil {
+		return nil, err
+	}
+
+	if changed {
+		s.recordUpdated(ctx, task, actorID)
+	}
+
+	return task, nil
 }
 
 // Delete soft-deletes a task.

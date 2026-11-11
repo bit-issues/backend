@@ -16,15 +16,6 @@ const (
 	ActionAttachmentRemoved Action = "attachment_removed"
 )
 
-// FieldChange is a single change carried by a history entry. Field is an
-// opaque string to this module - field names and their semantics belong to
-// the writers and readers of the stream.
-type FieldChange struct {
-	Field    string  `json:"field"`
-	OldValue *string `json:"old_value"`
-	NewValue *string `json:"new_value"`
-}
-
 // Entry is one append-only activity event about a subject: the writer's
 // EntryBase input plus the timestamp history filled in.
 type Entry struct {
@@ -34,35 +25,16 @@ type Entry struct {
 	CreatedAt time.Time
 }
 
-// NewStringChange builds a field change whose old and new values are strings.
-func NewStringChange(field, oldValue, newValue string) FieldChange {
-	oldCopy := oldValue
-	newCopy := newValue
-	return FieldChange{
-		Field:    field,
-		OldValue: &oldCopy,
-		NewValue: &newCopy,
-	}
-}
-
-// NewOptionalChange builds a field change whose values may be absent.
-func NewOptionalChange(field string, oldValue, newValue *string) FieldChange {
-	return FieldChange{
-		Field:    field,
-		OldValue: oldValue,
-		NewValue: newValue,
-	}
-}
-
 // EntryBase is the input writers hand to Service.Record: they decide the
-// subject type, the action and the change payload. It carries no timestamp -
-// history fills CreatedAt on the stored Entry itself.
+// subject type, the action and carry the actual written values as an opaque
+// payload - this module neither knows nor interprets the keys. It carries no
+// timestamp; history fills CreatedAt on the stored Entry itself.
 type EntryBase struct {
 	SubjectType string
 	SubjectID   int64
 	ActorID     int64
 	Action      Action
-	Changes     []FieldChange
+	Payload     map[string]*string
 }
 
 // entryFromBase converts an input base into the stored entry, stamped with

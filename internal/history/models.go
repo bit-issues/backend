@@ -1,6 +1,7 @@
 package history
 
 import (
+	"maps"
 	"time"
 
 	"github.com/uptrace/bun"
@@ -10,24 +11,24 @@ import (
 type historyModel struct {
 	bun.BaseModel `bun:"table:history,alias:h"`
 
-	ID          int64         `bun:"id,pk,autoincrement"`
-	SubjectType string        `bun:"subject_type,notnull"`
-	SubjectID   int64         `bun:"subject_id,notnull"`
-	ActorID     int64         `bun:"actor_id,notnull"`
-	Action      Action        `bun:"action,notnull"`
-	Changes     []FieldChange `bun:"type:json,notnull"`
-	CreatedAt   time.Time     `bun:"created_at,notnull"`
+	ID          int64              `bun:"id,pk,autoincrement"`
+	SubjectType string             `bun:"subject_type,notnull"`
+	SubjectID   int64              `bun:"subject_id,notnull"`
+	ActorID     int64              `bun:"actor_id,notnull"`
+	Action      Action             `bun:"action,notnull"`
+	Payload     map[string]*string `bun:"type:json,notnull"`
+	CreatedAt   time.Time          `bun:"created_at,notnull"`
 }
 
 func newHistoryModel(
 	subjectType string,
 	subjectID, actorID int64,
 	action Action,
-	changes []FieldChange,
+	payload map[string]*string,
 	createdAt time.Time,
 ) *historyModel {
-	if changes == nil {
-		changes = make([]FieldChange, 0)
+	if payload == nil {
+		payload = make(map[string]*string)
 	}
 	return &historyModel{
 		BaseModel:   schema.BaseModel{},
@@ -36,7 +37,7 @@ func newHistoryModel(
 		SubjectID:   subjectID,
 		ActorID:     actorID,
 		Action:      action,
-		Changes:     changes,
+		Payload:     payload,
 		CreatedAt:   createdAt,
 	}
 }
@@ -46,8 +47,8 @@ func (m *historyModel) toDomain() *Entry {
 		return nil
 	}
 
-	changes := make([]FieldChange, len(m.Changes))
-	copy(changes, m.Changes)
+	payload := make(map[string]*string, len(m.Payload))
+	maps.Copy(payload, m.Payload)
 
 	return &Entry{
 		ID: m.ID,
@@ -56,7 +57,7 @@ func (m *historyModel) toDomain() *Entry {
 			SubjectID:   m.SubjectID,
 			ActorID:     m.ActorID,
 			Action:      m.Action,
-			Changes:     changes,
+			Payload:     payload,
 		},
 		CreatedAt: m.CreatedAt,
 	}

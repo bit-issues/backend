@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/bit-issues/backend/internal/db"
-	"github.com/bit-issues/backend/internal/history"
 	"github.com/uptrace/bun"
 )
 
@@ -21,13 +20,9 @@ func NewRepository(db *bun.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// Create inserts a new task with an auto-generated per-project number and
-// invokes audit with the created task inside the same transaction.
-func (r *Repository) Create(
-	ctx context.Context,
-	input TaskInput,
-	audit history.AuditFunc[*Task],
-) (*Task, error) {
+// Create inserts a new task with an auto-generated per-project number.
+// The number generation happens within a transaction to ensure uniqueness.
+func (r *Repository) Create(ctx context.Context, input TaskInput) (*Task, error) {
 	var task *Task
 
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
@@ -62,7 +57,7 @@ func (r *Repository) Create(
 		}
 
 		task = model.toDomain()
-		return audit(ctx, tx, task)
+		return nil
 	})
 
 	if err != nil {
@@ -72,39 +67,24 @@ func (r *Repository) Create(
 	return task, nil
 }
 
-// Import creates a task with explicit number, timestamps, and kind and
-// invokes audit with the created task inside the same transaction.
-// It bypasses auto-number generation and allows setting custom CreatedAt/UpdatedAt.
-func (r *Repository) Import(
-	ctx context.Context,
-	input Task,
-	audit history.AuditFunc[*Task],
-) (*Task, error) {
-	var task *Task
+// Import creates a task with explicit number, timestamps, and kind.
+// Bypasses auto-number generation and allows setting custom CreatedAt/UpdatedAt.
+func (r *Repository) Import(ctx context.Context, input Task) (*Task, error) {
+	model := newTaskImport(input)
 
-	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		model := newTaskImport(input)
-
-		if _, insErr := tx.NewInsert().Model(model).Exec(ctx); insErr != nil {
-			if db.IsUniqueViolation(insErr) {
-				return fmt.Errorf(
-					"%w: task number %d already exists for project %s",
-					ErrValidationFailed,
-					input.Number,
-					input.ProjectSlug,
-				)
-			}
-			return fmt.Errorf("failed to insert task for import: %w", insErr)
+	if _, err := r.db.NewInsert().Model(model).Exec(ctx); err != nil {
+		if db.IsUniqueViolation(err) {
+			return nil, fmt.Errorf(
+				"%w: task number %d already exists for project %s",
+				ErrValidationFailed,
+				input.Number,
+				input.ProjectSlug,
+			)
 		}
-
-		task = model.toDomain()
-		return audit(ctx, tx, task)
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to import task: %w", err)
+		return nil, fmt.Errorf("failed to insert task for import: %w", err)
 	}
 
-	return task, nil
+	return model.toDomain(), nil
 }
 
 func (r *Repository) Exists(ctx context.Context, id int64) (bool, error) {
@@ -204,22 +184,25 @@ func (r *Repository) List(
 	return tasks, total, nil
 }
 
-// Update modifies an existing task with the provided update data and invokes
-// audit with the updated task and the applied changes inside the same
-// transaction. Audit runs only when at least one field changed; a no-op
-// update returns the current row without audit. Only non-nil fields in the
-// TaskUpdate struct are changed.
+// Update modifies an existing task with the provided update data and reports
+// whether anything changed. Only non-nil fields in the TaskUpdate struct are
+// changed. The applied row is re-read inside the transaction so callers see
+// the actual persisted state.
 func (r *Repository) Update(
 	ctx context.Context,
 	id int64,
 	update TaskUpdate,
-	audit func(context.Context, bun.IDB, *Task, []history.FieldChange) error,
-) (*Task, error) {
+) (*Task, bool, error) {
 	if update.IsEmpty() {
-		return r.GetByID(ctx, id)
+		current, err := r.GetByID(ctx, id)
+		if err != nil {
+			return nil, false, err
+		}
+		return current, false, nil
 	}
 
 	var updated *Task
+	changed := false
 
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
 		current, fetchErr := getTaskForUpdate(ctx, tx, id)
@@ -246,14 +229,15 @@ func (r *Repository) Update(
 			return reloadErr
 		}
 		updated = after
+		changed = true
 
-		return audit(ctx, tx, after, changes)
+		return nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to update task: %w", err)
+		return nil, false, fmt.Errorf("failed to update task: %w", err)
 	}
 
-	return updated, nil
+	return updated, changed, nil
 }
 
 func getTaskForUpdate(ctx context.Context, tx bun.Tx, id int64) (*Task, error) {

@@ -3,16 +3,15 @@ package history
 import (
 	"context"
 	"time"
-
-	"github.com/uptrace/bun"
 )
 
 // DefaultLimit is the page size used when a caller asks for no limit.
 const DefaultLimit = 20
 
-// Service reads the activity history and appends events inside the writing
-// module's transaction: callers start their own transaction, write their data,
-// then pass the transaction here so event and trigger commit atomically.
+// Service reads the activity history and appends events best-effort:
+// writers save their domain data first, then call Record. The activity feed
+// is disposable - a failed record is the caller's problem to log, never the
+// request's.
 type Service struct {
 	history *Repository
 }
@@ -32,8 +31,9 @@ func (s *Service) List(
 	return s.history.List(ctx, subjectType, subjectID, limit, offset)
 }
 
-// Record appends an entry base to the activity stream inside the caller's
-// transaction, stamping CreatedAt itself.
-func (s *Service) Record(ctx context.Context, tx bun.IDB, base EntryBase) error {
-	return s.history.RecordWithin(ctx, tx, entryFromBase(base, time.Now()))
+// Record appends an entry base to the activity stream, stamping CreatedAt
+// itself. Callers treat failures as best-effort: the domain write already
+// succeeded.
+func (s *Service) Record(ctx context.Context, base EntryBase) error {
+	return s.history.Record(ctx, entryFromBase(base, time.Now()))
 }

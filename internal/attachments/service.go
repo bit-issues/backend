@@ -179,12 +179,21 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 		return attachment, nil
 	}
 
-	err = s.attachments.Confirm(ctx, id, s.auditAdded(uploaderID))
+	flipped, err := s.attachments.Confirm(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to confirm attachment: %w", err)
 	}
 
 	attachment.Status = StatusUploaded
+
+	if flipped {
+		task, taskErr := s.tasksSvc.GetByID(ctx, attachment.TaskID)
+		if taskErr != nil {
+			return nil, fmt.Errorf("failed to get task: %w", taskErr)
+		}
+		s.recordAdded(ctx, task, uploaderID, attachment.FileName)
+	}
+
 	return attachment, nil
 }
 
@@ -205,10 +214,11 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 		return ErrUnauthorized
 	}
 
-	err = s.attachments.Delete(ctx, id, s.auditRemoved(user.ID))
-	if err != nil {
-		return fmt.Errorf("failed to delete attachment: %w", err)
+	if delErr := s.attachments.Delete(ctx, id); delErr != nil {
+		return fmt.Errorf("failed to delete attachment: %w", delErr)
 	}
+
+	s.recordRemoved(ctx, task, user.ID, attachment.FileName)
 
 	if delErr := s.storageSvc.Delete(ctx, attachment.StorageKey); delErr != nil {
 		return fmt.Errorf("attachment metadata deleted, but object cleanup failed: %w", delErr)

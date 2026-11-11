@@ -1,9 +1,7 @@
 package tasks
 
-import "github.com/bit-issues/backend/internal/history"
-
 // DiffTaskForTest exposes diffTask to the external test package.
-func DiffTaskForTest(current *Task, update TaskUpdate) []history.FieldChange {
+func DiffTaskForTest(current *Task, update TaskUpdate) []FieldChange {
 	return diffTask(current, update)
 }
 

@@ -17,18 +17,17 @@ func NewRepository(db *bun.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// RecordWithin appends an entry using the caller's transaction so a
-// cross-module use case can commit the event together with its trigger.
-func (r *Repository) RecordWithin(ctx context.Context, idb bun.IDB, entry Entry) error {
+// Record appends an entry on the repository's own connection.
+func (r *Repository) Record(ctx context.Context, entry Entry) error {
 	model := newHistoryModel(
 		entry.SubjectType,
 		entry.SubjectID,
 		entry.ActorID,
 		entry.Action,
-		entry.Changes,
+		entry.Payload,
 		entry.CreatedAt,
 	)
-	if _, err := idb.NewInsert().Model(model).Exec(ctx); err != nil {
+	if _, err := r.db.NewInsert().Model(model).Exec(ctx); err != nil {
 		return fmt.Errorf("failed to insert history entry: %w", err)
 	}
 

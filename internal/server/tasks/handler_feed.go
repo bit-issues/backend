@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/gofiber/fiber/v2"
@@ -63,14 +64,23 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list comments: %w", err)
 	}
 
-	historyList, historyTotal, err := h.historySvc.List(c.Context(), tasks.SubjectTypeTask, task.ID, window, 0)
+	// One extra history row seeds read-side change derivation for the
+	// boundary entry; it is dropped before merging.
+	historyList, historyTotal, err := h.historySvc.List(c.Context(), tasks.SubjectTypeTask, task.ID, window+1, 0)
 	if err != nil {
 		return fmt.Errorf("failed to list task history: %w", err)
 	}
 
-	entries := pageFeedEntries(mergeFeedEntries(commentList, historyList), query.Offset, query.Limit)
+	allHistory := historyList
+	historyChanges := deriveHistoryChanges(historyList)
+	if len(historyList) > window {
+		historyList = historyList[:window]
+		historyChanges = historyChanges[:window]
+	}
 
-	usersMap, err := h.fetchUsersForFeed(c.Context(), entries)
+	entries := pageFeedEntries(mergeFeedEntries(commentList, historyList, historyChanges), query.Offset, query.Limit)
+
+	usersMap, err := h.fetchUsersForFeed(c.Context(), entries, allHistory)
 	if err != nil {
 		h.logger.Error("failed to fetch users for feed", zap.Int64("task_id", task.ID), zap.Error(err))
 		usersMap = make(map[int64]users.User)
@@ -82,6 +92,7 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 func (h *Handler) fetchUsersForFeed(
 	ctx context.Context,
 	entries []feedEntry,
+	historyList []history.Entry,
 ) (map[int64]users.User, error) {
 	idSet := make(map[int64]struct{})
 
@@ -92,19 +103,15 @@ func (h *Handler) fetchUsersForFeed(
 			idSet[entry.Comment.AuthorID] = struct{}{}
 		}
 
-		if entry.History == nil {
-			continue
+		if entry.History != nil {
+			idSet[entry.History.ActorID] = struct{}{}
 		}
+	}
 
-		idSet[entry.History.ActorID] = struct{}{}
-		for _, change := range entry.History.Changes {
-			if change.Field != tasks.FieldAssignee {
-				continue
-			}
-
-			collectHistoryAssignee(&idSet, change.OldValue)
-			collectHistoryAssignee(&idSet, change.NewValue)
-		}
+	// Payloads of every fetched history row (including the dropped context
+	// row) cover both sides of every derived assignee pair.
+	for i := range historyList {
+		collectHistoryAssignee(&idSet, historyList[i].Payload[tasks.FieldAssignee])
 	}
 
 	if len(idSet) == 0 {

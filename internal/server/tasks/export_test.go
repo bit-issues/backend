@@ -5,6 +5,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/tasks"
 )
 
 // FeedEntryView is a test-only projection of a feed entry.
@@ -20,7 +21,8 @@ func FeedPageForTest(
 	historyList []history.Entry,
 	offset, limit int,
 ) []FeedEntryView {
-	entries := pageFeedEntries(mergeFeedEntries(commentList, historyList), offset, limit)
+	historyChanges := make([][]tasks.FieldChange, len(historyList))
+	entries := pageFeedEntries(mergeFeedEntries(commentList, historyList, historyChanges), offset, limit)
 	views := make([]FeedEntryView, 0, len(entries))
 	for i := range entries {
 		views = append(views, FeedEntryView{
@@ -32,6 +34,9 @@ func FeedPageForTest(
 
 	return views
 }
+
+// DeriveHistoryChangesForTest exposes deriveHistoryChanges to the external test package.
+var DeriveHistoryChangesForTest = deriveHistoryChanges
 
 // FeedWindowForTest exposes feedWindow to the external test package.
 func FeedWindowForTest(offset, limit int) (int, bool) {

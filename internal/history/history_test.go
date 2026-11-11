@@ -17,6 +17,7 @@ func TestEntryFromBaseStampsCreatedAt(t *testing.T) {
 		SubjectID:   7,
 		ActorID:     3,
 		Action:      history.ActionCreated,
+		Payload:     map[string]*string{},
 	}, now)
 
 	want := history.Entry{
@@ -25,6 +26,7 @@ func TestEntryFromBaseStampsCreatedAt(t *testing.T) {
 			SubjectID:   7,
 			ActorID:     3,
 			Action:      history.ActionCreated,
+			Payload:     map[string]*string{},
 		},
 		CreatedAt: now,
 	}
@@ -37,17 +39,17 @@ func TestEntryFromBasePassesChangesThrough(t *testing.T) {
 	t.Parallel()
 
 	now := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
-	changes := []history.FieldChange{{Field: "title", OldValue: ptr("a"), NewValue: ptr("b")}}
+	payload := map[string]*string{"title": ptr("b")}
 	got := history.EntryFromBaseForTest(history.EntryBase{
 		SubjectType: "task",
 		SubjectID:   7,
 		ActorID:     3,
 		Action:      history.ActionUpdated,
-		Changes:     changes,
+		Payload:     payload,
 	}, now)
 
-	if !reflect.DeepEqual(got.Changes, changes) {
-		t.Errorf("Changes = %#v, want %#v", got.Changes, changes)
+	if !reflect.DeepEqual(got.Payload, payload) {
+		t.Errorf("Payload = %#v, want %#v", got.Payload, payload)
 	}
 	if got.CreatedAt != now {
 		t.Errorf("CreatedAt = %v, want %v", got.CreatedAt, now)

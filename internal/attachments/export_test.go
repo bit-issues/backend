@@ -1,4 +1,4 @@
 package attachments
 
-// AttachmentChangeForTest exposes attachmentChange to the external test package.
-var AttachmentChangeForTest = attachmentChange
+// AttachmentPayloadForTest exposes attachmentPayload to the external test package.
+var AttachmentPayloadForTest = attachmentPayload

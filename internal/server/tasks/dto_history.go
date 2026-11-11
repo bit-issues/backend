@@ -32,10 +32,11 @@ type HistoryEntryResponse struct {
 
 func toHistoryEntryResponse(
 	entry *history.Entry,
+	derived []tasks.FieldChange,
 	usersMap map[int64]users.User,
 ) HistoryEntryResponse {
-	changes := make([]HistoryChangeResponse, 0, len(entry.Changes))
-	for _, change := range entry.Changes {
+	changes := make([]HistoryChangeResponse, 0, len(derived))
+	for _, change := range derived {
 		changes = append(changes, HistoryChangeResponse{
 			Field:    change.Field,
 			OldValue: resolveHistoryValue(change.Field, change.OldValue, usersMap),

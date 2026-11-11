@@ -4,30 +4,37 @@ import (
 	"testing"
 
 	"github.com/bit-issues/backend/internal/attachments"
+	"github.com/bit-issues/backend/internal/tasks"
 )
 
-func TestAttachmentChange(t *testing.T) {
+func TestAttachmentPayloadCarriesStateAndFile(t *testing.T) {
 	t.Parallel()
 
-	added := attachments.AttachmentChangeForTest("log.txt", false)
-	if added.Field != "attachment" {
-		t.Errorf("added.Field = %q, want %q", added.Field, "attachment")
+	task := &tasks.Task{
+		ID:          7,
+		Title:       "Fix login",
+		Status:      tasks.StatusOpen,
+		AssigneeID:  ptr[int64](3),
+		Description: "steps",
+		Priority:    tasks.PriorityMinor,
+		Kind:        tasks.KindBug,
 	}
-	if added.OldValue != nil {
-		t.Errorf("added.OldValue = %v, want nil", *added.OldValue)
-	}
-	if added.NewValue == nil || *added.NewValue != "log.txt" {
-		t.Errorf("added.NewValue = %v, want log.txt", added.NewValue)
-	}
+	payload := attachments.AttachmentPayloadForTest(task, "log.txt")
 
-	removed := attachments.AttachmentChangeForTest("log.txt", true)
-	if removed.Field != "attachment" {
-		t.Errorf("removed.Field = %q, want %q", removed.Field, "attachment")
+	if got := payload[attachments.FieldAttachment]; got == nil || *got != "log.txt" {
+		t.Errorf("payload[%q] = %v, want log.txt", attachments.FieldAttachment, got)
 	}
-	if removed.OldValue == nil || *removed.OldValue != "log.txt" {
-		t.Errorf("removed.OldValue = %v, want log.txt", removed.OldValue)
+	if got := payload[tasks.FieldStatus]; got == nil || *got != string(tasks.StatusOpen) {
+		t.Errorf("payload[%q] = %v, want Open", tasks.FieldStatus, got)
 	}
-	if removed.NewValue != nil {
-		t.Errorf("removed.NewValue = %v, want nil", *removed.NewValue)
+	if got := payload[tasks.FieldAssignee]; got == nil || *got != "3" {
+		t.Errorf("payload[%q] = %v, want 3", tasks.FieldAssignee, got)
 	}
+	if len(payload) != 8 {
+		t.Errorf("len(payload) = %d, want 8 (7 tracked fields + file)", len(payload))
+	}
+}
+
+func ptr[T any](value T) *T {
+	return &value
 }

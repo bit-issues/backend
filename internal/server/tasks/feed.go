@@ -4,8 +4,10 @@ import (
 	"slices"
 	"time"
 
+	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/tasks"
 )
 
 type feedEntryKind string
@@ -25,6 +27,7 @@ type feedEntry struct {
 	CreatedAt time.Time
 	Comment   *comments.Comment
 	History   *history.Entry
+	Changes   []tasks.FieldChange
 }
 
 func newCommentFeedEntry(comment *comments.Comment) feedEntry {
@@ -34,22 +37,25 @@ func newCommentFeedEntry(comment *comments.Comment) feedEntry {
 		CreatedAt: comment.CreatedAt,
 		Comment:   comment,
 		History:   nil,
+		Changes:   nil,
 	}
 }
 
-func newHistoryFeedEntry(entry *history.Entry) feedEntry {
+func newHistoryFeedEntry(entry *history.Entry, changes []tasks.FieldChange) feedEntry {
 	return feedEntry{
 		Kind:      feedEntryKindHistory,
 		ID:        entry.ID,
 		CreatedAt: entry.CreatedAt,
 		Comment:   nil,
 		History:   entry,
+		Changes:   changes,
 	}
 }
 
 func mergeFeedEntries(
 	commentList []comments.Comment,
 	historyList []history.Entry,
+	historyChanges [][]tasks.FieldChange,
 ) []feedEntry {
 	entries := make([]feedEntry, 0, len(commentList)+len(historyList))
 
@@ -57,12 +63,47 @@ func mergeFeedEntries(
 		entries = append(entries, newCommentFeedEntry(&commentList[i]))
 	}
 	for i := range historyList {
-		entries = append(entries, newHistoryFeedEntry(&historyList[i]))
+		entries = append(entries, newHistoryFeedEntry(&historyList[i], historyChanges[i]))
 	}
 
 	slices.SortFunc(entries, compareFeedEntries)
 
 	return entries
+}
+
+// deriveHistoryChanges computes each entry's change pairs against its
+// next-older snapshot; entries are newest-first, so that snapshot is the
+// following element. Created entries carry no pairs; attachment pairs come
+// from the payload key and the action.
+func deriveHistoryChanges(entries []history.Entry) [][]tasks.FieldChange {
+	changes := make([][]tasks.FieldChange, len(entries))
+
+	for i := range entries {
+		entry := &entries[i]
+
+		switch entry.Action {
+		case history.ActionCreated:
+			// Creation seeds the snapshot chain; it renders without pairs.
+		case history.ActionUpdated:
+			if i+1 < len(entries) {
+				changes[i] = tasks.DeriveChanges(entry.Payload, entries[i+1].Payload)
+			}
+		case history.ActionAttachmentAdded, history.ActionAttachmentRemoved:
+			changes[i] = []tasks.FieldChange{attachmentFeedChange(entry)}
+		}
+	}
+
+	return changes
+}
+
+func attachmentFeedChange(entry *history.Entry) tasks.FieldChange {
+	name := entry.Payload[attachments.FieldAttachment]
+
+	if entry.Action == history.ActionAttachmentRemoved {
+		return tasks.FieldChange{Field: attachments.FieldAttachment, OldValue: name, NewValue: nil}
+	}
+
+	return tasks.FieldChange{Field: attachments.FieldAttachment, OldValue: nil, NewValue: name}
 }
 
 func compareFeedEntries(a, b feedEntry) int {
