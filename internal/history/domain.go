@@ -16,42 +16,22 @@ const (
 	ActionAttachmentRemoved Action = "attachment_removed"
 )
 
-// Field names carried by history entry changes.
-const (
-	FieldTitle       = "title"
-	FieldDescription = "description"
-	FieldPriority    = "priority"
-	FieldStatus      = "status"
-	FieldKind        = "kind"
-	FieldAssignee    = "assignee"
-	FieldDueDate     = "due_date"
-	FieldAttachment  = "attachment"
-)
-
-// SubjectType identifies what a history entry is about.
-type SubjectType string
-
-const (
-	// SubjectTask marks entries about a task.
-	SubjectTask SubjectType = "task"
-)
-
-// FieldChange is a single field-level change carried by a history entry.
+// FieldChange is a single change carried by a history entry. Field is an
+// opaque string to this module - field names and their semantics belong to
+// the writers and readers of the stream.
 type FieldChange struct {
 	Field    string  `json:"field"`
 	OldValue *string `json:"old_value"`
 	NewValue *string `json:"new_value"`
 }
 
-// Entry is one append-only activity event about a subject.
+// Entry is one append-only activity event about a subject: the writer's
+// EntryBase input plus the timestamp history filled in.
 type Entry struct {
-	ID          int64
-	SubjectType SubjectType
-	SubjectID   int64
-	ActorID     int64
-	Action      Action
-	Changes     []FieldChange
-	CreatedAt   time.Time
+	EntryBase
+
+	ID        int64
+	CreatedAt time.Time
 }
 
 // NewStringChange builds a field change whose old and new values are strings.
@@ -74,65 +54,23 @@ func NewOptionalChange(field string, oldValue, newValue *string) FieldChange {
 	}
 }
 
-// newCreatedEntry builds the entry recording a task creation.
-func newCreatedEntry(taskID, actorID int64, createdAt time.Time) Entry {
-	return Entry{
-		ID:          0,
-		SubjectType: SubjectTask,
-		SubjectID:   taskID,
-		ActorID:     actorID,
-		Action:      ActionCreated,
-		Changes:     nil,
-		CreatedAt:   createdAt,
-	}
+// EntryBase is the input writers hand to Service.Record: they decide the
+// subject type, the action and the change payload. It carries no timestamp -
+// history fills CreatedAt on the stored Entry itself.
+type EntryBase struct {
+	SubjectType string
+	SubjectID   int64
+	ActorID     int64
+	Action      Action
+	Changes     []FieldChange
 }
 
-// newUpdatedEntry builds the entry recording applied field changes.
-func newUpdatedEntry(taskID, actorID int64, changes []FieldChange, createdAt time.Time) Entry {
+// entryFromBase converts an input base into the stored entry, stamped with
+// the provided timestamp.
+func entryFromBase(base EntryBase, createdAt time.Time) Entry {
 	return Entry{
-		ID:          0,
-		SubjectType: SubjectTask,
-		SubjectID:   taskID,
-		ActorID:     actorID,
-		Action:      ActionUpdated,
-		Changes:     changes,
-		CreatedAt:   createdAt,
+		ID:        0,
+		EntryBase: base,
+		CreatedAt: createdAt,
 	}
-}
-
-// newAttachmentAddedEntry builds the entry recording a confirmed upload; the
-// file name lands in NewValue, mirroring before/after state semantics.
-func newAttachmentAddedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
-	return Entry{
-		ID:          0,
-		SubjectType: SubjectTask,
-		SubjectID:   taskID,
-		ActorID:     actorID,
-		Action:      ActionAttachmentAdded,
-		Changes:     []FieldChange{newAttachmentChange(ActionAttachmentAdded, fileName)},
-		CreatedAt:   createdAt,
-	}
-}
-
-// newAttachmentRemovedEntry builds the entry recording a deletion; the file
-// name lands in OldValue, mirroring before/after state semantics.
-func newAttachmentRemovedEntry(taskID, actorID int64, fileName string, createdAt time.Time) Entry {
-	return Entry{
-		ID:          0,
-		SubjectType: SubjectTask,
-		SubjectID:   taskID,
-		ActorID:     actorID,
-		Action:      ActionAttachmentRemoved,
-		Changes:     []FieldChange{newAttachmentChange(ActionAttachmentRemoved, fileName)},
-		CreatedAt:   createdAt,
-	}
-}
-
-func newAttachmentChange(action Action, fileName string) FieldChange {
-	name := fileName
-	if action == ActionAttachmentRemoved {
-		return NewOptionalChange(FieldAttachment, &name, nil)
-	}
-
-	return NewOptionalChange(FieldAttachment, nil, &name)
 }

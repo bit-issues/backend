@@ -3,11 +3,9 @@ package tasks
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
-	"github.com/uptrace/bun"
 	"go.uber.org/zap"
 )
 
@@ -16,20 +14,19 @@ const (
 	MaxLimit     = 100
 )
 
-// Service implements the business logic for task management. Mutations run in
-// a transaction that also appends the matching activity-history event.
+// Service implements the business logic for task management. Repository
+// mutations own their transaction and invoke an audit callback that appends
+// the matching activity-history event in that transaction.
 type Service struct {
 	tasks       *Repository
 	projectsSvc *projects.Service
 	historySvc  *history.Service
-	db          *bun.DB
 	logger      *zap.Logger
 }
 
 // NewService creates a new Service instance with the given dependencies.
 func NewService(
 	repo *Repository,
-	db *bun.DB,
 	projectsSvc *projects.Service,
 	historySvc *history.Service,
 	logger *zap.Logger,
@@ -38,7 +35,6 @@ func NewService(
 		tasks:       repo,
 		projectsSvc: projectsSvc,
 		historySvc:  historySvc,
-		db:          db,
 		logger:      logger,
 	}
 }
@@ -58,27 +54,7 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 		return nil, ErrProjectNotFound
 	}
 
-	var task *Task
-	err = s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		created, createErr := s.tasks.CreateWithin(ctx, tx, input)
-		if createErr != nil {
-			return fmt.Errorf("transaction: %w", createErr)
-		}
-		task = created
-
-		if recordErr := s.historySvc.RecordCreated(
-			ctx, tx, created.ID, created.AuthorID, created.CreatedAt,
-		); recordErr != nil {
-			return fmt.Errorf("transaction: %w", recordErr)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create task: %w", err)
-	}
-
-	return task, nil
+	return s.tasks.Create(ctx, input, s.auditCreated)
 }
 
 // Import creates a task with explicit number, timestamps, and kind for
@@ -88,27 +64,7 @@ func (s *Service) Import(
 	ctx context.Context,
 	input Task,
 ) (*Task, error) {
-	var task *Task
-	err := s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		imported, importErr := s.tasks.ImportWithin(ctx, tx, input)
-		if importErr != nil {
-			return fmt.Errorf("transaction: %w", importErr)
-		}
-		task = imported
-
-		if recordErr := s.historySvc.RecordCreated(
-			ctx, tx, imported.ID, imported.AuthorID, imported.CreatedAt,
-		); recordErr != nil {
-			return fmt.Errorf("transaction: %w", recordErr)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to import task: %w", err)
-	}
-
-	return task, nil
+	return s.tasks.Import(ctx, input, s.auditCreated)
 }
 
 // Exists checks if a task with the given ID exists.
@@ -158,31 +114,7 @@ func (s *Service) Update(
 		return nil, fmt.Errorf("%w: actor_id must be positive", ErrValidationFailed)
 	}
 
-	var updated *Task
-	err := s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		task, changes, updateErr := s.tasks.UpdateWithin(ctx, tx, id, update)
-		if updateErr != nil {
-			return fmt.Errorf("transaction: %w", updateErr)
-		}
-		updated = task
-
-		if len(changes) == 0 {
-			return nil
-		}
-
-		if recordErr := s.historySvc.RecordUpdated(
-			ctx, tx, id, actorID, changes, time.Now(),
-		); recordErr != nil {
-			return fmt.Errorf("transaction: %w", recordErr)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to update task: %w", err)
-	}
-
-	return updated, nil
+	return s.tasks.Update(ctx, id, update, s.auditUpdated(actorID))
 }
 
 // Delete soft-deletes a task.

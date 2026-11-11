@@ -149,7 +149,7 @@ func (r *Repository) Delete(ctx context.Context, slug string) error {
 		// History rows reference tasks polymorphically (no FK cascade), so drop
 		// them for the project's tasks - including soft-deleted ones - before
 		// the project delete cascades the tasks away. The subject vocabulary
-		// mirrors history.SubjectTask in the history module.
+		// mirrors tasks.SubjectTypeTask.
 		if _, histErr := tx.NewDelete().
 			Table("history").
 			Where("subject_type = 'task'").

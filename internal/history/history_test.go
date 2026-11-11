@@ -8,41 +8,49 @@ import (
 	"github.com/bit-issues/backend/internal/history"
 )
 
-func TestNewAttachmentAddedEntry(t *testing.T) {
+func TestEntryFromBaseStampsCreatedAt(t *testing.T) {
 	t.Parallel()
 
-	at := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
-	got := history.NewAttachmentAddedEntryForTest(7, 3, "log.txt", at)
-
-	want := history.Entry{
-		SubjectType: history.SubjectTask,
+	now := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
+	got := history.EntryFromBaseForTest(history.EntryBase{
+		SubjectType: "task",
 		SubjectID:   7,
 		ActorID:     3,
-		Action:      history.ActionAttachmentAdded,
-		Changes:     []history.FieldChange{{Field: history.FieldAttachment, OldValue: nil, NewValue: ptr("log.txt")}},
-		CreatedAt:   at,
+		Action:      history.ActionCreated,
+	}, now)
+
+	want := history.Entry{
+		EntryBase: history.EntryBase{
+			SubjectType: "task",
+			SubjectID:   7,
+			ActorID:     3,
+			Action:      history.ActionCreated,
+		},
+		CreatedAt: now,
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("NewAttachmentAddedEntry mismatch\n got: %#v\nwant: %#v", got, want)
+		t.Errorf("entry mismatch\n got: %#v\nwant: %#v", got, want)
 	}
 }
 
-func TestNewAttachmentRemovedEntry(t *testing.T) {
+func TestEntryFromBasePassesChangesThrough(t *testing.T) {
 	t.Parallel()
 
-	at := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
-	got := history.NewAttachmentRemovedEntryForTest(7, 3, "log.txt", at)
-
-	want := history.Entry{
-		SubjectType: history.SubjectTask,
+	now := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)
+	changes := []history.FieldChange{{Field: "title", OldValue: ptr("a"), NewValue: ptr("b")}}
+	got := history.EntryFromBaseForTest(history.EntryBase{
+		SubjectType: "task",
 		SubjectID:   7,
 		ActorID:     3,
-		Action:      history.ActionAttachmentRemoved,
-		Changes:     []history.FieldChange{{Field: history.FieldAttachment, OldValue: ptr("log.txt"), NewValue: nil}},
-		CreatedAt:   at,
+		Action:      history.ActionUpdated,
+		Changes:     changes,
+	}, now)
+
+	if !reflect.DeepEqual(got.Changes, changes) {
+		t.Errorf("Changes = %#v, want %#v", got.Changes, changes)
 	}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("NewAttachmentRemovedEntry mismatch\n got: %#v\nwant: %#v", got, want)
+	if got.CreatedAt != now {
+		t.Errorf("CreatedAt = %v, want %v", got.CreatedAt, now)
 	}
 }
 

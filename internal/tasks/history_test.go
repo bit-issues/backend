@@ -32,17 +32,17 @@ func TestDiffTaskAllFields(t *testing.T) {
 
 	got := tasks.DiffTaskForTest(current, update)
 	want := []history.FieldChange{
-		{Field: history.FieldTitle, OldValue: ptr("Old title"), NewValue: ptr("New title")},
+		{Field: tasks.FieldTitle, OldValue: ptr("Old title"), NewValue: ptr("New title")},
 		{
-			Field:    history.FieldDescription,
+			Field:    tasks.FieldDescription,
 			OldValue: ptr("Old description"),
 			NewValue: ptr("New description"),
 		},
-		{Field: history.FieldPriority, OldValue: ptr("Major"), NewValue: ptr("Critical")},
-		{Field: history.FieldStatus, OldValue: ptr("New"), NewValue: ptr("In Progress")},
-		{Field: history.FieldKind, OldValue: ptr("Bug"), NewValue: ptr("Task")},
-		{Field: history.FieldAssignee, OldValue: ptr("7"), NewValue: ptr("8")},
-		{Field: history.FieldDueDate, OldValue: ptr("2026-11-01"), NewValue: ptr("2026-12-31")},
+		{Field: tasks.FieldPriority, OldValue: ptr("Major"), NewValue: ptr("Critical")},
+		{Field: tasks.FieldStatus, OldValue: ptr("New"), NewValue: ptr("In Progress")},
+		{Field: tasks.FieldKind, OldValue: ptr("Bug"), NewValue: ptr("Task")},
+		{Field: tasks.FieldAssignee, OldValue: ptr("7"), NewValue: ptr("8")},
+		{Field: tasks.FieldDueDate, OldValue: ptr("2026-11-01"), NewValue: ptr("2026-12-31")},
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -92,8 +92,8 @@ func TestDiffTaskClearsOptionalFields(t *testing.T) {
 
 	got := tasks.DiffTaskForTest(current, update)
 	want := []history.FieldChange{
-		{Field: history.FieldAssignee, OldValue: ptr("7"), NewValue: nil},
-		{Field: history.FieldDueDate, OldValue: ptr("2026-11-01"), NewValue: nil},
+		{Field: tasks.FieldAssignee, OldValue: ptr("7"), NewValue: nil},
+		{Field: tasks.FieldDueDate, OldValue: ptr("2026-11-01"), NewValue: nil},
 	}
 
 	if !reflect.DeepEqual(got, want) {
@@ -112,8 +112,8 @@ func TestDiffTaskSetsOptionalFields(t *testing.T) {
 
 	got := tasks.DiffTaskForTest(current, update)
 	want := []history.FieldChange{
-		{Field: history.FieldAssignee, OldValue: nil, NewValue: ptr("9")},
-		{Field: history.FieldDueDate, OldValue: nil, NewValue: ptr("2026-12-31")},
+		{Field: tasks.FieldAssignee, OldValue: nil, NewValue: ptr("9")},
+		{Field: tasks.FieldDueDate, OldValue: nil, NewValue: ptr("2026-12-31")},
 	}
 
 	if !reflect.DeepEqual(got, want) {

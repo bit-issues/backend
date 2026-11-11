@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/bit-issues/backend/internal/comments"
-	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
@@ -63,7 +63,7 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list comments: %w", err)
 	}
 
-	historyList, historyTotal, err := h.historySvc.List(c.Context(), history.SubjectTask, task.ID, window, 0)
+	historyList, historyTotal, err := h.historySvc.List(c.Context(), tasks.SubjectTypeTask, task.ID, window, 0)
 	if err != nil {
 		return fmt.Errorf("failed to list task history: %w", err)
 	}
@@ -98,7 +98,7 @@ func (h *Handler) fetchUsersForFeed(
 
 		idSet[entry.History.ActorID] = struct{}{}
 		for _, change := range entry.History.Changes {
-			if change.Field != history.FieldAssignee {
+			if change.Field != tasks.FieldAssignee {
 				continue
 			}
 

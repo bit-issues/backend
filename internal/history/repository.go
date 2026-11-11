@@ -38,7 +38,7 @@ func (r *Repository) RecordWithin(ctx context.Context, idb bun.IDB, entry Entry)
 // List retrieves history entries for a subject newest-first.
 func (r *Repository) List(
 	ctx context.Context,
-	subjectType SubjectType,
+	subjectType string,
 	subjectID int64,
 	limit, offset int,
 ) ([]Entry, int, error) {

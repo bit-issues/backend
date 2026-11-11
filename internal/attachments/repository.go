@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/uptrace/bun"
 )
 
@@ -69,14 +70,36 @@ func (r *Repository) ListByTask(ctx context.Context, taskID int64) ([]Attachment
 	return result, nil
 }
 
-// ConfirmWithin marks an attachment uploaded inside the caller's transaction,
-// so a use case can commit it together with its history entry atomically.
-func (r *Repository) ConfirmWithin(ctx context.Context, idb bun.IDB, id int64) error {
-	_, err := idb.NewUpdate().
-		Model((*attachmentModel)(nil)).
-		Set("status = ?", StatusUploaded).
-		Where("id = ?", id).
-		Exec(ctx)
+// Confirm marks a pending attachment uploaded and invokes audit with the row
+// inside the same transaction. The status flip is conditional, so a
+// re-confirm of an already uploaded attachment is a no-op without audit.
+func (r *Repository) Confirm(ctx context.Context, id int64, audit history.AuditFunc[*Attachment]) error {
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		result, updErr := tx.NewUpdate().
+			Model((*attachmentModel)(nil)).
+			Set("status = ?", StatusUploaded).
+			Where("id = ?", id).
+			Where("status = ?", StatusPending).
+			Exec(ctx)
+		if updErr != nil {
+			return fmt.Errorf("failed to update attachment status: %w", updErr)
+		}
+
+		rows, rowsErr := result.RowsAffected()
+		if rowsErr != nil {
+			return fmt.Errorf("failed to get affected rows: %w", rowsErr)
+		}
+		if rows == 0 {
+			return nil
+		}
+
+		var model attachmentModel
+		if selErr := tx.NewSelect().Model(&model).Where("id = ?", id).Scan(ctx); selErr != nil {
+			return fmt.Errorf("failed to get attachment for audit: %w", selErr)
+		}
+
+		return audit(ctx, tx, model.toDomain())
+	})
 	if err != nil {
 		return fmt.Errorf("failed to confirm attachment: %w", err)
 	}
@@ -84,9 +107,25 @@ func (r *Repository) ConfirmWithin(ctx context.Context, idb bun.IDB, id int64) e
 	return nil
 }
 
-// DeleteWithin removes an attachment row inside the caller's transaction.
-func (r *Repository) DeleteWithin(ctx context.Context, idb bun.IDB, id int64) error {
-	if _, err := idb.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx); err != nil {
+// Delete removes an attachment row and invokes audit with the row inside the
+// same transaction.
+func (r *Repository) Delete(ctx context.Context, id int64, audit history.AuditFunc[*Attachment]) error {
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		var model attachmentModel
+		if selErr := tx.NewSelect().Model(&model).Where("id = ?", id).Scan(ctx); selErr != nil {
+			if errors.Is(selErr, sql.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("failed to get attachment for audit: %w", selErr)
+		}
+
+		if _, delErr := tx.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx); delErr != nil {
+			return fmt.Errorf("failed to delete attachment row: %w", delErr)
+		}
+
+		return audit(ctx, tx, model.toDomain())
+	})
+	if err != nil {
 		return fmt.Errorf("failed to delete attachment: %w", err)
 	}
 

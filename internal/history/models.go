@@ -11,7 +11,7 @@ type historyModel struct {
 	bun.BaseModel `bun:"table:history,alias:h"`
 
 	ID          int64         `bun:"id,pk,autoincrement"`
-	SubjectType SubjectType   `bun:"subject_type,notnull"`
+	SubjectType string        `bun:"subject_type,notnull"`
 	SubjectID   int64         `bun:"subject_id,notnull"`
 	ActorID     int64         `bun:"actor_id,notnull"`
 	Action      Action        `bun:"action,notnull"`
@@ -20,7 +20,7 @@ type historyModel struct {
 }
 
 func newHistoryModel(
-	subjectType SubjectType,
+	subjectType string,
 	subjectID, actorID int64,
 	action Action,
 	changes []FieldChange,
@@ -50,12 +50,14 @@ func (m *historyModel) toDomain() *Entry {
 	copy(changes, m.Changes)
 
 	return &Entry{
-		ID:          m.ID,
-		SubjectType: m.SubjectType,
-		SubjectID:   m.SubjectID,
-		ActorID:     m.ActorID,
-		Action:      m.Action,
-		Changes:     changes,
-		CreatedAt:   m.CreatedAt,
+		ID: m.ID,
+		EntryBase: EntryBase{
+			SubjectType: m.SubjectType,
+			SubjectID:   m.SubjectID,
+			ActorID:     m.ActorID,
+			Action:      m.Action,
+			Changes:     changes,
+		},
+		CreatedAt: m.CreatedAt,
 	}
 }

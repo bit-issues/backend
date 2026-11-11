@@ -13,8 +13,8 @@
 //   - Service layer (service.go): Business logic and coordination
 //
 // Integration:
-//   - Mutations run in a Service-owned transaction that also appends the
-//     matching event through history.Service
+//   - Repository mutations own their transaction and invoke an audit
+//     callback that appends the matching event through history.Service
 //   - Uses bun.DB for MySQL persistence
 //   - Provides tasks.Service for HTTP handlers
 //

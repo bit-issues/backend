@@ -8,14 +8,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/google/uuid"
-	"github.com/uptrace/bun"
 	"go.uber.org/zap"
 )
 
@@ -27,7 +25,6 @@ type Service struct {
 	tasksSvc   *tasks.Service
 	historySvc *history.Service
 	storageSvc *storage.Service
-	db         *bun.DB
 
 	logger *zap.Logger
 }
@@ -38,7 +35,6 @@ func NewService(
 	tasksSvc *tasks.Service,
 	historySvc *history.Service,
 	storageSvc *storage.Service,
-	db *bun.DB,
 	logger *zap.Logger,
 ) *Service {
 	if config.MaxSize == 0 {
@@ -53,7 +49,6 @@ func NewService(
 		tasksSvc:   tasksSvc,
 		historySvc: historySvc,
 		storageSvc: storageSvc,
-		db:         db,
 
 		logger: logger,
 	}
@@ -184,19 +179,7 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 		return attachment, nil
 	}
 
-	err = s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		if confirmErr := s.attachments.ConfirmWithin(ctx, tx, id); confirmErr != nil {
-			return fmt.Errorf("transaction: %w", confirmErr)
-		}
-
-		if recordErr := s.historySvc.RecordAttachmentAdded(
-			ctx, tx, attachment.TaskID, uploaderID, attachment.FileName, time.Now(),
-		); recordErr != nil {
-			return fmt.Errorf("transaction: %w", recordErr)
-		}
-
-		return nil
-	})
+	err = s.attachments.Confirm(ctx, id, s.auditAdded(uploaderID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to confirm attachment: %w", err)
 	}
@@ -222,19 +205,7 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 		return ErrUnauthorized
 	}
 
-	err = s.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		if delErr := s.attachments.DeleteWithin(ctx, tx, id); delErr != nil {
-			return fmt.Errorf("transaction: %w", delErr)
-		}
-
-		if recordErr := s.historySvc.RecordAttachmentRemoved(
-			ctx, tx, attachment.TaskID, user.ID, attachment.FileName, time.Now(),
-		); recordErr != nil {
-			return fmt.Errorf("transaction: %w", recordErr)
-		}
-
-		return nil
-	})
+	err = s.attachments.Delete(ctx, id, s.auditRemoved(user.ID))
 	if err != nil {
 		return fmt.Errorf("failed to delete attachment: %w", err)
 	}

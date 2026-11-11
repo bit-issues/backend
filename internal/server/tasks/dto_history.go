@@ -6,6 +6,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/server/dto"
+	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 )
 
@@ -60,7 +61,7 @@ func resolveHistoryValue(
 		return nil
 	}
 
-	if field == history.FieldAssignee {
+	if field == tasks.FieldAssignee {
 		id, err := strconv.ParseInt(*value, 10, 64)
 		if err == nil {
 			if user, ok := usersMap[id]; ok {

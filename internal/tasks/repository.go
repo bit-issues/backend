@@ -21,66 +21,90 @@ func NewRepository(db *bun.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// CreateWithin inserts a new task with an auto-generated per-project number
-// inside the caller's transaction, so a use case can commit the task together
-// with its history entry atomically.
-func (r *Repository) CreateWithin(ctx context.Context, idb bun.IDB, input TaskInput) (*Task, error) {
-	// Get the next task number for this project
-	var maxNumber int
-	err := idb.NewSelect().
-		Model((*taskModel)(nil)).
-		Column("number").
-		Where("project_slug = ?", input.ProjectSlug).
-		WhereAllWithDeleted().
-		OrderExpr("number DESC").
-		Limit(1).
-		Scan(ctx, &maxNumber)
+// Create inserts a new task with an auto-generated per-project number and
+// invokes audit with the created task inside the same transaction.
+func (r *Repository) Create(
+	ctx context.Context,
+	input TaskInput,
+	audit history.AuditFunc[*Task],
+) (*Task, error) {
+	var task *Task
 
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("failed to get max task number: %w", err)
-	}
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		// Get the next task number for this project
+		var maxNumber int
+		err := tx.NewSelect().
+			Model((*taskModel)(nil)).
+			Column("number").
+			Where("project_slug = ?", input.ProjectSlug).
+			WhereAllWithDeleted().
+			OrderExpr("number DESC").
+			Limit(1).
+			Scan(ctx, &maxNumber)
 
-	nextNumber := maxNumber + 1
-	model := newTaskModel(input, nextNumber)
-
-	if _, insErr := idb.NewInsert().Model(model).Exec(ctx); insErr != nil {
-		if db.IsUniqueViolation(insErr) {
-			return nil, fmt.Errorf(
-				"%w: task number %d already exists for project %s",
-				ErrValidationFailed,
-				nextNumber,
-				input.ProjectSlug,
-			)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("failed to get max task number: %w", err)
 		}
-		return nil, fmt.Errorf("failed to insert task: %w", insErr)
+
+		nextNumber := maxNumber + 1
+		model := newTaskModel(input, nextNumber)
+
+		if _, insErr := tx.NewInsert().Model(model).Exec(ctx); insErr != nil {
+			if db.IsUniqueViolation(insErr) {
+				return fmt.Errorf(
+					"%w: task number %d already exists for project %s",
+					ErrValidationFailed,
+					nextNumber,
+					input.ProjectSlug,
+				)
+			}
+			return fmt.Errorf("failed to insert task: %w", insErr)
+		}
+
+		task = model.toDomain()
+		return audit(ctx, tx, task)
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
-	return model.toDomain(), nil
+	return task, nil
 }
 
-// ImportWithin creates a task with explicit number, timestamps, and kind
-// inside the caller's transaction. It bypasses auto-number generation and
-// allows setting custom CreatedAt/UpdatedAt.
-func (r *Repository) ImportWithin(
+// Import creates a task with explicit number, timestamps, and kind and
+// invokes audit with the created task inside the same transaction.
+// It bypasses auto-number generation and allows setting custom CreatedAt/UpdatedAt.
+func (r *Repository) Import(
 	ctx context.Context,
-	idb bun.IDB,
 	input Task,
+	audit history.AuditFunc[*Task],
 ) (*Task, error) {
-	model := newTaskImport(input)
+	var task *Task
 
-	if _, insErr := idb.NewInsert().Model(model).Exec(ctx); insErr != nil {
-		if db.IsUniqueViolation(insErr) {
-			return nil, fmt.Errorf(
-				"%w: task number %d already exists for project %s",
-				ErrValidationFailed,
-				input.Number,
-				input.ProjectSlug,
-			)
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		model := newTaskImport(input)
+
+		if _, insErr := tx.NewInsert().Model(model).Exec(ctx); insErr != nil {
+			if db.IsUniqueViolation(insErr) {
+				return fmt.Errorf(
+					"%w: task number %d already exists for project %s",
+					ErrValidationFailed,
+					input.Number,
+					input.ProjectSlug,
+				)
+			}
+			return fmt.Errorf("failed to insert task for import: %w", insErr)
 		}
-		return nil, fmt.Errorf("failed to insert task for import: %w", insErr)
+
+		task = model.toDomain()
+		return audit(ctx, tx, task)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to import task: %w", err)
 	}
 
-	return model.toDomain(), nil
+	return task, nil
 }
 
 func (r *Repository) Exists(ctx context.Context, id int64) (bool, error) {
@@ -180,53 +204,61 @@ func (r *Repository) List(
 	return tasks, total, nil
 }
 
-// UpdateWithin modifies an existing task with the provided update data
-// inside the caller's transaction and returns the applied field changes, so a
-// use case can record them in the same transaction. Only non-nil fields in
-// the TaskUpdate struct are changed.
-func (r *Repository) UpdateWithin(
+// Update modifies an existing task with the provided update data and invokes
+// audit with the updated task and the applied changes inside the same
+// transaction. Audit runs only when at least one field changed; a no-op
+// update returns the current row without audit. Only non-nil fields in the
+// TaskUpdate struct are changed.
+func (r *Repository) Update(
 	ctx context.Context,
-	idb bun.IDB,
 	id int64,
 	update TaskUpdate,
-) (*Task, []history.FieldChange, error) {
+	audit func(context.Context, bun.IDB, *Task, []history.FieldChange) error,
+) (*Task, error) {
 	if update.IsEmpty() {
-		current, getErr := r.GetByID(ctx, id)
-		if getErr != nil {
-			return nil, nil, getErr
+		return r.GetByID(ctx, id)
+	}
+
+	var updated *Task
+
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		current, fetchErr := getTaskForUpdate(ctx, tx, id)
+		if fetchErr != nil {
+			return fetchErr
 		}
-		return current, nil, nil
+
+		changes := diffTask(current, update)
+		if len(changes) == 0 {
+			updated = current
+			return nil
+		}
+
+		rows, updateErr := executeTaskUpdate(ctx, tx, id, update)
+		if updateErr != nil {
+			return updateErr
+		}
+		if rows == 0 {
+			return ErrNotFound
+		}
+
+		after, reloadErr := getTaskByIDWithDB(ctx, tx, id)
+		if reloadErr != nil {
+			return reloadErr
+		}
+		updated = after
+
+		return audit(ctx, tx, after, changes)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
 
-	current, fetchErr := getTaskForUpdate(ctx, idb, id)
-	if fetchErr != nil {
-		return nil, nil, fetchErr
-	}
-
-	changes := diffTask(current, update)
-	if len(changes) == 0 {
-		return current, nil, nil
-	}
-
-	rows, updateErr := executeTaskUpdate(ctx, idb, id, update)
-	if updateErr != nil {
-		return nil, nil, updateErr
-	}
-	if rows == 0 {
-		return nil, nil, ErrNotFound
-	}
-
-	after, reloadErr := getTaskByIDWithDB(ctx, idb, id)
-	if reloadErr != nil {
-		return nil, nil, reloadErr
-	}
-
-	return after, changes, nil
+	return updated, nil
 }
 
-func getTaskForUpdate(ctx context.Context, idb bun.IDB, id int64) (*Task, error) {
+func getTaskForUpdate(ctx context.Context, tx bun.Tx, id int64) (*Task, error) {
 	var model taskModel
-	if err := idb.NewSelect().
+	if err := tx.NewSelect().
 		Model(&model).
 		Where("id = ?", id).
 		For("UPDATE").
@@ -254,11 +286,11 @@ func getTaskByIDWithDB(ctx context.Context, idb bun.IDB, id int64) (*Task, error
 
 func executeTaskUpdate(
 	ctx context.Context,
-	idb bun.IDB,
+	tx bun.Tx,
 	id int64,
 	update TaskUpdate,
 ) (int64, error) {
-	query := buildTaskUpdateQuery(idb, update).Where("id = ?", id)
+	query := buildTaskUpdateQuery(tx, update).Where("id = ?", id)
 	result, err := query.Exec(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("failed to update task: %w", err)
@@ -272,8 +304,8 @@ func executeTaskUpdate(
 	return rows, nil
 }
 
-func buildTaskUpdateQuery(idb bun.IDB, update TaskUpdate) *bun.UpdateQuery {
-	query := idb.NewUpdate().Model((*taskModel)(nil))
+func buildTaskUpdateQuery(tx bun.Tx, update TaskUpdate) *bun.UpdateQuery {
+	query := tx.NewUpdate().Model((*taskModel)(nil))
 
 	if update.Title != nil {
 		query = query.Set("title = ?", *update.Title)

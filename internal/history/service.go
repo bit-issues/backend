@@ -25,52 +25,15 @@ func NewService(history *Repository) *Service {
 // List retrieves history entries for a subject newest-first.
 func (s *Service) List(
 	ctx context.Context,
-	subjectType SubjectType,
+	subjectType string,
 	subjectID int64,
 	limit, offset int,
 ) ([]Entry, int, error) {
 	return s.history.List(ctx, subjectType, subjectID, limit, offset)
 }
 
-// RecordCreated records a task creation inside the caller's transaction.
-func (s *Service) RecordCreated(
-	ctx context.Context,
-	tx bun.IDB,
-	taskID, actorID int64,
-	createdAt time.Time,
-) error {
-	return s.history.RecordWithin(ctx, tx, newCreatedEntry(taskID, actorID, createdAt))
-}
-
-// RecordUpdated records applied field changes inside the caller's transaction.
-func (s *Service) RecordUpdated(
-	ctx context.Context,
-	tx bun.IDB,
-	taskID, actorID int64,
-	changes []FieldChange,
-	createdAt time.Time,
-) error {
-	return s.history.RecordWithin(ctx, tx, newUpdatedEntry(taskID, actorID, changes, createdAt))
-}
-
-// RecordAttachmentAdded records a confirmed upload inside the caller's transaction.
-func (s *Service) RecordAttachmentAdded(
-	ctx context.Context,
-	tx bun.IDB,
-	taskID, actorID int64,
-	fileName string,
-	createdAt time.Time,
-) error {
-	return s.history.RecordWithin(ctx, tx, newAttachmentAddedEntry(taskID, actorID, fileName, createdAt))
-}
-
-// RecordAttachmentRemoved records a deletion inside the caller's transaction.
-func (s *Service) RecordAttachmentRemoved(
-	ctx context.Context,
-	tx bun.IDB,
-	taskID, actorID int64,
-	fileName string,
-	createdAt time.Time,
-) error {
-	return s.history.RecordWithin(ctx, tx, newAttachmentRemovedEntry(taskID, actorID, fileName, createdAt))
+// Record appends an entry base to the activity stream inside the caller's
+// transaction, stamping CreatedAt itself.
+func (s *Service) Record(ctx context.Context, tx bun.IDB, base EntryBase) error {
+	return s.history.RecordWithin(ctx, tx, entryFromBase(base, time.Now()))
 }
