@@ -114,16 +114,24 @@ func TestDeriveHistoryChanges(t *testing.T) {
 		payload[attachments.FieldAttachment] = &value
 		return payload
 	}
+	withSize := func(payload map[string]*string, value string) map[string]*string {
+		payload[attachments.FieldAttachmentSize] = &value
+		return payload
+	}
 
 	entries := []history.Entry{
 		{EntryBase: history.EntryBase{Action: history.ActionUpdated, Payload: state("In Progress")}},
 		{EntryBase: history.EntryBase{
 			Action:  history.ActionAttachmentAdded,
-			Payload: withFile(state("Open"), "a.txt"),
+			Payload: withSize(withFile(state("Open"), "a.txt"), "10"),
 		}},
 		{EntryBase: history.EntryBase{
 			Action:  history.ActionAttachmentRemoved,
-			Payload: withFile(state("Open"), "b.txt"),
+			Payload: withSize(withFile(state("Open"), "b.txt"), "20"),
+		}},
+		{EntryBase: history.EntryBase{
+			Action:  history.ActionAttachmentRemoved,
+			Payload: withFile(state("Open"), "c.txt"),
 		}},
 		{EntryBase: history.EntryBase{Action: history.ActionCreated, Payload: state("Open")}},
 	}
@@ -131,8 +139,15 @@ func TestDeriveHistoryChanges(t *testing.T) {
 	got := servertasks.DeriveHistoryChangesForTest(entries)
 	want := [][]tasks.FieldChange{
 		{{Field: tasks.FieldStatus, OldValue: str("Open"), NewValue: str("In Progress")}},
-		{{Field: attachments.FieldAttachment, OldValue: nil, NewValue: str("a.txt")}},
-		{{Field: attachments.FieldAttachment, OldValue: str("b.txt"), NewValue: nil}},
+		{
+			{Field: attachments.FieldAttachment, OldValue: nil, NewValue: str("a.txt")},
+			{Field: attachments.FieldAttachmentSize, OldValue: nil, NewValue: str("10")},
+		},
+		{
+			{Field: attachments.FieldAttachment, OldValue: str("b.txt"), NewValue: nil},
+			{Field: attachments.FieldAttachmentSize, OldValue: str("20"), NewValue: nil},
+		},
+		{{Field: attachments.FieldAttachment, OldValue: str("c.txt"), NewValue: nil}},
 		nil,
 	}
 	if !reflect.DeepEqual(got, want) {

@@ -19,10 +19,16 @@ func TestAttachmentPayloadCarriesStateAndFile(t *testing.T) {
 		Priority:    tasks.PriorityMinor,
 		Kind:        tasks.KindBug,
 	}
-	payload := attachments.AttachmentPayloadForTest(task, "log.txt")
+	payload := attachments.AttachmentPayloadForTest(task, &attachments.Attachment{
+		FileName:  "log.txt",
+		SizeBytes: 4096,
+	})
 
 	if got := payload[attachments.FieldAttachment]; got == nil || *got != "log.txt" {
 		t.Errorf("payload[%q] = %v, want log.txt", attachments.FieldAttachment, got)
+	}
+	if got := payload[attachments.FieldAttachmentSize]; got == nil || *got != "4096" {
+		t.Errorf("payload[%q] = %v, want 4096", attachments.FieldAttachmentSize, got)
 	}
 	if got := payload[tasks.FieldStatus]; got == nil || *got != string(tasks.StatusOpen) {
 		t.Errorf("payload[%q] = %v, want Open", tasks.FieldStatus, got)
@@ -30,8 +36,8 @@ func TestAttachmentPayloadCarriesStateAndFile(t *testing.T) {
 	if got := payload[tasks.FieldAssignee]; got == nil || *got != "3" {
 		t.Errorf("payload[%q] = %v, want 3", tasks.FieldAssignee, got)
 	}
-	if len(payload) != 8 {
-		t.Errorf("len(payload) = %d, want 8 (7 tracked fields + file)", len(payload))
+	if len(payload) != 9 {
+		t.Errorf("len(payload) = %d, want 9 (7 tracked fields + file + size)", len(payload))
 	}
 }
 

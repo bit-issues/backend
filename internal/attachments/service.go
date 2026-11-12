@@ -194,7 +194,7 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 	attachment.Status = StatusUploaded
 
 	if flipped {
-		s.recordAdded(ctx, task, uploaderID, attachment.FileName)
+		s.recordAdded(ctx, task, uploaderID, attachment)
 	}
 
 	return attachment, nil
@@ -221,7 +221,7 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 		return fmt.Errorf("failed to delete attachment: %w", delErr)
 	}
 
-	s.recordRemoved(ctx, task, user.ID, attachment.FileName)
+	s.recordRemoved(ctx, task, user.ID, attachment)
 
 	if delErr := s.storageSvc.Delete(ctx, attachment.StorageKey); delErr != nil {
 		return fmt.Errorf("attachment metadata deleted, but object cleanup failed: %w", delErr)

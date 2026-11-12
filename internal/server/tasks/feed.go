@@ -74,7 +74,7 @@ func mergeFeedEntries(
 // deriveHistoryChanges computes each entry's change pairs against its
 // next-older snapshot; entries are newest-first, so that snapshot is the
 // following element. Created entries carry no pairs; attachment pairs come
-// from the payload key and the action.
+// from the payload keys and the action.
 func deriveHistoryChanges(entries []history.Entry) [][]tasks.FieldChange {
 	changes := make([][]tasks.FieldChange, len(entries))
 
@@ -89,21 +89,53 @@ func deriveHistoryChanges(entries []history.Entry) [][]tasks.FieldChange {
 				changes[i] = tasks.DeriveChanges(entry.Payload, entries[i+1].Payload)
 			}
 		case history.ActionAttachmentAdded, history.ActionAttachmentRemoved:
-			changes[i] = []tasks.FieldChange{attachmentFeedChange(entry)}
+			changes[i] = attachmentFeedChanges(entry)
 		}
 	}
 
 	return changes
 }
 
-func attachmentFeedChange(entry *history.Entry) tasks.FieldChange {
+// attachmentFeedChanges renders the attachment name pair, plus a size pair
+// when the payload carries one (rows recorded before size_bytes existed omit
+// it). Removed events put the values on the old side.
+func attachmentFeedChanges(entry *history.Entry) []tasks.FieldChange {
 	name := entry.Payload[attachments.FieldAttachment]
+	size, hasSize := entry.Payload[attachments.FieldAttachmentSize]
+
+	var changes []tasks.FieldChange
 
 	if entry.Action == history.ActionAttachmentRemoved {
-		return tasks.FieldChange{Field: attachments.FieldAttachment, OldValue: name, NewValue: nil}
+		changes = append(changes, tasks.FieldChange{
+			Field:    attachments.FieldAttachment,
+			OldValue: name,
+			NewValue: nil,
+		})
+		if hasSize {
+			changes = append(changes, tasks.FieldChange{
+				Field:    attachments.FieldAttachmentSize,
+				OldValue: size,
+				NewValue: nil,
+			})
+		}
+
+		return changes
 	}
 
-	return tasks.FieldChange{Field: attachments.FieldAttachment, OldValue: nil, NewValue: name}
+	changes = append(changes, tasks.FieldChange{
+		Field:    attachments.FieldAttachment,
+		OldValue: nil,
+		NewValue: name,
+	})
+	if hasSize {
+		changes = append(changes, tasks.FieldChange{
+			Field:    attachments.FieldAttachmentSize,
+			OldValue: nil,
+			NewValue: size,
+		})
+	}
+
+	return changes
 }
 
 func compareFeedEntries(a, b feedEntry) int {
