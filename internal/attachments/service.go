@@ -179,6 +179,13 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 		return attachment, nil
 	}
 
+	// The task is fetched before the status flips so a failed lookup leaves
+	// the attachment unconfirmed and retryable.
+	task, taskErr := s.tasksSvc.GetByID(ctx, attachment.TaskID)
+	if taskErr != nil {
+		return nil, fmt.Errorf("failed to get task: %w", taskErr)
+	}
+
 	flipped, err := s.attachments.Confirm(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to confirm attachment: %w", err)
@@ -187,10 +194,6 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 	attachment.Status = StatusUploaded
 
 	if flipped {
-		task, taskErr := s.tasksSvc.GetByID(ctx, attachment.TaskID)
-		if taskErr != nil {
-			return nil, fmt.Errorf("failed to get task: %w", taskErr)
-		}
 		s.recordAdded(ctx, task, uploaderID, attachment.FileName)
 	}
 
