@@ -1676,7 +1676,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns comments, field-level task changes and attachment events merged newest-first.",
+                "description": "Returns field-level task changes and attachment events newest-first.",
                 "consumes": [
                     "application/json"
                 ],
@@ -3267,27 +3267,6 @@ const docTemplate = `{
                 }
             }
         },
-        "tasks.FeedItemResponse": {
-            "description": "Activity feed item with exactly one of comment or history populated.",
-            "type": "object",
-            "properties": {
-                "comment": {
-                    "$ref": "#/definitions/tasks.CommentResponse"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "history": {
-                    "$ref": "#/definitions/tasks.HistoryEntryResponse"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "type": {
-                    "type": "string"
-                }
-            }
-        },
         "tasks.FeedResponse": {
             "description": "Paginated activity feed with total count.",
             "type": "object",
@@ -3295,7 +3274,7 @@ const docTemplate = `{
                 "items": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/tasks.FeedItemResponse"
+                        "$ref": "#/definitions/tasks.HistoryEntryResponse"
                     }
                 },
                 "total": {
@@ -3404,6 +3383,12 @@ const docTemplate = `{
                 },
                 "author": {
                     "$ref": "#/definitions/dto.UserBrief"
+                },
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tasks.CommentResponse"
+                    }
                 },
                 "created_at": {
                     "type": "string"

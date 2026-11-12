@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/bit-issues/backend/internal/attachments"
+	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -134,18 +135,21 @@ type TaskDetailsResponse struct {
 	TaskResponse
 
 	Project     *dto.Project         `json:"project"`
+	Comments    []CommentResponse    `json:"comments"`
 	Attachments []AttachmentResponse `json:"attachments"`
 }
 
 func newTaskDetailsResponse(
 	task *tasks.Task,
 	usersMap map[int64]users.User,
+	comments []comments.Comment,
 	attachmentList []attachments.AttachmentWithURL,
 	project *dto.Project,
 ) *TaskDetailsResponse {
 	return &TaskDetailsResponse{
 		TaskResponse: newTaskResponse(task, usersMap),
 		Project:      project,
+		Comments:     toCommentsList(comments, usersMap),
 		Attachments:  toAttachmentsList(attachmentList, usersMap),
 	}
 }

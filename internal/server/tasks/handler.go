@@ -380,6 +380,7 @@ func (h *Handler) myTasks(c *fiber.Ctx) error {
 func (h *Handler) fetchUsersForTasks(
 	ctx context.Context,
 	tasks []tasks.Task,
+	comments []comments.Comment,
 ) (map[int64]users.User, error) {
 	// Collect unique user IDs
 	idSet := make(map[int64]struct{})
@@ -388,6 +389,10 @@ func (h *Handler) fetchUsersForTasks(
 		if t.AssigneeID != nil {
 			idSet[*t.AssigneeID] = struct{}{}
 		}
+	}
+
+	for _, c := range comments {
+		idSet[c.AuthorID] = struct{}{}
 	}
 
 	if len(idSet) == 0 {
@@ -415,7 +420,7 @@ func (h *Handler) prepareListResponse(
 	total int,
 ) (*TaskListResponse, error) {
 	// Fetch users for author and assignee enrichment
-	usersMap, err := h.fetchUsersForTasks(ctx, tasks)
+	usersMap, err := h.fetchUsersForTasks(ctx, tasks, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -427,13 +432,23 @@ func (h *Handler) prepareDetailsResponse(
 	ctx context.Context,
 	task *tasks.Task,
 ) (*TaskDetailsResponse, error) {
+	commentsList, _, err := h.commentsSvc.List(
+		ctx,
+		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
+		comments.SortOrderCreatedAtAsc,
+		nil,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get comments: %w", err)
+	}
+
 	attachmentList, err := h.attachmentsSvc.ListByTask(ctx, task.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attachments: %w", err)
 	}
 
 	// Fetch users for author and assignee enrichment
-	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task})
+	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task}, commentsList)
 	if err != nil {
 		return nil, err
 	}
@@ -447,7 +462,7 @@ func (h *Handler) prepareDetailsResponse(
 		projectResp = dto.ToProject(proj)
 	}
 
-	return newTaskDetailsResponse(task, usersMap, attachmentList, projectResp), nil
+	return newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.

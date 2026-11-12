@@ -255,7 +255,7 @@ GET {{baseURL}}/tasks/my-new-project/1
 Authorization: Bearer {{accessToken}}
 
 ###
-# Get task activity feed (comments and field changes, newest-first)
+# Get task activity feed (field changes and attachment events, newest-first)
 GET {{baseURL}}/tasks/my-new-project/1/feed?limit=20&offset=0
 Authorization: Bearer {{accessToken}}
 
@@ -373,7 +373,7 @@ DELETE {{baseURL}}/tasks/{{taskId}}/comments/{{commentId}}
 Authorization: Bearer {{accessToken}}
 
 ###
-# Get task details (project and attachments are included)
+# Get task with comments (comments are included in task details)
 GET {{baseURL}}/tasks/{{taskId}}
 Authorization: Bearer {{accessToken}}
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -14,7 +13,7 @@ import (
 )
 
 //	@Summary		Get task activity feed
-//	@Description	Returns comments, field-level task changes and attachment events merged newest-first.
+//	@Description	Returns field-level task changes and attachment events newest-first.
 //	@Tags			Tasks
 //	@Accept			json
 //	@Produce		json
@@ -29,7 +28,7 @@ import (
 //	@Failure		404		{object}	fiberfx.ErrorResponse
 //	@Router			/tasks/{slug}/{number}/feed [get]
 //
-// feed retrieves the merged activity feed for a task.
+// feed retrieves the activity feed for a task.
 func (h *Handler) feed(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 
@@ -49,69 +48,55 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
-	window, ok := feedWindow(query.Offset, query.Limit)
-	if !ok {
+	if _, ok := feedWindow(query.Offset, query.Limit); !ok {
 		return fiber.NewError(fiber.StatusBadRequest, "offset is too large")
 	}
 
-	commentList, commentTotal, err := h.commentsSvc.List(
-		c.Context(),
-		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
-		comments.SortOrderDefault,
-		comments.NewPagination(window, 0),
-	)
-	if err != nil {
-		return fmt.Errorf("failed to list comments: %w", err)
-	}
-
 	// One extra history row seeds read-side change derivation for the
-	// boundary entry; it is dropped before merging.
-	historyList, historyTotal, err := h.historySvc.List(c.Context(), tasks.SubjectTypeTask, task.ID, window+1, 0)
+	// boundary entry; it is dropped before responding.
+	fetchedList, historyTotal, err := h.historySvc.List(
+		c.Context(),
+		tasks.SubjectTypeTask,
+		task.ID,
+		query.Limit+1,
+		query.Offset,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to list task history: %w", err)
 	}
 
-	allHistory := historyList
-	historyChanges := deriveHistoryChanges(historyList)
-	if len(historyList) > window {
-		historyList = historyList[:window]
-		historyChanges = historyChanges[:window]
+	allChanges := deriveHistoryChanges(fetchedList)
+	pageList := fetchedList
+	pageChanges := allChanges
+	if len(fetchedList) > query.Limit {
+		pageList = fetchedList[:query.Limit]
+		pageChanges = allChanges[:query.Limit]
 	}
 
-	entries := pageFeedEntries(mergeFeedEntries(commentList, historyList, historyChanges), query.Offset, query.Limit)
-
-	usersMap, err := h.fetchUsersForFeed(c.Context(), entries, allHistory)
+	usersMap, err := h.fetchUsersForFeed(c.Context(), pageList, fetchedList)
 	if err != nil {
 		h.logger.Error("failed to fetch users for feed", zap.Int64("task_id", task.ID), zap.Error(err))
 		usersMap = make(map[int64]users.User)
 	}
 
-	return c.JSON(toFeedResponse(entries, usersMap, commentTotal+historyTotal))
+	return c.JSON(toFeedResponse(pageList, pageChanges, usersMap, historyTotal))
 }
 
 func (h *Handler) fetchUsersForFeed(
 	ctx context.Context,
-	entries []feedEntry,
-	historyList []history.Entry,
+	pageList []history.Entry,
+	fetchedList []history.Entry,
 ) (map[int64]users.User, error) {
 	idSet := make(map[int64]struct{})
 
-	for i := range entries {
-		entry := &entries[i]
-
-		if entry.Comment != nil {
-			idSet[entry.Comment.AuthorID] = struct{}{}
-		}
-
-		if entry.History != nil {
-			idSet[entry.History.ActorID] = struct{}{}
-		}
+	for i := range pageList {
+		idSet[pageList[i].ActorID] = struct{}{}
 	}
 
 	// Payloads of every fetched history row (including the dropped context
 	// row) cover both sides of every derived assignee pair.
-	for i := range historyList {
-		collectHistoryAssignee(&idSet, historyList[i].Payload[tasks.FieldAssignee])
+	for i := range fetchedList {
+		collectHistoryAssignee(&idSet, fetchedList[i].Payload[tasks.FieldAssignee])
 	}
 
 	if len(idSet) == 0 {
