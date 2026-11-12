@@ -109,7 +109,7 @@
       const response = await getTaskFeed(
         slug,
         number,
-        PAGE_SIZE,
+        Math.min(PAGE_SIZE, FEED_WINDOW - nextOffset),
         nextOffset,
       );
       if (requestGeneration !== generation) return;
