@@ -10,7 +10,7 @@
   import CommentForm from "$lib/components/CommentForm.svelte";
   import CommentItem from "$lib/components/CommentItem.svelte";
   import type { AutoLinkContext } from "$lib/autolink";
-  import type { FeedItem, HistoryChange, HistoryEntry } from "$lib/types/api";
+  import type { Comment, HistoryChange, HistoryEntry } from "$lib/types/api";
   import { toast } from "$lib/toast";
 
   const PAGE_SIZE = 20;
@@ -33,28 +33,36 @@
     number = 0,
     taskId = 0,
     currentUserId = 0,
+    comments = [],
     attachmentsMap = new Map<number, string>(),
     autoLinkCtx = {} as AutoLinkContext,
     refreshKey = 0,
-    onCommentAdded = async () => {},
+    onCommentsChanged = async () => {},
   }: {
     slug: string;
     number: number;
     taskId: number;
     currentUserId: number;
+    comments?: Comment[];
     attachmentsMap: Map<number, string>;
     autoLinkCtx: AutoLinkContext;
     refreshKey?: number;
-    onCommentAdded?: () => Promise<void>;
+    onCommentsChanged?: () => Promise<void>;
   } = $props();
 
-  let items = $state<FeedItem[]>([]);
-  let total = $state(0);
+  type ActivityItem =
+    | { kind: "comment"; id: number; createdAt: string; comment: Comment }
+    | { kind: "history"; id: number; createdAt: string; history: HistoryEntry };
+
+  let historyItems = $state<HistoryEntry[]>([]);
+  let historyTotal = $state(0);
   let nextOffset = $state(0);
   let loading = $state(true);
   let loadingMore = $state(false);
   let error = $state("");
   let generation = 0;
+
+  const activity = $derived(mergeActivity(comments, historyItems));
 
   $effect(() => {
     void refreshKey;
@@ -84,8 +92,8 @@
       );
       if (requestGeneration !== generation) return;
 
-      items = response.items;
-      total = response.total;
+      historyItems = response.items;
+      historyTotal = response.total;
       nextOffset = response.items.length;
     } catch (e) {
       if (requestGeneration !== generation) return;
@@ -99,7 +107,7 @@
   }
 
   async function loadMore() {
-    if (loading || loadingMore || nextOffset >= total || nextOffset >= FEED_WINDOW)
+    if (loading || loadingMore || nextOffset >= historyTotal || nextOffset >= FEED_WINDOW)
       return;
 
     const requestGeneration = generation;
@@ -114,14 +122,14 @@
       );
       if (requestGeneration !== generation) return;
 
-      const seen = new Set(items.map(feedKey));
-      const next = response.items.filter((item) => !seen.has(feedKey(item)));
-      items = [...items, ...next];
-      total = response.total;
+      const seen = new Set(historyItems.map((entry) => entry.id));
+      const next = response.items.filter((entry) => !seen.has(entry.id));
+      historyItems = [...historyItems, ...next];
+      historyTotal = response.total;
       nextOffset =
         response.items.length > 0
           ? nextOffset + response.items.length
-          : Math.max(nextOffset, total);
+          : Math.max(nextOffset, historyTotal);
     } catch (e) {
       toast.error(
         e instanceof Error ? e.message : "Failed to load older activity",
@@ -135,34 +143,56 @@
 
   async function handleAddComment(content: string) {
     await createComment(taskId, { content });
-    void onCommentAdded().catch(() => {});
-    await loadFirstPage(slug, number);
+    await onCommentsChanged().catch(() => {});
   }
 
   async function handleEditComment(commentId: number, content: string) {
-    const updated = await updateComment(taskId, commentId, { content });
-    items = items.map((item) =>
-      item.type === "comment" && item.comment.id === commentId
-        ? { ...item, comment: updated }
-        : item,
-    );
+    await updateComment(taskId, commentId, { content });
+    await onCommentsChanged().catch(() => {});
   }
 
   async function handleDeleteComment(commentId: number) {
     await deleteComment(taskId, commentId);
-
-    const before = items.length;
-    items = items.filter(
-      (item) => !(item.type === "comment" && item.comment.id === commentId),
-    );
-    if (items.length < before) {
-      total = Math.max(0, total - 1);
-      nextOffset = Math.max(0, nextOffset - 1);
-    }
+    await onCommentsChanged().catch(() => {});
   }
 
-  function feedKey(item: FeedItem): string {
-    return `${item.type}:${item.id}`;
+  // Comments arrive embedded in task details while history pages in from the
+  // feed; the client merges both, newest first. At equal second-precision
+  // timestamps a comment precedes a history entry, then higher ids first —
+  // the tie-breaks the backend feed used when it merged server-side.
+  function mergeActivity(
+    commentList: Comment[],
+    historyList: HistoryEntry[],
+  ): ActivityItem[] {
+    const merged: ActivityItem[] = [
+      ...commentList.map((comment) => ({
+        kind: "comment" as const,
+        id: comment.id,
+        createdAt: comment.created_at,
+        comment,
+      })),
+      ...historyList.map((entry) => ({
+        kind: "history" as const,
+        id: entry.id,
+        createdAt: entry.created_at,
+        history: entry,
+      })),
+    ];
+    merged.sort(compareActivity);
+
+    return merged;
+  }
+
+  function compareActivity(a: ActivityItem, b: ActivityItem): number {
+    const timeDiff = Date.parse(b.createdAt) - Date.parse(a.createdAt);
+    if (timeDiff !== 0) return timeDiff;
+    if (a.kind !== b.kind) return a.kind === "comment" ? -1 : 1;
+
+    return b.id - a.id;
+  }
+
+  function feedKey(item: ActivityItem): string {
+    return `${item.kind}:${item.id}`;
   }
 
   function formatDateTime(d: string): string {
@@ -225,22 +255,22 @@
 <div class="space-y-4">
   <CommentForm {taskId} onSubmit={handleAddComment} />
 
-  {#if error && items.length > 0}
+  {#if error && activity.length > 0}
     <p class="text-destructive py-4 text-center text-sm">{error}</p>
   {/if}
 
-  {#if loading && items.length === 0}
+  {#if loading && activity.length === 0}
     <p class="text-muted-foreground py-4 text-center text-sm">
       Loading activity...
     </p>
-  {:else if error && items.length === 0}
+  {:else if error && activity.length === 0}
     <p class="text-destructive py-4 text-center text-sm">{error}</p>
-  {:else if items.length === 0}
+  {:else if activity.length === 0}
     <p class="text-muted-foreground text-sm italic">No activity yet</p>
   {:else}
     <div class="space-y-3">
-      {#each items as item (feedKey(item))}
-        {#if item.type === "comment"}
+      {#each activity as item (feedKey(item))}
+        {#if item.kind === "comment"}
           <CommentItem
             comment={item.comment}
             {currentUserId}
@@ -296,7 +326,7 @@
       {/each}
     </div>
 
-    {#if nextOffset < total && nextOffset < FEED_WINDOW}
+    {#if nextOffset < historyTotal && nextOffset < FEED_WINDOW}
       <div class="flex justify-center">
         <Button
           variant="outline"
@@ -306,10 +336,10 @@
         >
           {loadingMore
             ? "Loading..."
-            : `Load older (${Math.min(total, FEED_WINDOW) - nextOffset} remaining)`}
+            : `Load older (${Math.min(historyTotal, FEED_WINDOW) - nextOffset} remaining)`}
         </Button>
       </div>
-    {:else if total > FEED_WINDOW && nextOffset >= FEED_WINDOW}
+    {:else if historyTotal > FEED_WINDOW && nextOffset >= FEED_WINDOW}
       <p class="text-muted-foreground py-2 text-center text-sm">
         Older activity is outside the supported window
       </p>

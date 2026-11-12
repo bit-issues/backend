@@ -237,10 +237,11 @@
             {number}
             taskId={task.id}
             currentUserId={currentUserId ?? 0}
+            comments={task.comments}
             attachmentsMap={attachmentUrls}
             {autoLinkCtx}
             refreshKey={feedRefreshKey}
-            onCommentAdded={refreshTask}
+            onCommentsChanged={refreshTask}
           />
         </div>
       </div>

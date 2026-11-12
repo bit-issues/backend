@@ -106,6 +106,7 @@ export interface Task {
 
 export interface TaskDetails extends Task {
   project: Project
+  comments: Comment[]
   attachments: Attachment[]
 }
 
@@ -175,24 +176,8 @@ export interface HistoryEntry {
   created_at: string
 }
 
-export interface CommentFeedItem {
-  type: 'comment'
-  id: number
-  created_at: string
-  comment: Comment
-}
-
-export interface HistoryFeedItem {
-  type: 'history'
-  id: number
-  created_at: string
-  history: HistoryEntry
-}
-
-export type FeedItem = CommentFeedItem | HistoryFeedItem
-
 export interface TaskFeedResponse {
-  items: FeedItem[]
+  items: HistoryEntry[]
   total: number
 }
 
