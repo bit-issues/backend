@@ -184,44 +184,27 @@ func (r *Repository) List(
 	return tasks, total, nil
 }
 
-// Update modifies an existing task with the provided update data and reports
-// whether anything changed. Only non-nil fields in the TaskUpdate struct are
-// changed. The applied row is re-read inside the transaction so callers see
-// the actual persisted state.
+// Update modifies an existing task with the provided update data. Only
+// non-nil fields in the TaskUpdate struct are changed. The applied row is
+// re-read inside the transaction so callers see the actual persisted state.
 func (r *Repository) Update(
 	ctx context.Context,
 	id int64,
 	update TaskUpdate,
-) (*Task, bool, error) {
+) (*Task, error) {
 	if update.IsEmpty() {
-		current, err := r.GetByID(ctx, id)
-		if err != nil {
-			return nil, false, err
-		}
-		return current, false, nil
+		return r.GetByID(ctx, id)
 	}
 
 	var updated *Task
-	changed := false
 
 	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
-		current, fetchErr := getTaskForUpdate(ctx, tx, id)
-		if fetchErr != nil {
+		if _, fetchErr := getTaskForUpdate(ctx, tx, id); fetchErr != nil {
 			return fetchErr
 		}
 
-		changes := diffTask(current, update)
-		if len(changes) == 0 {
-			updated = current
-			return nil
-		}
-
-		rows, updateErr := executeTaskUpdate(ctx, tx, id, update)
-		if updateErr != nil {
+		if updateErr := executeTaskUpdate(ctx, tx, id, update); updateErr != nil {
 			return updateErr
-		}
-		if rows == 0 {
-			return ErrNotFound
 		}
 
 		after, reloadErr := getTaskByIDWithDB(ctx, tx, id)
@@ -229,15 +212,14 @@ func (r *Repository) Update(
 			return reloadErr
 		}
 		updated = after
-		changed = true
 
 		return nil
 	})
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to update task: %w", err)
+		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
 
-	return updated, changed, nil
+	return updated, nil
 }
 
 func getTaskForUpdate(ctx context.Context, tx bun.Tx, id int64) (*Task, error) {
@@ -273,19 +255,13 @@ func executeTaskUpdate(
 	tx bun.Tx,
 	id int64,
 	update TaskUpdate,
-) (int64, error) {
+) error {
 	query := buildTaskUpdateQuery(tx, update).Where("id = ?", id)
-	result, err := query.Exec(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("failed to update task: %w", err)
+	if _, err := query.Exec(ctx); err != nil {
+		return fmt.Errorf("failed to update task: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return 0, fmt.Errorf("failed to get affected rows: %w", err)
-	}
-
-	return rows, nil
+	return nil
 }
 
 func buildTaskUpdateQuery(tx bun.Tx, update TaskUpdate) *bun.UpdateQuery {

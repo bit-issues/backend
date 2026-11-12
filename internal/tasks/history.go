@@ -35,16 +35,6 @@ const (
 	FieldDueDate     = "due_date"
 )
 
-func newStringChange(field, oldValue, newValue string) FieldChange {
-	oldCopy := oldValue
-	newCopy := newValue
-	return FieldChange{
-		Field:    field,
-		OldValue: &oldCopy,
-		NewValue: &newCopy,
-	}
-}
-
 func newOptionalChange(field string, oldValue, newValue *string) FieldChange {
 	return FieldChange{
 		Field:    field,
@@ -97,59 +87,6 @@ func DeriveChanges(newer, older map[string]*string) []FieldChange {
 		oldValue := older[field]
 		if !optionalStringsEqual(oldValue, newValue) {
 			changes = append(changes, newOptionalChange(field, oldValue, newValue))
-		}
-	}
-
-	return changes
-}
-
-// diffTask computes the field-level changes between the current task state
-// and an update. An empty result means the update is a no-op.
-func diffTask(current *Task, update TaskUpdate) []FieldChange {
-	changes := make([]FieldChange, 0)
-
-	if update.Title != nil && *update.Title != current.Title {
-		changes = append(changes, newStringChange(FieldTitle, current.Title, *update.Title))
-	}
-	if update.Description != nil && *update.Description != current.Description {
-		changes = append(
-			changes,
-			newStringChange(FieldDescription, current.Description, *update.Description),
-		)
-	}
-	if update.Priority != nil && *update.Priority != current.Priority {
-		changes = append(
-			changes,
-			newStringChange(FieldPriority, string(current.Priority), string(*update.Priority)),
-		)
-	}
-	if update.Status != nil && *update.Status != current.Status {
-		changes = append(
-			changes,
-			newStringChange(FieldStatus, string(current.Status), string(*update.Status)),
-		)
-	}
-	if update.Kind != nil && *update.Kind != current.Kind {
-		changes = append(
-			changes,
-			newStringChange(FieldKind, string(current.Kind), string(*update.Kind)),
-		)
-	}
-	if update.AssigneeID != nil {
-		currentAssignee := formatAssignee(current.AssigneeID)
-		newAssignee := formatAssignee(update.AssigneeID)
-		if !optionalStringsEqual(currentAssignee, newAssignee) {
-			changes = append(changes, newOptionalChange(FieldAssignee, currentAssignee, newAssignee))
-		}
-	}
-	if update.DueDate != nil {
-		currentDueDate := current.DueDate
-		var newDueDate *string
-		if *update.DueDate != "" {
-			newDueDate = update.DueDate
-		}
-		if !optionalStringsEqual(currentDueDate, newDueDate) {
-			changes = append(changes, newOptionalChange(FieldDueDate, currentDueDate, newDueDate))
 		}
 	}
 

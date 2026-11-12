@@ -126,14 +126,12 @@ func (s *Service) Update(
 		return nil, fmt.Errorf("%w: actor_id must be positive", ErrValidationFailed)
 	}
 
-	task, changed, err := s.tasks.Update(ctx, id, update)
+	task, err := s.tasks.Update(ctx, id, update)
 	if err != nil {
 		return nil, err
 	}
 
-	if changed {
-		s.recordUpdated(ctx, task, actorID)
-	}
+	s.recordUpdated(ctx, task, actorID)
 
 	return task, nil
 }
