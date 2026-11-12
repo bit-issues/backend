@@ -14,6 +14,9 @@
   import { toast } from "$lib/toast";
 
   const PAGE_SIZE = 20;
+  // Mirrors the backend feed window (maxFeedWindow): requests beyond this
+  // offset are rejected, so pagination stops there.
+  const FEED_WINDOW = 5000;
 
   const FIELD_LABELS: Record<string, string> = {
     title: "Title",
@@ -96,7 +99,8 @@
   }
 
   async function loadMore() {
-    if (loading || loadingMore || nextOffset >= total) return;
+    if (loading || loadingMore || nextOffset >= total || nextOffset >= FEED_WINDOW)
+      return;
 
     const requestGeneration = generation;
     loadingMore = true;
@@ -292,7 +296,7 @@
       {/each}
     </div>
 
-    {#if nextOffset < total}
+    {#if nextOffset < total && nextOffset < FEED_WINDOW}
       <div class="flex justify-center">
         <Button
           variant="outline"
@@ -302,9 +306,13 @@
         >
           {loadingMore
             ? "Loading..."
-            : `Load older (${total - nextOffset} remaining)`}
+            : `Load older (${Math.min(total, FEED_WINDOW) - nextOffset} remaining)`}
         </Button>
       </div>
+    {:else if total > FEED_WINDOW && nextOffset >= FEED_WINDOW}
+      <p class="text-muted-foreground py-2 text-center text-sm">
+        Older activity is outside the supported window
+      </p>
     {/if}
   {/if}
 </div>
