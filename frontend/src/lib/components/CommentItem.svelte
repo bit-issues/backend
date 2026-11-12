@@ -34,7 +34,7 @@
   let editing = $state(false);
   let editText = $state("");
   let saving = $state(false);
-  let editTextarea: HTMLTextAreaElement | undefined = $state();
+  let editTextarea = $state<HTMLTextAreaElement | null>(null);
   let fileInput: HTMLInputElement | undefined = $state();
 
   const images = new InlineImageEditor({
@@ -43,7 +43,7 @@
     setValue: (v) => {
       editText = v;
     },
-    getTextarea: () => editTextarea,
+    getTextarea: () => editTextarea ?? undefined,
     getSessionId: () => comment.id,
   });
 
