@@ -1,15 +1,10 @@
 package tasks
 
 import (
-	"context"
 	"fmt"
 	"strconv"
 
-	"github.com/bit-issues/backend/internal/history"
-	"github.com/bit-issues/backend/internal/tasks"
-	"github.com/bit-issues/backend/internal/users"
 	"github.com/gofiber/fiber/v2"
-	"go.uber.org/zap"
 )
 
 //	@Summary		Get task activity feed
@@ -48,83 +43,10 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get task: %w", err)
 	}
 
-	if _, ok := feedWindow(query.Offset, query.Limit); !ok {
-		return fiber.NewError(fiber.StatusBadRequest, "offset is too large")
-	}
-
-	// One extra history row seeds read-side change derivation for the
-	// boundary entry; it is dropped before responding.
-	fetchedList, historyTotal, err := h.historySvc.List(
-		c.Context(),
-		tasks.SubjectTypeTask,
-		task.ID,
-		query.Limit+1,
-		query.Offset,
-	)
+	page, err := h.feedSvc.List(c.Context(), task.ID, query.Offset, query.Limit)
 	if err != nil {
-		return fmt.Errorf("failed to list task history: %w", err)
+		return fmt.Errorf("failed to build task feed: %w", err)
 	}
 
-	allChanges := deriveHistoryChanges(fetchedList)
-	pageList := fetchedList
-	pageChanges := allChanges
-	if len(fetchedList) > query.Limit {
-		pageList = fetchedList[:query.Limit]
-		pageChanges = allChanges[:query.Limit]
-	}
-
-	usersMap, err := h.fetchUsersForFeed(c.Context(), pageList, fetchedList)
-	if err != nil {
-		h.logger.Error("failed to fetch users for feed", zap.Int64("task_id", task.ID), zap.Error(err))
-		usersMap = make(map[int64]users.User)
-	}
-
-	return c.JSON(toFeedResponse(pageList, pageChanges, usersMap, historyTotal))
-}
-
-func (h *Handler) fetchUsersForFeed(
-	ctx context.Context,
-	pageList []history.Entry,
-	fetchedList []history.Entry,
-) (map[int64]users.User, error) {
-	idSet := make(map[int64]struct{})
-
-	for i := range pageList {
-		idSet[pageList[i].ActorID] = struct{}{}
-	}
-
-	// Payloads of every fetched history row (including the dropped context
-	// row) cover both sides of every derived assignee pair.
-	for i := range fetchedList {
-		collectHistoryAssignee(&idSet, fetchedList[i].Payload[tasks.FieldAssignee])
-	}
-
-	if len(idSet) == 0 {
-		return make(map[int64]users.User), nil
-	}
-
-	ids := make([]int64, 0, len(idSet))
-	for id := range idSet {
-		ids = append(ids, id)
-	}
-
-	usersMap, err := h.usersSvc.LookupByIDs(ctx, ids)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch users: %w", err)
-	}
-
-	return usersMap, nil
-}
-
-func collectHistoryAssignee(idSet *map[int64]struct{}, value *string) {
-	if value == nil {
-		return
-	}
-
-	id, err := strconv.ParseInt(*value, 10, 64)
-	if err != nil {
-		return
-	}
-
-	(*idSet)[id] = struct{}{}
+	return c.JSON(toFeedResponse(page.Entries, page.Changes, page.Users, page.Total))
 }

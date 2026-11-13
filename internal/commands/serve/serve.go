@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/commitref"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
+	"github.com/bit-issues/backend/internal/feed"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/oauth"
@@ -84,6 +85,7 @@ func run(ctx context.Context, version healthfx.Version) error {
 		attachments.Module(),
 		comments.Module(),
 		commitref.Module(),
+		feed.Module(),
 		history.Module(),
 		jwt.Module(),
 		oauth.Module(),

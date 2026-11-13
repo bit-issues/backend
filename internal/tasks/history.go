@@ -8,23 +8,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// FieldChange is one field-level change derived at read time from recorded
-// value payloads. The Field* vocabulary above names the fields; history never
-// sees this type.
-type FieldChange struct {
-	Field    string  `json:"field"`
-	OldValue *string `json:"old_value"`
-	NewValue *string `json:"new_value"`
-}
-
 // SubjectTypeTask is the activity-history subject type written for task
 // events; history stores subject types as opaque strings and this module
 // decides the value.
 const SubjectTypeTask = "task"
 
-// Field names emitted by task diffs. These are the task-activity vocabulary:
-// this module gives them meaning (diffing, assignee ids), the feed DTO and
-// frontend render them - history only stores them as opaque strings.
+// Field names recorded in task history payloads. These are the
+// task-activity vocabulary: this module writes them (see TaskPayload), the
+// feed derives changes from them, and the feed DTO and frontend render them
+// - history only stores them as opaque strings.
 const (
 	FieldTitle       = "title"
 	FieldDescription = "description"
@@ -34,14 +26,6 @@ const (
 	FieldAssignee    = "assignee"
 	FieldDueDate     = "due_date"
 )
-
-func newOptionalChange(field string, oldValue, newValue *string) FieldChange {
-	return FieldChange{
-		Field:    field,
-		OldValue: oldValue,
-		NewValue: newValue,
-	}
-}
 
 // TaskPayload snapshots the tracked fields of a task as written values. The
 // keys mirror the Field* vocabulary so readers can derive changes by
@@ -64,35 +48,6 @@ func TaskPayload(task *Task) map[string]*string {
 	}
 }
 
-// DeriveChanges compares a newer payload against its next-older snapshot and
-// returns the fields that differ, in trackedFields order.
-func DeriveChanges(newer, older map[string]*string) []FieldChange {
-	// Derivation order doubles as wire order so renders stay deterministic.
-	trackedFields := []string{
-		FieldTitle,
-		FieldDescription,
-		FieldPriority,
-		FieldStatus,
-		FieldKind,
-		FieldAssignee,
-		FieldDueDate,
-	}
-	changes := make([]FieldChange, 0, len(trackedFields))
-
-	for _, field := range trackedFields {
-		newValue, ok := newer[field]
-		if !ok {
-			continue
-		}
-		oldValue := older[field]
-		if !optionalStringsEqual(oldValue, newValue) {
-			changes = append(changes, newOptionalChange(field, oldValue, newValue))
-		}
-	}
-
-	return changes
-}
-
 func formatAssignee(id *int64) *string {
 	if id == nil || *id == 0 {
 		return nil
@@ -100,13 +55,6 @@ func formatAssignee(id *int64) *string {
 
 	value := strconv.FormatInt(*id, 10)
 	return &value
-}
-
-func optionalStringsEqual(a, b *string) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return *a == *b
 }
 
 // recordCreated best-effort appends the creation event after the task write

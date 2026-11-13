@@ -9,7 +9,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
-	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/feed"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
@@ -27,7 +27,7 @@ type Handler struct {
 	handler.Base
 
 	tasksSvc       *tasks.Service
-	historySvc     *history.Service
+	feedSvc        *feed.Service
 	commentsSvc    *comments.Service
 	attachmentsSvc *attachments.Service
 	usersSvc       *users.Service
@@ -39,7 +39,7 @@ type Handler struct {
 // NewHandler creates a new Handler instance with the given dependencies.
 func NewHandler(
 	tasksSvc *tasks.Service,
-	historySvc *history.Service,
+	feedSvc *feed.Service,
 	commentsSvc *comments.Service,
 	attachmentsSvc *attachments.Service,
 	usersSvc *users.Service,
@@ -51,7 +51,7 @@ func NewHandler(
 		Base: handler.Base{Validator: validate},
 
 		tasksSvc:       tasksSvc,
-		historySvc:     historySvc,
+		feedSvc:        feedSvc,
 		commentsSvc:    commentsSvc,
 		attachmentsSvc: attachmentsSvc,
 		usersSvc:       usersSvc,
@@ -499,6 +499,9 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 	case errors.Is(err, attachments.ErrFileTooLarge):
 		return fiber.NewError(fiber.StatusRequestEntityTooLarge, err.Error())
 	case errors.Is(err, attachments.ErrNotUploaded):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+
+	case errors.Is(err, feed.ErrWindowTooLarge):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 
 	default:

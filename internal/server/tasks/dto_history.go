@@ -1,12 +1,11 @@
 package tasks
 
 import (
-	"strconv"
 	"time"
 
+	"github.com/bit-issues/backend/internal/feed"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/server/dto"
-	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 )
 
@@ -32,15 +31,15 @@ type HistoryEntryResponse struct {
 
 func toHistoryEntryResponse(
 	entry *history.Entry,
-	derived []tasks.FieldChange,
+	derived []feed.FieldChange,
 	usersMap map[int64]users.User,
 ) HistoryEntryResponse {
 	changes := make([]HistoryChangeResponse, 0, len(derived))
 	for _, change := range derived {
 		changes = append(changes, HistoryChangeResponse{
 			Field:    change.Field,
-			OldValue: resolveHistoryValue(change.Field, change.OldValue, usersMap),
-			NewValue: resolveHistoryValue(change.Field, change.NewValue, usersMap),
+			OldValue: change.OldValue,
+			NewValue: change.NewValue,
 		})
 	}
 
@@ -51,30 +50,4 @@ func toHistoryEntryResponse(
 		Changes:   changes,
 		CreatedAt: entry.CreatedAt.UTC().Format(time.RFC3339),
 	}
-}
-
-func resolveHistoryValue(
-	field string,
-	value *string,
-	usersMap map[int64]users.User,
-) *string {
-	if value == nil {
-		return nil
-	}
-
-	if field == tasks.FieldAssignee {
-		id, err := strconv.ParseInt(*value, 10, 64)
-		if err == nil {
-			if user, ok := usersMap[id]; ok {
-				name := user.Name
-				return &name
-			}
-
-			fallback := "#" + *value
-			return &fallback
-		}
-	}
-
-	resolved := *value
-	return &resolved
 }

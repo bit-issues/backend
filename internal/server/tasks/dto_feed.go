@@ -1,9 +1,9 @@
 package tasks
 
 import (
+	"github.com/bit-issues/backend/internal/feed"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/server/dto"
-	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
 )
 
@@ -22,7 +22,7 @@ type FeedResponse struct {
 
 func toFeedResponse(
 	entries []history.Entry,
-	changes [][]tasks.FieldChange,
+	changes [][]feed.FieldChange,
 	usersMap map[int64]users.User,
 	total int,
 ) *FeedResponse {
