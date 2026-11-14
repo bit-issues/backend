@@ -61,10 +61,16 @@ func newTaskModel(input TaskInput, number int) *taskModel {
 }
 
 // newTaskImport creates a new taskModel for import with explicit values.
+// Falls back to the current time when the source carries no CreatedAt.
 func newTaskImport(input Task) *taskModel {
+	createdAt := input.CreatedAt
+	if createdAt.IsZero() {
+		createdAt = time.Now()
+	}
+
 	return &taskModel{
 		BaseModel:   schema.BaseModel{},
-		TimedModel:  bunfx.TimedModel{CreatedAt: input.CreatedAt, UpdatedAt: input.UpdatedAt},
+		TimedModel:  bunfx.TimedModel{CreatedAt: createdAt, UpdatedAt: input.UpdatedAt},
 		ID:          0,
 		ProjectSlug: input.ProjectSlug,
 		Number:      input.Number,

@@ -1,17 +1,11 @@
 <script lang="ts">
   import { getTaskByProjectAndNumber, deleteTask, updateTask } from "$lib/api/tasks";
-  import {
-    createComment,
-    updateComment,
-    deleteComment,
-  } from "$lib/api/comments";
   import { deleteAttachment } from "$lib/api/attachments";
   import { navigate } from "$lib/router/routes";
   import { touchProject } from "$lib/stores/recent-projects.svelte";
   import { getUser } from "$lib/stores/auth.svelte";
   import AssigneeCombobox from "$lib/components/AssigneeCombobox.svelte";
-  import CommentList from "$lib/components/CommentList.svelte";
-  import CommentForm from "$lib/components/CommentForm.svelte";
+  import TaskFeed from "$lib/components/TaskFeed.svelte";
   import AttachmentList from "$lib/components/AttachmentList.svelte";
   import AttachmentUpload from "$lib/components/AttachmentUpload.svelte";
   import { Textarea } from "$lib/components/ui/textarea";
@@ -26,6 +20,8 @@
   import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
   import type { AutoLinkContext } from "$lib/autolink";
   import { toast } from "$lib/toast";
+  import { onStreamEvent } from "$lib/api/events";
+  import { createLatestRequestGuard } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let slug = $derived(params.slug || "");
@@ -37,6 +33,7 @@
   let error = $state("");
 
   let deleting = $state(false);
+  let feedRefreshKey = $state(0);
 
   let selectedStatus = $state("New");
   let statusComment = $state("");
@@ -111,6 +108,7 @@
         .then((updated) => {
           task = updated;
           assigneeId = updated.assignee?.id ?? null;
+          feedRefreshKey += 1;
         })
         .catch((e: any) => {
           toast.error(e.message || "Failed to update assignee");
@@ -135,28 +133,67 @@
     }
   }
 
-  async function handleAddComment(content: string) {
-    await createComment(taskId, { content });
-    // Refetch the task so the freshly-confirmed inline attachment is present in
-    // task.attachments (attachmentUrls derives from it), letting the newly
-    // posted comment's inline image resolve without a manual page refresh.
-    const refreshed = await getTaskByProjectAndNumber(slug, number);
-    task = refreshed;
+  // Refetches the whole task through a latest-request guard so a mutation
+  // refetch and an event-driven refetch cannot interleave and clobber each
+  // other. Control state (status/assignee) is only synced when the user has
+  // not diverged from the last loaded value. Always settles: superseded
+  // requests drop their response instead of leaving the caller awaiting.
+  const refreshGuard = createLatestRequestGuard();
+
+  async function refreshTask(): Promise<void> {
+    const currentSlug = slug;
+    const currentNumber = number;
+    const token = refreshGuard.next();
+
+    let refreshed: TaskDetails;
+    try {
+      refreshed = await getTaskByProjectAndNumber(currentSlug, currentNumber);
+    } catch (e) {
+      if (refreshGuard.isLatest(token)) throw e;
+      return;
+    }
+
+    if (!refreshGuard.isLatest(token)) return;
+    if (currentSlug !== slug || currentNumber !== number) return;
+
+    applyRefreshed(refreshed);
   }
 
-  async function handleEditComment(commentId: number, content: string) {
-    await updateComment(taskId, commentId, { content });
-    const refreshed = await getTaskByProjectAndNumber(slug, number);
-    task = refreshed;
+  function applyRefreshed(t: TaskDetails) {
+    const prevStatus = task?.status;
+    const prevAssignee = task?.assignee?.id ?? null;
+
+    task = t;
+    taskId = t.id;
+    ready = true;
+
+    if (selectedStatus === prevStatus) selectedStatus = t.status;
+    if (assigneeId === prevAssignee) assigneeId = t.assignee?.id ?? null;
+
+    feedRefreshKey += 1;
   }
 
-  async function handleDeleteComment(commentId: number) {
-    await deleteComment(taskId, commentId);
-    task = {
-      ...task!,
-      comments: task!.comments.filter((c) => c.id !== commentId),
-    };
-  }
+  // Live updates: refetch when another client (or the Bitbucket bot) changes
+  // the task, its comments, or its attachments, and resync fully whenever the
+  // stream (re)connects.
+  $effect(() => {
+    const currentId = taskId;
+    if (!currentId) return;
+
+    return onStreamEvent((event) => {
+      if (event.type === "stream.connected") {
+        refreshTask().catch((e) => {
+          console.error("event-driven task refresh failed", e);
+        });
+        return;
+      }
+      if (event.task_id === currentId) {
+        refreshTask().catch((e) => {
+          console.error("event-driven task refresh failed", e);
+        });
+      }
+    });
+  });
 
   async function handleDeleteAttachment(attachmentId: number) {
     await deleteAttachment(taskId, attachmentId);
@@ -175,6 +212,7 @@
       });
       task = { ...updated };
       statusComment = "";
+      feedRefreshKey += 1;
     } catch (e: any) {
       toast.error(e.message || "Failed to update status");
     } finally {
@@ -250,23 +288,20 @@
 
         <div>
           <h2 class="mb-3 text-sm font-medium text-muted-foreground">
-            Comments ({task.comments.length})
+            Activity
           </h2>
 
-          <div>
-            <CommentList
-              comments={task.comments}
-              {currentUserId}
-              taskId={task.id}
-              attachmentsMap={attachmentUrls}
-              {autoLinkCtx}
-              onEdit={handleEditComment}
-              onDelete={handleDeleteComment}
-            />
-            <div class="mt-4">
-              <CommentForm taskId={task.id} onSubmit={handleAddComment} />
-            </div>
-          </div>
+          <TaskFeed
+            {slug}
+            {number}
+            taskId={task.id}
+            currentUserId={currentUserId ?? 0}
+            comments={task.comments}
+            attachmentsMap={attachmentUrls}
+            {autoLinkCtx}
+            refreshKey={feedRefreshKey}
+            onCommentsChanged={refreshTask}
+          />
         </div>
       </div>
 

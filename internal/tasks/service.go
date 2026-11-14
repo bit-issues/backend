@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bit-issues/backend/internal/events"
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
 	"go.uber.org/zap"
 )
@@ -13,31 +15,42 @@ const (
 	MaxLimit     = 100
 )
 
-// Service implements the business logic for task management.
+// Service implements the business logic for task management. Repository
+// mutations own their transaction and invoke an audit callback that appends
+// the matching activity-history event in that transaction.
 type Service struct {
-	tasks    *Repository
-	projects *projects.Service
-	logger   *zap.Logger
+	tasks       *Repository
+	projectsSvc *projects.Service
+	historySvc  *history.Service
+	hub         *events.Hub
+	logger      *zap.Logger
 }
 
 // NewService creates a new Service instance with the given dependencies.
-func NewService(repo *Repository, projects *projects.Service, logger *zap.Logger) *Service {
+func NewService(
+	repo *Repository,
+	projectsSvc *projects.Service,
+	historySvc *history.Service,
+	hub *events.Hub,
+	logger *zap.Logger,
+) *Service {
 	return &Service{
-		tasks:    repo,
-		projects: projects,
-		logger:   logger,
+		tasks:       repo,
+		projectsSvc: projectsSvc,
+		historySvc:  historySvc,
+		hub:         hub,
+		logger:      logger,
 	}
 }
 
-// Create validates input and creates a new task with auto-generated number.
+// Create validates input, creates a new task with an auto-generated number
+// and records its creation in the history, atomically.
 func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
-	// Validate input
 	if err := input.Validate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid task input: %w", err)
 	}
 
-	// Verify project exists
-	exists, err := s.projects.Exists(ctx, input.ProjectSlug)
+	exists, err := s.projectsSvc.Exists(ctx, input.ProjectSlug)
 	if err != nil {
 		return nil, fmt.Errorf("failed to verify project: %w", err)
 	}
@@ -45,18 +58,30 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 		return nil, ErrProjectNotFound
 	}
 
-	// Create task (repository handles number generation in transaction)
-	return s.tasks.Create(ctx, input)
+	task, err := s.tasks.Create(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	s.recordCreated(ctx, task)
+	s.publishTaskEvent(events.TypeTaskCreated, task.ID)
+	return task, nil
 }
 
-// Import creates a task with explicit number, timestamps, and kind for import.
+// Import creates a task with explicit number, timestamps, and kind for
+// import, recording its creation in the history, atomically.
 // Bypasses auto-number generation and allows preserving original metadata.
 func (s *Service) Import(
 	ctx context.Context,
 	input Task,
 ) (*Task, error) {
-	// Create task with import-specific data
-	return s.tasks.Import(ctx, input)
+	task, err := s.tasks.Import(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	s.recordCreated(ctx, task)
+	return task, nil
 }
 
 // Exists checks if a task with the given ID exists.
@@ -85,27 +110,49 @@ func (s *Service) List(
 	return s.tasks.List(ctx, filter, sort, pagination)
 }
 
-// Update modifies an existing task with the provided data.
-// Returns the updated task or an error if not found or validation fails.
-func (s *Service) Update(ctx context.Context, id int64, update TaskUpdate) (*Task, error) {
+// Update modifies an existing task with the provided data and records the
+// applied changes in the history, atomically. Returns the updated task or an
+// error if not found or validation fails.
+func (s *Service) Update(
+	ctx context.Context,
+	id int64,
+	update TaskUpdate,
+	actorID int64,
+) (*Task, error) {
 	if update.IsEmpty() {
 		return nil, fmt.Errorf("%w: no update data provided", ErrValidationFailed)
 	}
 
 	if err := update.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid task update: %w", err)
+	}
+
+	if actorID <= 0 {
+		return nil, fmt.Errorf("%w: actor_id must be positive", ErrValidationFailed)
+	}
+
+	task, err := s.tasks.Update(ctx, id, update)
+	if err != nil {
 		return nil, err
 	}
 
-	// Perform update
-	if err := s.tasks.Update(ctx, id, update); err != nil {
-		return nil, err
-	}
+	s.recordUpdated(ctx, task, actorID)
+	s.publishTaskEvent(events.TypeTaskUpdated, task.ID)
 
-	// Return the updated task
-	return s.tasks.GetByID(ctx, id)
+	return task, nil
 }
 
 // Delete soft-deletes a task.
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.tasks.Delete(ctx, id)
+}
+
+// publishTaskEvent broadcasts a task change to live event subscribers. The
+// payload carries IDs only; clients refetch the affected resource.
+func (s *Service) publishTaskEvent(eventType string, taskID int64) {
+	s.hub.Publish(events.Event{
+		Type:      eventType,
+		TaskID:    taskID,
+		CommentID: 0,
+	})
 }

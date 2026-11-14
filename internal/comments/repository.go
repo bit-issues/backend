@@ -56,22 +56,35 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (*Comment, error) {
 	return model.toDomain(), nil
 }
 
-// List retrieves all comments for a specific task.
-func (r *Repository) List(ctx context.Context, taskID int64) ([]Comment, error) {
+// List retrieves comments with filtering, sorting, and pagination.
+// A nil pagination returns all matching comments.
+func (r *Repository) List(
+	ctx context.Context,
+	filter CommentFilter,
+	sort SortOrder,
+	pagination *Pagination,
+) ([]Comment, int, error) {
 	models := make([]commentModel, 0)
+	query := r.db.NewSelect().Model(&models)
 
-	query := r.db.NewSelect().Model(&models).Where("task_id = ?", taskID)
+	query = filter.apply(query)
+	query = sort.apply(query)
 
-	if err := query.OrderExpr("created_at ASC").Scan(ctx); err != nil {
-		return nil, fmt.Errorf("failed to list comments by task: %w", err)
+	if pagination != nil {
+		query = pagination.Apply(query)
+	}
+
+	total, err := query.ScanAndCount(ctx, &models)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to list comments: %w", err)
 	}
 
 	comments := make([]Comment, 0, len(models))
-	for _, model := range models {
-		comments = append(comments, *model.toDomain())
+	for i := range models {
+		comments = append(comments, *models[i].toDomain())
 	}
 
-	return comments, nil
+	return comments, total, nil
 }
 
 // Update modifies an existing comment with the provided content.

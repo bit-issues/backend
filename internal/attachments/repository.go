@@ -69,19 +69,29 @@ func (r *Repository) ListByTask(ctx context.Context, taskID int64) ([]Attachment
 	return result, nil
 }
 
-func (r *Repository) Confirm(ctx context.Context, id int64) error {
-	_, err := r.db.NewUpdate().
+// Confirm marks a pending attachment uploaded and reports whether the status
+// actually flipped; a re-confirm of an already uploaded attachment is a
+// no-op without an event.
+func (r *Repository) Confirm(ctx context.Context, id int64) (bool, error) {
+	result, err := r.db.NewUpdate().
 		Model((*attachmentModel)(nil)).
 		Set("status = ?", StatusUploaded).
 		Where("id = ?", id).
+		Where("status = ?", StatusPending).
 		Exec(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to confirm attachment: %w", err)
+		return false, fmt.Errorf("failed to update attachment status: %w", err)
 	}
 
-	return nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return rows > 0, nil
 }
 
+// Delete removes an attachment row.
 func (r *Repository) Delete(ctx context.Context, id int64) error {
 	if _, err := r.db.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx); err != nil {
 		return fmt.Errorf("failed to delete attachment: %w", err)

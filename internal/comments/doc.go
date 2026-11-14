@@ -10,7 +10,7 @@
 //
 // Create a new comment:
 //
-//	svc := comments.NewService(repo, tasksSvc, logger)
+//	svc := comments.NewService(repo, usersSvc, hub, logger)
 //	input := comments.CommentInput{
 //	    TaskID:   123,
 //	    AuthorID: 456,
@@ -20,8 +20,12 @@
 //
 // List comments for a task:
 //
-//	pagination := &db.Pagination{}
-//	comments, err := svc.ListByTask(ctx, taskID, pagination)
+//	comments, total, err := svc.List(
+//	    ctx,
+//	    comments.CommentFilter{TaskID: &taskID, AuthorID: nil},
+//	    comments.SortOrderCreatedAtAsc,
+//	    comments.NewPagination(20, 0),
+//	)
 //
 // Update a comment:
 //

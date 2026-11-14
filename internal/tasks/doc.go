@@ -13,7 +13,8 @@
 //   - Service layer (service.go): Business logic and coordination
 //
 // Integration:
-//   - Depends on projects.Service for project existence validation
+//   - Repository mutations own their transaction and invoke an audit
+//     callback that appends the matching event through history.Service
 //   - Uses bun.DB for MySQL persistence
 //   - Provides tasks.Service for HTTP handlers
 //

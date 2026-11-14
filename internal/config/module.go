@@ -5,6 +5,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/commitref"
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/storage"
@@ -118,6 +119,11 @@ func Module() fx.Option {
 					ClientID:           cfg.OAuth.ClientID,
 					ClientSecret:       cfg.OAuth.ClientSecret,
 					TokenEncryptionKey: cfg.OAuth.TokenEncryptionKey,
+				}
+			},
+			func(cfg Config) events.Config {
+				return events.Config{
+					HeartbeatInterval: cfg.Events.HeartbeatInterval,
 				}
 			},
 		),

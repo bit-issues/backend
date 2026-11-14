@@ -5,6 +5,9 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/bit-issues/backend/internal/db"
+	"github.com/uptrace/bun"
 )
 
 const (
@@ -33,6 +36,64 @@ type CommentInput struct {
 // CommentUpdate represents the data that can be updated for a comment.
 type CommentUpdate struct {
 	Content string
+}
+
+// SortOrder controls comment ordering. Fields are prefixed with "-" for descending order.
+type SortOrder string
+
+// Sort order constants.
+const (
+	SortOrderDefault       SortOrder = ""
+	SortOrderCreatedAtDesc SortOrder = "-created_at"
+	SortOrderCreatedAtAsc  SortOrder = "created_at"
+)
+
+func (s SortOrder) apply(query *bun.SelectQuery) *bun.SelectQuery {
+	switch s {
+	case SortOrderCreatedAtAsc:
+		return query.OrderBy("created_at", bun.OrderAsc).OrderBy("id", bun.OrderAsc)
+	case SortOrderDefault, SortOrderCreatedAtDesc:
+		return query.OrderBy("created_at", bun.OrderDesc).OrderBy("id", bun.OrderDesc)
+	default:
+		return query.OrderBy("id", bun.OrderDesc)
+	}
+}
+
+// CommentFilter contains filtering criteria for querying comments.
+type CommentFilter struct {
+	TaskID   *int64
+	AuthorID *int64
+}
+
+func (f CommentFilter) apply(query *bun.SelectQuery) *bun.SelectQuery {
+	if f.TaskID != nil && *f.TaskID > 0 {
+		query = query.Where("task_id = ?", *f.TaskID)
+	}
+	if f.AuthorID != nil && *f.AuthorID > 0 {
+		query = query.Where("author_id = ?", *f.AuthorID)
+	}
+	return query
+}
+
+type pagination struct {
+}
+
+// DefaultLimit implements [db.DefaultPagination].
+func (p *pagination) DefaultLimit() int {
+	return DefaultLimit
+}
+
+// MaxLimit implements [db.DefaultPagination].
+func (p *pagination) MaxLimit() int {
+	return MaxLimit
+}
+
+var _ db.DefaultPagination = (*pagination)(nil)
+
+type Pagination = db.Pagination[*pagination]
+
+func NewPagination(limit, offset int) *Pagination {
+	return db.NewPagination[*pagination](limit, offset)
 }
 
 // Validate checks that the input data is valid for comment creation.

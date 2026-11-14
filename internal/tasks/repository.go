@@ -67,12 +67,9 @@ func (r *Repository) Create(ctx context.Context, input TaskInput) (*Task, error)
 	return task, nil
 }
 
-// Import creates a task with explicit number, timestamps, and kind for import.
-// This bypasses auto-number generation and allows setting custom CreatedAt/UpdatedAt.
-func (r *Repository) Import(
-	ctx context.Context,
-	input Task,
-) (*Task, error) {
+// Import creates a task with explicit number, timestamps, and kind.
+// Bypasses auto-number generation and allows setting custom CreatedAt/UpdatedAt.
+func (r *Repository) Import(ctx context.Context, input Task) (*Task, error) {
 	model := newTaskImport(input)
 
 	if _, err := r.db.NewInsert().Model(model).Exec(ctx); err != nil {
@@ -187,16 +184,89 @@ func (r *Repository) List(
 	return tasks, total, nil
 }
 
-// Update modifies an existing task with the provided update data.
-// Only non-nil fields in the TaskUpdate struct will be changed.
-func (r *Repository) Update(ctx context.Context, id int64, update TaskUpdate) error {
+// Update modifies an existing task with the provided update data. Only
+// non-nil fields in the TaskUpdate struct are changed. The applied row is
+// re-read inside the transaction so callers see the actual persisted state.
+func (r *Repository) Update(
+	ctx context.Context,
+	id int64,
+	update TaskUpdate,
+) (*Task, error) {
 	if update.IsEmpty() {
-		return nil
+		return r.GetByID(ctx, id)
 	}
 
-	query := r.db.NewUpdate().Model((*taskModel)(nil)).Where("id = ?", id)
+	var updated *Task
 
-	// Build the SET clause dynamically
+	err := r.db.RunInTx(ctx, nil, func(ctx context.Context, tx bun.Tx) error {
+		if _, fetchErr := getTaskForUpdate(ctx, tx, id); fetchErr != nil {
+			return fetchErr
+		}
+
+		if updateErr := executeTaskUpdate(ctx, tx, id, update); updateErr != nil {
+			return updateErr
+		}
+
+		after, reloadErr := getTaskByIDWithDB(ctx, tx, id)
+		if reloadErr != nil {
+			return reloadErr
+		}
+		updated = after
+
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update task: %w", err)
+	}
+
+	return updated, nil
+}
+
+func getTaskForUpdate(ctx context.Context, tx bun.Tx, id int64) (*Task, error) {
+	var model taskModel
+	if err := tx.NewSelect().
+		Model(&model).
+		Where("id = ?", id).
+		For("UPDATE").
+		Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get task for update: %w", err)
+	}
+
+	return model.toDomain(), nil
+}
+
+func getTaskByIDWithDB(ctx context.Context, idb bun.IDB, id int64) (*Task, error) {
+	var model taskModel
+	if err := idb.NewSelect().Model(&model).Where("id = ?", id).Scan(ctx); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to reload updated task: %w", err)
+	}
+
+	return model.toDomain(), nil
+}
+
+func executeTaskUpdate(
+	ctx context.Context,
+	tx bun.Tx,
+	id int64,
+	update TaskUpdate,
+) error {
+	query := buildTaskUpdateQuery(tx, update).Where("id = ?", id)
+	if _, err := query.Exec(ctx); err != nil {
+		return fmt.Errorf("failed to update task: %w", err)
+	}
+
+	return nil
+}
+
+func buildTaskUpdateQuery(tx bun.Tx, update TaskUpdate) *bun.UpdateQuery {
+	query := tx.NewUpdate().Model((*taskModel)(nil))
+
 	if update.Title != nil {
 		query = query.Set("title = ?", *update.Title)
 	}
@@ -227,20 +297,7 @@ func (r *Repository) Update(ctx context.Context, id int64, update TaskUpdate) er
 		}
 	}
 
-	result, err := query.Exec(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to update task: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get affected rows: %w", err)
-	}
-	if rows == 0 {
-		return ErrNotFound
-	}
-
-	return nil
+	return query
 }
 
 // Delete soft-deletes a task.
