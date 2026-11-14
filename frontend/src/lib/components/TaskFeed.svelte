@@ -1,0 +1,356 @@
+<script lang="ts">
+  import { getTaskFeed } from "$lib/api/tasks";
+  import {
+    createComment,
+    updateComment,
+    deleteComment,
+  } from "$lib/api/comments";
+  import { Avatar, AvatarFallback } from "$lib/components/ui/avatar";
+  import { Button } from "$lib/components/ui/button";
+  import CommentForm from "$lib/components/CommentForm.svelte";
+  import CommentItem from "$lib/components/CommentItem.svelte";
+  import type { AutoLinkContext } from "$lib/autolink";
+  import type { Comment, HistoryChange, HistoryEntry } from "$lib/types/api";
+  import { toast } from "$lib/toast";
+
+  const PAGE_SIZE = 20;
+  // Mirrors the backend feed window (maxFeedWindow): requests beyond this
+  // offset are rejected, so pagination stops there.
+  const FEED_WINDOW = 5000;
+
+  const FIELD_LABELS: Record<string, string> = {
+    title: "Title",
+    description: "Description",
+    priority: "Priority",
+    status: "Status",
+    kind: "Kind",
+    assignee: "Assignee",
+    due_date: "Due date",
+  };
+
+  let {
+    slug = "",
+    number = 0,
+    taskId = 0,
+    currentUserId = 0,
+    comments = [],
+    attachmentsMap = new Map<number, string>(),
+    autoLinkCtx = {} as AutoLinkContext,
+    refreshKey = 0,
+    onCommentsChanged = async () => {},
+  }: {
+    slug: string;
+    number: number;
+    taskId: number;
+    currentUserId: number;
+    comments?: Comment[];
+    attachmentsMap: Map<number, string>;
+    autoLinkCtx: AutoLinkContext;
+    refreshKey?: number;
+    onCommentsChanged?: () => Promise<void>;
+  } = $props();
+
+  type ActivityItem =
+    | { kind: "comment"; id: number; createdAt: string; comment: Comment }
+    | { kind: "history"; id: number; createdAt: string; history: HistoryEntry };
+
+  let historyItems = $state<HistoryEntry[]>([]);
+  let historyTotal = $state(0);
+  let nextOffset = $state(0);
+  let loading = $state(true);
+  let loadingMore = $state(false);
+  let error = $state("");
+  let generation = 0;
+
+  const activity = $derived(mergeActivity(comments, historyItems));
+
+  $effect(() => {
+    void refreshKey;
+
+    const currentSlug = slug;
+    const currentNumber = number;
+    if (!currentSlug || !currentNumber) {
+      loading = false;
+      return;
+    }
+
+    void loadFirstPage(currentSlug, currentNumber);
+  });
+
+  async function loadFirstPage(currentSlug: string, currentNumber: number) {
+    const requestGeneration = ++generation;
+    loading = true;
+    loadingMore = false;
+    error = "";
+
+    try {
+      const response = await getTaskFeed(
+        currentSlug,
+        currentNumber,
+        PAGE_SIZE,
+        0,
+      );
+      if (requestGeneration !== generation) return;
+
+      historyItems = response.items;
+      historyTotal = response.total;
+      nextOffset = response.items.length;
+    } catch (e) {
+      if (requestGeneration !== generation) return;
+
+      error = e instanceof Error ? e.message : "Failed to load activity";
+    } finally {
+      if (requestGeneration === generation) {
+        loading = false;
+      }
+    }
+  }
+
+  async function loadMore() {
+    if (loading || loadingMore || nextOffset >= historyTotal || nextOffset >= FEED_WINDOW)
+      return;
+
+    const requestGeneration = generation;
+    loadingMore = true;
+
+    try {
+      const response = await getTaskFeed(
+        slug,
+        number,
+        Math.min(PAGE_SIZE, FEED_WINDOW - nextOffset),
+        nextOffset,
+      );
+      if (requestGeneration !== generation) return;
+
+      const seen = new Set(historyItems.map((entry) => entry.id));
+      const next = response.items.filter((entry) => !seen.has(entry.id));
+      historyItems = [...historyItems, ...next];
+      historyTotal = response.total;
+      nextOffset =
+        response.items.length > 0
+          ? nextOffset + response.items.length
+          : Math.max(nextOffset, historyTotal);
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Failed to load older activity",
+      );
+    } finally {
+      if (requestGeneration === generation) {
+        loadingMore = false;
+      }
+    }
+  }
+
+  async function refreshComments() {
+    try {
+      await onCommentsChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to refresh activity");
+    }
+  }
+
+  async function handleAddComment(content: string) {
+    await createComment(taskId, { content });
+    await refreshComments();
+  }
+
+  async function handleEditComment(commentId: number, content: string) {
+    await updateComment(taskId, commentId, { content });
+    await refreshComments();
+  }
+
+  async function handleDeleteComment(commentId: number) {
+    await deleteComment(taskId, commentId);
+    await refreshComments();
+  }
+
+  // Comments arrive embedded in task details while history pages in from the
+  // feed; the client merges both, newest first. At equal second-precision
+  // timestamps a comment precedes a history entry, then higher ids first —
+  // the tie-breaks the backend feed used when it merged server-side.
+  function mergeActivity(
+    commentList: Comment[],
+    historyList: HistoryEntry[],
+  ): ActivityItem[] {
+    const merged: ActivityItem[] = [
+      ...commentList.map((comment) => ({
+        kind: "comment" as const,
+        id: comment.id,
+        createdAt: comment.created_at,
+        comment,
+      })),
+      ...historyList.map((entry) => ({
+        kind: "history" as const,
+        id: entry.id,
+        createdAt: entry.created_at,
+        history: entry,
+      })),
+    ];
+    merged.sort(compareActivity);
+
+    return merged;
+  }
+
+  function compareActivity(a: ActivityItem, b: ActivityItem): number {
+    const timeDiff = Date.parse(b.createdAt) - Date.parse(a.createdAt);
+    if (timeDiff !== 0) return timeDiff;
+    if (a.kind !== b.kind) return a.kind === "comment" ? -1 : 1;
+
+    return b.id - a.id;
+  }
+
+  function feedKey(item: ActivityItem): string {
+    return `${item.kind}:${item.id}`;
+  }
+
+  function formatDateTime(d: string): string {
+    return new Date(d).toLocaleString();
+  }
+
+  function initials(name: string): string {
+    return name
+      .split(/\s+/)
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }
+
+  function fieldLabel(field: string): string {
+    return FIELD_LABELS[field] ?? field;
+  }
+
+  function actionLabel(history: HistoryEntry): string {
+    if (history.action === "created") return "created this task";
+    if (history.action === "attachment_added") return "attached a file";
+    if (history.action === "attachment_removed") return "removed a file";
+    return "updated the task";
+  }
+
+  function isAttachmentAction(action: HistoryEntry["action"]): boolean {
+    return action === "attachment_added" || action === "attachment_removed";
+  }
+
+  function attachmentFileName(history: HistoryEntry): string {
+    const change = history.changes.find((c) => c.field === "attachment");
+    return change?.new_value ?? change?.old_value ?? "";
+  }
+
+  function formatChangeValue(change: HistoryChange): string {
+    const value = change.new_value;
+    return formatValue(change.field, value);
+  }
+
+  function formatOldValue(change: HistoryChange): string {
+    return formatValue(change.field, change.old_value);
+  }
+
+  function formatValue(field: string, value: string | null): string {
+    if (value === null) return "none";
+    if (value === "") return "empty";
+
+    if (field === "due_date") {
+      const date = new Date(`${value}T00:00:00`);
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString();
+      }
+    }
+
+    return value;
+  }
+</script>
+
+<div class="space-y-4">
+  <CommentForm {taskId} onSubmit={handleAddComment} />
+
+  {#if error && activity.length > 0}
+    <p class="text-destructive py-4 text-center text-sm">{error}</p>
+  {/if}
+
+  {#if loading && activity.length === 0}
+    <p class="text-muted-foreground py-4 text-center text-sm">
+      Loading activity...
+    </p>
+  {:else if error && activity.length === 0}
+    <p class="text-destructive py-4 text-center text-sm">{error}</p>
+  {:else if activity.length === 0}
+    <p class="text-muted-foreground text-sm italic">No activity yet</p>
+  {:else}
+    <div class="space-y-3">
+      {#each activity as item (feedKey(item))}
+        {#if item.kind === "comment"}
+          <CommentItem
+            comment={item.comment}
+            {currentUserId}
+            {taskId}
+            {attachmentsMap}
+            {autoLinkCtx}
+            onEdit={handleEditComment}
+            onDelete={handleDeleteComment}
+          />
+        {:else}
+          <div class="flex gap-3 rounded-lg border bg-muted/30 p-3">
+            <Avatar>
+              <AvatarFallback
+                >{initials(item.history.actor.name)}</AvatarFallback
+              >
+            </Avatar>
+            <div class="min-w-0 flex-1">
+              <div
+                class="mb-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+              >
+                <span class="font-medium text-foreground"
+                  >{item.history.actor.name || "Unknown user"}</span
+                >
+                <span>{actionLabel(item.history)}</span>
+                &middot;
+                <span>{formatDateTime(item.history.created_at)}</span>
+              </div>
+              {#if item.history.action === "updated" && item.history.changes.length > 0}
+                <ul class="space-y-1 text-sm">
+                  {#each item.history.changes as change}
+                    <li class="break-words">
+                      <span class="text-muted-foreground"
+                        >{fieldLabel(change.field)}:</span
+                      >
+                      <span class="text-muted-foreground whitespace-pre-wrap"
+                        >{formatOldValue(change)}</span
+                      >
+                      <span class="text-muted-foreground">&rarr;</span>
+                      <span class="whitespace-pre-wrap"
+                        >{formatChangeValue(change)}</span
+                      >
+                    </li>
+                  {/each}
+                </ul>
+              {:else if isAttachmentAction(item.history.action) && item.history.changes.length > 0}
+                <p class="break-words text-sm font-medium">
+                  {attachmentFileName(item.history)}
+                </p>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      {/each}
+    </div>
+
+    {#if nextOffset < historyTotal && nextOffset < FEED_WINDOW}
+      <div class="flex justify-center">
+        <Button
+          variant="outline"
+          size="sm"
+          onclick={loadMore}
+          disabled={loadingMore}
+        >
+          {loadingMore
+            ? "Loading..."
+            : `Load older (${Math.min(historyTotal, FEED_WINDOW) - nextOffset} remaining)`}
+        </Button>
+      </div>
+    {:else if historyTotal > FEED_WINDOW && nextOffset >= FEED_WINDOW}
+      <p class="text-muted-foreground py-2 text-center text-sm">
+        Older activity is outside the supported window
+      </p>
+    {/if}
+  {/if}
+</div>

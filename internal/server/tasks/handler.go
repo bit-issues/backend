@@ -9,6 +9,7 @@ import (
 
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/comments"
+	"github.com/bit-issues/backend/internal/feed"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
@@ -26,6 +27,7 @@ type Handler struct {
 	handler.Base
 
 	tasksSvc       *tasks.Service
+	feedSvc        *feed.Service
 	commentsSvc    *comments.Service
 	attachmentsSvc *attachments.Service
 	usersSvc       *users.Service
@@ -37,6 +39,7 @@ type Handler struct {
 // NewHandler creates a new Handler instance with the given dependencies.
 func NewHandler(
 	tasksSvc *tasks.Service,
+	feedSvc *feed.Service,
 	commentsSvc *comments.Service,
 	attachmentsSvc *attachments.Service,
 	usersSvc *users.Service,
@@ -48,6 +51,7 @@ func NewHandler(
 		Base: handler.Base{Validator: validate},
 
 		tasksSvc:       tasksSvc,
+		feedSvc:        feedSvc,
 		commentsSvc:    commentsSvc,
 		attachmentsSvc: attachmentsSvc,
 		usersSvc:       usersSvc,
@@ -71,6 +75,7 @@ func (h *Handler) Register(r fiber.Router) {
 	tasks.Get("/me", h.myTasks)
 	tasks.Get("/:id", h.get)
 	tasks.Get("/:slug/:number", h.getByProjectAndNumber)
+	tasks.Get("/:slug/:number/feed", h.feed)
 	tasks.Post("/",
 		validation.DecorateWithBodyEx(h.Validator, h.post),
 	)
@@ -231,7 +236,7 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 	// Convert DTO to domain input
 	input := req.toTaskInput(user.ID)
 
-	// Create task via service
+	// Create task (with its history entry, atomically)
 	task, err := h.tasksSvc.Create(c.Context(), input)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %w", err)
@@ -274,8 +279,8 @@ func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
 	// Convert DTO to domain update
 	update := req.toTaskUpdate()
 
-	// Update task via service
-	task, err := h.tasksSvc.Update(c.Context(), id, update)
+	// Update task (with its history entry, atomically)
+	task, err := h.tasksSvc.Update(c.Context(), id, update, user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update task: %w", err)
 	}
@@ -427,7 +432,12 @@ func (h *Handler) prepareDetailsResponse(
 	ctx context.Context,
 	task *tasks.Task,
 ) (*TaskDetailsResponse, error) {
-	comments, err := h.commentsSvc.ListByTask(ctx, task.ID)
+	commentsList, _, err := h.commentsSvc.List(
+		ctx,
+		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
+		comments.SortOrderCreatedAtAsc,
+		nil,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get comments: %w", err)
 	}
@@ -438,7 +448,7 @@ func (h *Handler) prepareDetailsResponse(
 	}
 
 	// Fetch users for author and assignee enrichment
-	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task}, comments)
+	usersMap, err := h.fetchUsersForTasks(ctx, []tasks.Task{*task}, commentsList)
 	if err != nil {
 		return nil, err
 	}
@@ -452,7 +462,7 @@ func (h *Handler) prepareDetailsResponse(
 		projectResp = dto.ToProject(proj)
 	}
 
-	return newTaskDetailsResponse(task, usersMap, comments, attachmentList, projectResp), nil
+	return newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.
@@ -489,6 +499,9 @@ func (h *Handler) errorsHandler(c *fiber.Ctx) error {
 	case errors.Is(err, attachments.ErrFileTooLarge):
 		return fiber.NewError(fiber.StatusRequestEntityTooLarge, err.Error())
 	case errors.Is(err, attachments.ErrNotUploaded):
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+
+	case errors.Is(err, feed.ErrWindowTooLarge):
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 
 	default:
