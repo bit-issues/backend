@@ -20,6 +20,8 @@
   import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
   import type { AutoLinkContext } from "$lib/autolink";
   import { toast } from "$lib/toast";
+  import { onStreamEvent } from "$lib/api/events";
+  import { createLatestRequestGuard } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let slug = $derived(params.slug || "");
@@ -131,19 +133,67 @@
     }
   }
 
-  async function refreshTask() {
+  // Refetches the whole task through a latest-request guard so a mutation
+  // refetch and an event-driven refetch cannot interleave and clobber each
+  // other. Control state (status/assignee) is only synced when the user has
+  // not diverged from the last loaded value. Always settles: superseded
+  // requests drop their response instead of leaving the caller awaiting.
+  const refreshGuard = createLatestRequestGuard();
+
+  async function refreshTask(): Promise<void> {
     const currentSlug = slug;
     const currentNumber = number;
-    const refreshed = await getTaskByProjectAndNumber(
-      currentSlug,
-      currentNumber,
-    );
+    const token = refreshGuard.next();
+
+    let refreshed: TaskDetails;
+    try {
+      refreshed = await getTaskByProjectAndNumber(currentSlug, currentNumber);
+    } catch (e) {
+      if (refreshGuard.isLatest(token)) throw e;
+      return;
+    }
+
+    if (!refreshGuard.isLatest(token)) return;
     if (currentSlug !== slug || currentNumber !== number) return;
 
-    task = refreshed;
-    selectedStatus = refreshed.status;
-    assigneeId = refreshed.assignee?.id ?? null;
+    applyRefreshed(refreshed);
   }
+
+  function applyRefreshed(t: TaskDetails) {
+    const prevStatus = task?.status;
+    const prevAssignee = task?.assignee?.id ?? null;
+
+    task = t;
+    taskId = t.id;
+    ready = true;
+
+    if (selectedStatus === prevStatus) selectedStatus = t.status;
+    if (assigneeId === prevAssignee) assigneeId = t.assignee?.id ?? null;
+
+    feedRefreshKey += 1;
+  }
+
+  // Live updates: refetch when another client (or the Bitbucket bot) changes a
+  // comment on the task currently on screen, and resync fully whenever the
+  // stream (re)connects.
+  $effect(() => {
+    const currentId = taskId;
+    if (!currentId) return;
+
+    return onStreamEvent((event) => {
+      if (event.type === "stream.connected") {
+        refreshTask().catch((e) => {
+          console.error("event-driven task refresh failed", e);
+        });
+        return;
+      }
+      if (event.task_id === currentId && event.type.startsWith("comment.")) {
+        refreshTask().catch((e) => {
+          console.error("event-driven task refresh failed", e);
+        });
+      }
+    });
+  });
 
   async function handleDeleteAttachment(attachmentId: number) {
     await deleteAttachment(taskId, attachmentId);
