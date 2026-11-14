@@ -2,10 +2,14 @@ package events
 
 // Event types broadcast on the events stream.
 const (
-	TypeStreamConnected = "stream.connected"
-	TypeCommentCreated  = "comment.created"
-	TypeCommentUpdated  = "comment.updated"
-	TypeCommentDeleted  = "comment.deleted"
+	TypeStreamConnected   = "stream.connected"
+	TypeCommentCreated    = "comment.created"
+	TypeCommentUpdated    = "comment.updated"
+	TypeCommentDeleted    = "comment.deleted"
+	TypeTaskCreated       = "task.created"
+	TypeTaskUpdated       = "task.updated"
+	TypeAttachmentAdded   = "attachment.added"
+	TypeAttachmentRemoved = "attachment.removed"
 )
 
 // Event is a minimal notification about a data change. It carries only

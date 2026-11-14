@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ type Service struct {
 	tasks       *Repository
 	projectsSvc *projects.Service
 	historySvc  *history.Service
+	hub         *events.Hub
 	logger      *zap.Logger
 }
 
@@ -29,12 +31,14 @@ func NewService(
 	repo *Repository,
 	projectsSvc *projects.Service,
 	historySvc *history.Service,
+	hub *events.Hub,
 	logger *zap.Logger,
 ) *Service {
 	return &Service{
 		tasks:       repo,
 		projectsSvc: projectsSvc,
 		historySvc:  historySvc,
+		hub:         hub,
 		logger:      logger,
 	}
 }
@@ -60,6 +64,7 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 	}
 
 	s.recordCreated(ctx, task)
+	s.publishTaskEvent(events.TypeTaskCreated, task.ID)
 	return task, nil
 }
 
@@ -132,6 +137,7 @@ func (s *Service) Update(
 	}
 
 	s.recordUpdated(ctx, task, actorID)
+	s.publishTaskEvent(events.TypeTaskUpdated, task.ID)
 
 	return task, nil
 }
@@ -139,4 +145,14 @@ func (s *Service) Update(
 // Delete soft-deletes a task.
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.tasks.Delete(ctx, id)
+}
+
+// publishTaskEvent broadcasts a task change to live event subscribers. The
+// payload carries IDs only; clients refetch the affected resource.
+func (s *Service) publishTaskEvent(eventType string, taskID int64) {
+	s.hub.Publish(events.Event{
+		Type:      eventType,
+		TaskID:    taskID,
+		CommentID: 0,
+	})
 }
