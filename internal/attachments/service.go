@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
@@ -24,6 +25,7 @@ type Service struct {
 
 	tasksSvc   *tasks.Service
 	historySvc *history.Service
+	hub        *events.Hub
 	storageSvc *storage.Service
 
 	logger *zap.Logger
@@ -34,6 +36,7 @@ func NewService(
 	attachments *Repository,
 	tasksSvc *tasks.Service,
 	historySvc *history.Service,
+	hub *events.Hub,
 	storageSvc *storage.Service,
 	logger *zap.Logger,
 ) *Service {
@@ -48,6 +51,7 @@ func NewService(
 
 		tasksSvc:   tasksSvc,
 		historySvc: historySvc,
+		hub:        hub,
 		storageSvc: storageSvc,
 
 		logger: logger,
@@ -195,6 +199,7 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 
 	if flipped {
 		s.recordAdded(ctx, task, uploaderID, attachment)
+		s.publishAttachmentEvent(events.TypeAttachmentAdded, task.ID)
 	}
 
 	return attachment, nil
@@ -222,12 +227,23 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 	}
 
 	s.recordRemoved(ctx, task, user.ID, attachment)
+	s.publishAttachmentEvent(events.TypeAttachmentRemoved, task.ID)
 
 	if delErr := s.storageSvc.Delete(ctx, attachment.StorageKey); delErr != nil {
 		return fmt.Errorf("attachment metadata deleted, but object cleanup failed: %w", delErr)
 	}
 
 	return nil
+}
+
+// publishAttachmentEvent broadcasts an attachment change to live event
+// subscribers. The payload carries IDs only; clients refetch the task.
+func (s *Service) publishAttachmentEvent(eventType string, taskID int64) {
+	s.hub.Publish(events.Event{
+		Type:      eventType,
+		TaskID:    taskID,
+		CommentID: 0,
+	})
 }
 
 func (s *Service) buildStorageKey(taskID int64, fileName string) string {
