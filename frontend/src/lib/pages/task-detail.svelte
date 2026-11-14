@@ -169,8 +169,8 @@
     assigneeId = refreshed.assignee?.id ?? null;
   }
 
-  // Live updates: refetch when another client (or the Bitbucket bot) changes a
-  // comment on the task currently on screen, and resync fully whenever the
+  // Live updates: refetch when another client (or the Bitbucket bot) changes
+  // the task, its comments, or its attachments, and resync fully whenever the
   // stream (re)connects.
   $effect(() => {
     const currentId = taskId;
@@ -184,7 +184,7 @@
         });
         return;
       }
-      if (event.task_id === currentId && event.type.startsWith("comment.")) {
+      if (event.task_id === currentId) {
         feedRefreshKey += 1;
         refreshTask().catch((e) => {
           console.error("event-driven task refresh failed", e);
