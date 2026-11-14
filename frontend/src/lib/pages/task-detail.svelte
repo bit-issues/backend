@@ -132,8 +132,17 @@
   }
 
   async function refreshTask() {
-    const refreshed = await getTaskByProjectAndNumber(slug, number);
+    const currentSlug = slug;
+    const currentNumber = number;
+    const refreshed = await getTaskByProjectAndNumber(
+      currentSlug,
+      currentNumber,
+    );
+    if (currentSlug !== slug || currentNumber !== number) return;
+
     task = refreshed;
+    selectedStatus = refreshed.status;
+    assigneeId = refreshed.assignee?.id ?? null;
   }
 
   async function handleDeleteAttachment(attachmentId: number) {

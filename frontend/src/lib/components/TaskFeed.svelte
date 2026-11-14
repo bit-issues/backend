@@ -141,19 +141,27 @@
     }
   }
 
+  async function refreshComments() {
+    try {
+      await onCommentsChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to refresh activity");
+    }
+  }
+
   async function handleAddComment(content: string) {
     await createComment(taskId, { content });
-    await onCommentsChanged().catch(() => {});
+    await refreshComments();
   }
 
   async function handleEditComment(commentId: number, content: string) {
     await updateComment(taskId, commentId, { content });
-    await onCommentsChanged().catch(() => {});
+    await refreshComments();
   }
 
   async function handleDeleteComment(commentId: number) {
     await deleteComment(taskId, commentId);
-    await onCommentsChanged().catch(() => {});
+    await refreshComments();
   }
 
   // Comments arrive embedded in task details while history pages in from the
