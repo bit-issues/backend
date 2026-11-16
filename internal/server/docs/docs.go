@@ -1669,6 +1669,82 @@ const docTemplate = `{
                 }
             }
         },
+        "/tasks/{slug}/{number}/feed": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns field-level task changes and attachment events newest-first.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Get task activity feed",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project slug",
+                        "name": "slug",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Task number within project",
+                        "name": "number",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "default": 20,
+                        "description": "Page limit (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Page offset (offset+limit must not exceed 5000)",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/tasks.FeedResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/tasks/{task_id}/attachments": {
             "post": {
                 "security": [
@@ -3188,6 +3264,60 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 10000,
                     "minLength": 1
+                }
+            }
+        },
+        "tasks.FeedResponse": {
+            "description": "Paginated activity feed with total count.",
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tasks.HistoryEntryResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "tasks.HistoryChangeResponse": {
+            "description": "Field-level task change with old and new values.",
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "new_value": {
+                    "type": "string"
+                },
+                "old_value": {
+                    "type": "string"
+                }
+            }
+        },
+        "tasks.HistoryEntryResponse": {
+            "description": "Task history entry with actor and field changes.",
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actor": {
+                    "$ref": "#/definitions/dto.UserBrief"
+                },
+                "changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/tasks.HistoryChangeResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 }
             }
         },

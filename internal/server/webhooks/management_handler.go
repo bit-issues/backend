@@ -19,18 +19,18 @@ import (
 // endpoints. It is registered through the group:"handlers" fx path, after the
 // JWT middleware.
 type ManagementHandler struct {
-	svc    *management.Service
-	logger *zap.Logger
+	managementSvc *management.Service
+	logger        *zap.Logger
 }
 
 // NewManagementHandler wires the management handler.
 func NewManagementHandler(
-	svc *management.Service,
+	managementSvc *management.Service,
 	logger *zap.Logger,
 ) handler.Handler {
 	return &ManagementHandler{
-		svc:    svc,
-		logger: logger,
+		managementSvc: managementSvc,
+		logger:        logger,
 	}
 }
 
@@ -66,7 +66,7 @@ func (h *ManagementHandler) status(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	st, err := h.svc.Status(c.Context(), user.ID, c.Params("slug"))
+	st, err := h.managementSvc.Status(c.Context(), user.ID, c.Params("slug"))
 	if err != nil {
 		return fmt.Errorf("failed to get webhook status: %w", err)
 	}
@@ -99,7 +99,7 @@ func (h *ManagementHandler) register(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	st, err := h.svc.Register(c.Context(), user.ID, c.Params("slug"))
+	st, err := h.managementSvc.Register(c.Context(), user.ID, c.Params("slug"))
 	if err != nil {
 		return fmt.Errorf("failed to register webhook: %w", err)
 	}
@@ -132,7 +132,7 @@ func (h *ManagementHandler) unregister(c *fiber.Ctx) error {
 		return fiber.ErrUnauthorized
 	}
 
-	if err := h.svc.Unregister(c.Context(), user.ID, c.Params("slug")); err != nil {
+	if err := h.managementSvc.Unregister(c.Context(), user.ID, c.Params("slug")); err != nil {
 		return fmt.Errorf("failed to unregister webhook: %w", err)
 	}
 
