@@ -3,6 +3,7 @@ package comments
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/bit-issues/backend/internal/users"
 	"go.uber.org/zap"
@@ -11,8 +12,9 @@ import (
 const (
 	// DefaultLimit is the default number of comments to return per page.
 	DefaultLimit = 20
-	// MaxLimit is the maximum number of comments to return per page.
-	MaxLimit = 100
+	// MaxLimit is intentionally unbounded so the task feed can fetch the whole
+	// offset+limit window. User-supplied limits are validated by HTTP handlers.
+	MaxLimit = math.MaxInt
 )
 
 // Service implements the business logic for comment management.
@@ -60,9 +62,15 @@ func (s *Service) GetByID(ctx context.Context, id int64) (*Comment, error) {
 	return s.comments.GetByID(ctx, id)
 }
 
-// ListByTask retrieves all comments for a specific task.
-func (s *Service) ListByTask(ctx context.Context, taskID int64) ([]Comment, error) {
-	return s.comments.List(ctx, taskID)
+// List retrieves comments with filtering, sorting, and pagination.
+// A nil pagination returns all matching comments.
+func (s *Service) List(
+	ctx context.Context,
+	filter CommentFilter,
+	sort SortOrder,
+	pagination *Pagination,
+) ([]Comment, int, error) {
+	return s.comments.List(ctx, filter, sort, pagination)
 }
 
 // Update modifies an existing comment with the provided content.

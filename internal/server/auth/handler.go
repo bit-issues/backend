@@ -21,13 +21,13 @@ type Handler struct {
 }
 
 func NewHandler(
-	service *users.Service,
+	usersSvc *users.Service,
 	validate *validator.Validate,
 	jwtSvc *jwt.Service,
 ) handler.Handler {
 	return &Handler{
 		Base:     handler.Base{Validator: validate},
-		usersSvc: service,
+		usersSvc: usersSvc,
 		jwtSvc:   jwtSvc,
 	}
 }

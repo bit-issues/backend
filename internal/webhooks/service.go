@@ -288,7 +288,7 @@ func (s *Service) applyStatusTransition(
 		AssigneeID:  nil,
 		DueDate:     nil,
 	}
-	if _, err := s.tasksSvc.Update(ctx, task.ID, update); err != nil {
+	if _, err := s.tasksSvc.Update(ctx, task.ID, update, s.botUserID); err != nil {
 		s.logger.Error("failed to update task status",
 			zap.Int64("task_id", task.ID),
 			zap.Int("number", ref.TaskNumber),

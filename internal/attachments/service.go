@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -22,6 +23,7 @@ type Service struct {
 	attachments *Repository
 
 	tasksSvc   *tasks.Service
+	historySvc *history.Service
 	storageSvc *storage.Service
 
 	logger *zap.Logger
@@ -31,6 +33,7 @@ func NewService(
 	config Config,
 	attachments *Repository,
 	tasksSvc *tasks.Service,
+	historySvc *history.Service,
 	storageSvc *storage.Service,
 	logger *zap.Logger,
 ) *Service {
@@ -44,6 +47,7 @@ func NewService(
 		attachments: attachments,
 
 		tasksSvc:   tasksSvc,
+		historySvc: historySvc,
 		storageSvc: storageSvc,
 
 		logger: logger,
@@ -159,28 +163,49 @@ func (s *Service) GetDownloadURL(ctx context.Context, id int64) (string, error) 
 	return downloadURL, nil
 }
 
+// ConfirmUpload marks a pending upload complete and records the event in the
+// history, atomically. Re-confirming an already uploaded attachment is a no-op.
 func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64) (*Attachment, error) {
 	attachment, err := s.attachments.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get attachment: %w", err)
 	}
 
 	if attachment.UploadedBy != uploaderID {
 		return nil, ErrUnauthorized
 	}
 
-	if confirmErr := s.attachments.Confirm(ctx, id); confirmErr != nil {
-		return nil, confirmErr
+	if attachment.Status == StatusUploaded {
+		return attachment, nil
+	}
+
+	// The task is fetched before the status flips so a failed lookup leaves
+	// the attachment unconfirmed and retryable.
+	task, taskErr := s.tasksSvc.GetByID(ctx, attachment.TaskID)
+	if taskErr != nil {
+		return nil, fmt.Errorf("failed to get task: %w", taskErr)
+	}
+
+	flipped, err := s.attachments.Confirm(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to confirm attachment: %w", err)
 	}
 
 	attachment.Status = StatusUploaded
+
+	if flipped {
+		s.recordAdded(ctx, task, uploaderID, attachment)
+	}
+
 	return attachment, nil
 }
 
+// Delete removes an attachment row and records the event in the history
+// atomically, then cleans up the stored object.
 func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error {
 	attachment, err := s.attachments.GetByID(ctx, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get attachment: %w", err)
 	}
 
 	task, err := s.tasksSvc.GetByID(ctx, attachment.TaskID)
@@ -193,8 +218,10 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 	}
 
 	if delErr := s.attachments.Delete(ctx, id); delErr != nil {
-		return delErr
+		return fmt.Errorf("failed to delete attachment: %w", delErr)
 	}
+
+	s.recordRemoved(ctx, task, user.ID, attachment)
 
 	if delErr := s.storageSvc.Delete(ctx, attachment.StorageKey); delErr != nil {
 		return fmt.Errorf("attachment metadata deleted, but object cleanup failed: %w", delErr)

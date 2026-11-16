@@ -10,17 +10,17 @@ import (
 )
 
 type Handler struct {
-	svc    *webhooks.Service
-	logger *zap.Logger
+	webhooksSvc *webhooks.Service
+	logger      *zap.Logger
 }
 
 func NewHandler(
-	svc *webhooks.Service,
+	webhooksSvc *webhooks.Service,
 	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
-		svc:    svc,
-		logger: logger,
+		webhooksSvc: webhooksSvc,
+		logger:      logger,
 	}
 }
 
@@ -51,7 +51,7 @@ func (h *Handler) handlePush(c *fiber.Ctx) error {
 		sigHeader = c.Get("X-Hub-Signature-256")
 	}
 
-	if err := h.svc.VerifyPushEvent(rawBody, sigHeader); err != nil {
+	if err := h.webhooksSvc.VerifyPushEvent(rawBody, sigHeader); err != nil {
 		if errors.Is(err, webhooks.ErrInvalidSignature) {
 			return fiber.NewError(fiber.StatusUnauthorized, "invalid signature")
 		}
@@ -71,7 +71,7 @@ func (h *Handler) handlePush(c *fiber.Ctx) error {
 		zap.Int("commits", len(commits)),
 	)
 
-	result, err := h.svc.ProcessPushEvent(c.Context(), repoFullName, commits)
+	result, err := h.webhooksSvc.ProcessPushEvent(c.Context(), repoFullName, commits)
 	if err != nil {
 		h.logger.Error("failed to process push event",
 			zap.String("repo", repoFullName),
