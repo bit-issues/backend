@@ -8,15 +8,15 @@ import (
 
 // ProjectRequest represents the request body for creating a new project.
 type ProjectRequest struct {
-	Name    string `json:"name"     validate:"required"     example:"Backend Service"`
-	RepoURL string `json:"repo_url" validate:"required,url" example:"https://bitbucket.org/company/backend"`
+	Name    string `json:"name"     validate:"required,max=255"     example:"Backend Service"`
+	RepoURL string `json:"repo_url" validate:"required,url,max=512" example:"https://bitbucket.org/company/backend"`
 }
 
 // ProjectUpdateRequest represents the request body for updating a project.
 // All fields are optional to support partial updates.
 type ProjectUpdateRequest struct {
-	Name    *string `json:"name,omitempty"     validate:"omitempty"     example:"Backend Service"`
-	RepoURL *string `json:"repo_url,omitempty" validate:"omitempty,url" example:"https://bitbucket.org/company/backend"`
+	Name    *string `json:"name,omitempty"     validate:"omitempty,max=255"     example:"Backend Service"`
+	RepoURL *string `json:"repo_url,omitempty" validate:"omitempty,url,max=512" example:"https://bitbucket.org/company/backend"`
 }
 
 // ProjectResponse represents the API response for a single project.
