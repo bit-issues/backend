@@ -2730,10 +2730,12 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Backend Service"
                 },
                 "repo_url": {
                     "type": "string",
+                    "maxLength": 512,
                     "example": "https://bitbucket.org/company/backend"
                 }
             }
@@ -2768,10 +2770,12 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Backend Service"
                 },
                 "repo_url": {
                     "type": "string",
+                    "maxLength": 512,
                     "example": "https://bitbucket.org/company/backend"
                 }
             }
@@ -3227,7 +3231,7 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "maxLength": 10000,
+                    "maxLength": 65535,
                     "minLength": 1
                 }
             }
@@ -3262,7 +3266,7 @@ const docTemplate = `{
             "properties": {
                 "content": {
                     "type": "string",
-                    "maxLength": 10000,
+                    "maxLength": 65535,
                     "minLength": 1
                 }
             }
@@ -3335,7 +3339,7 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string",
-                    "maxLength": 10000
+                    "maxLength": 65535
                 },
                 "due_date": {
                     "type": "string"
@@ -3498,11 +3502,11 @@ const docTemplate = `{
                 },
                 "comment": {
                     "type": "string",
-                    "maxLength": 10000
+                    "maxLength": 65535
                 },
                 "description": {
                     "type": "string",
-                    "maxLength": 10000
+                    "maxLength": 65535
                 },
                 "due_date": {
                     "type": "string"
