@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
 	"go.uber.org/zap"
@@ -21,6 +22,7 @@ type Service struct {
 	tasks       *Repository
 	projectsSvc *projects.Service
 	historySvc  *history.Service
+	hub         *events.Hub
 	logger      *zap.Logger
 }
 
@@ -29,12 +31,14 @@ func NewService(
 	repo *Repository,
 	projectsSvc *projects.Service,
 	historySvc *history.Service,
+	hub *events.Hub,
 	logger *zap.Logger,
 ) *Service {
 	return &Service{
 		tasks:       repo,
 		projectsSvc: projectsSvc,
 		historySvc:  historySvc,
+		hub:         hub,
 		logger:      logger,
 	}
 }
@@ -75,7 +79,7 @@ func (s *Service) Import(
 		return nil, err
 	}
 
-	s.recordCreated(ctx, task)
+	s.recordCreatedHistory(ctx, task)
 	return task, nil
 }
 

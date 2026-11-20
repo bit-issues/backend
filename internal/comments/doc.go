@@ -10,7 +10,7 @@
 //
 // Create a new comment:
 //
-//	svc := comments.NewService(repo, tasksSvc, logger)
+//	svc := comments.NewService(repo, usersSvc, hub, logger)
 //	input := comments.CommentInput{
 //	    TaskID:   123,
 //	    AuthorID: 456,

@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/config"
 	"github.com/bit-issues/backend/internal/db"
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/storage"
@@ -64,6 +65,7 @@ func run(ctx context.Context, cmd *cli.Command) error {
 		history.Module(),
 		attachments.Module(),
 		comments.Module(),
+		events.Module(),
 
 		fx.Supply(parseConfig(cmd)),
 

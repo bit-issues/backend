@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"go.uber.org/zap"
 )
@@ -57,10 +58,21 @@ func formatAssignee(id *int64) *string {
 	return &value
 }
 
-// recordCreated best-effort appends the creation event after the task write
-// has committed; failures are logged, never surfaced - the task matters, the
-// feed does not.
+// recordCreated best-effort appends the creation entry after the task write
+// has committed, then broadcasts it to live subscribers. Failures are logged,
+// never surfaced - the task matters, the feed does not.
 func (s *Service) recordCreated(ctx context.Context, task *Task) {
+	s.recordCreatedHistory(ctx, task)
+	s.hub.Publish(events.Event{
+		Type:      events.TypeTaskCreated,
+		TaskID:    task.ID,
+		CommentID: 0,
+	})
+}
+
+// recordCreatedHistory appends the creation entry without broadcasting. The
+// importer records history for imported tasks but keeps them off the stream.
+func (s *Service) recordCreatedHistory(ctx context.Context, task *Task) {
 	if err := s.historySvc.Record(ctx, history.EntryBase{
 		SubjectType: SubjectTypeTask,
 		SubjectID:   task.ID,
@@ -76,8 +88,8 @@ func (s *Service) recordCreated(ctx context.Context, task *Task) {
 	}
 }
 
-// recordUpdated best-effort appends the update event after the write
-// committed, carrying the actual written values.
+// recordUpdated best-effort appends the update entry after the write
+// committed, carrying the actual written values, then broadcasts it.
 func (s *Service) recordUpdated(ctx context.Context, task *Task, actorID int64) {
 	if err := s.historySvc.Record(ctx, history.EntryBase{
 		SubjectType: SubjectTypeTask,
@@ -92,4 +104,10 @@ func (s *Service) recordUpdated(ctx context.Context, task *Task, actorID int64) 
 			zap.Error(err),
 		)
 	}
+
+	s.hub.Publish(events.Event{
+		Type:      events.TypeTaskUpdated,
+		TaskID:    task.ID,
+		CommentID: 0,
+	})
 }

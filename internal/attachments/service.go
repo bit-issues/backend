@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
@@ -24,6 +25,7 @@ type Service struct {
 
 	tasksSvc   *tasks.Service
 	historySvc *history.Service
+	hub        *events.Hub
 	storageSvc *storage.Service
 
 	logger *zap.Logger
@@ -34,6 +36,7 @@ func NewService(
 	attachments *Repository,
 	tasksSvc *tasks.Service,
 	historySvc *history.Service,
+	hub *events.Hub,
 	storageSvc *storage.Service,
 	logger *zap.Logger,
 ) *Service {
@@ -48,6 +51,7 @@ func NewService(
 
 		tasksSvc:   tasksSvc,
 		historySvc: historySvc,
+		hub:        hub,
 		storageSvc: storageSvc,
 
 		logger: logger,
