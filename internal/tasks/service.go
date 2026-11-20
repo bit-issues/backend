@@ -64,7 +64,6 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 	}
 
 	s.recordCreated(ctx, task)
-	s.publishTaskEvent(events.TypeTaskCreated, task.ID)
 	return task, nil
 }
 
@@ -80,7 +79,7 @@ func (s *Service) Import(
 		return nil, err
 	}
 
-	s.recordCreated(ctx, task)
+	s.recordCreatedHistory(ctx, task)
 	return task, nil
 }
 
@@ -137,7 +136,6 @@ func (s *Service) Update(
 	}
 
 	s.recordUpdated(ctx, task, actorID)
-	s.publishTaskEvent(events.TypeTaskUpdated, task.ID)
 
 	return task, nil
 }
@@ -145,14 +143,4 @@ func (s *Service) Update(
 // Delete soft-deletes a task.
 func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.tasks.Delete(ctx, id)
-}
-
-// publishTaskEvent broadcasts a task change to live event subscribers. The
-// payload carries IDs only; clients refetch the affected resource.
-func (s *Service) publishTaskEvent(eventType string, taskID int64) {
-	s.hub.Publish(events.Event{
-		Type:      eventType,
-		TaskID:    taskID,
-		CommentID: 0,
-	})
 }

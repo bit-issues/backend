@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/history"
 	"github.com/bit-issues/backend/internal/tasks"
 	"go.uber.org/zap"
@@ -31,8 +32,9 @@ func attachmentPayload(task *tasks.Task, attachment *Attachment) map[string]*str
 	return payload
 }
 
-// recordAdded best-effort appends the upload event after the attachment write
-// committed; failures are logged, never surfaced.
+// recordAdded best-effort appends the upload entry after the attachment write
+// committed, then broadcasts it to live subscribers. Failures are logged,
+// never surfaced.
 func (s *Service) recordAdded(
 	ctx context.Context,
 	task *tasks.Task,
@@ -53,10 +55,17 @@ func (s *Service) recordAdded(
 			zap.Error(err),
 		)
 	}
+
+	s.hub.Publish(events.Event{
+		Type:      events.TypeAttachmentAdded,
+		TaskID:    task.ID,
+		CommentID: 0,
+	})
 }
 
-// recordRemoved best-effort appends the deletion event after the attachment
-// write committed; failures are logged, never surfaced.
+// recordRemoved best-effort appends the deletion entry after the attachment
+// write committed, then broadcasts it to live subscribers. Failures are
+// logged, never surfaced.
 func (s *Service) recordRemoved(
 	ctx context.Context,
 	task *tasks.Task,
@@ -77,4 +86,10 @@ func (s *Service) recordRemoved(
 			zap.Error(err),
 		)
 	}
+
+	s.hub.Publish(events.Event{
+		Type:      events.TypeAttachmentRemoved,
+		TaskID:    task.ID,
+		CommentID: 0,
+	})
 }
