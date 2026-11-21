@@ -3,11 +3,8 @@
   import { Button } from "$lib/components/ui/button";
   import { Textarea } from "$lib/components/ui/textarea";
   import InlineImageButton from "$lib/components/InlineImageButton.svelte";
-  import { parse } from "marked";
-  import { processAutoLinks } from "$lib/autolink";
-  import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
+  import { renderMarkdown } from "$lib/markdown";
   import { InlineImageEditor } from "$lib/inline-image-editor.svelte";
-  import DOMPurify from "dompurify";
   import type { AutoLinkContext } from "$lib/autolink";
   import type { Comment } from "$lib/types/api";
   import { isAdmin } from "$lib/stores/auth.svelte";
@@ -58,19 +55,6 @@
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  }
-
-  function renderMarkdown(text: string): string {
-    if (!text) return "";
-    return DOMPurify.sanitize(
-      parse(
-        processAutoLinks(
-          resolveAttachmentRefs(text, attachmentsMap),
-          autoLinkCtx,
-        ),
-        { async: false },
-      ) as string,
-    );
   }
 
   function startEdit() {
@@ -187,8 +171,8 @@
         </Button>
       </div>
     {:else}
-      <div class="prose prose-sm dark:prose-invert max-w-none text-sm">
-        {@html renderMarkdown(comment.content)}
+      <div class="prose prose-sm max-w-none text-sm">
+        {@html renderMarkdown(comment.content, { attachmentsMap, autoLinkCtx })}
       </div>
       {#if canManageComment()}
         <div class="mt-1 flex gap-2">
