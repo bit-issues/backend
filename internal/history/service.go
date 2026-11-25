@@ -8,10 +8,10 @@ import (
 // DefaultLimit is the page size used when a caller asks for no limit.
 const DefaultLimit = 20
 
-// Service reads the activity history and appends events best-effort:
-// writers save their domain data first, then call Record. The activity feed
-// is disposable - a failed record is the caller's problem to log, never the
-// request's.
+// Service reads the activity history and appends events best-effort. The
+// event consumer records after the domain write has committed; the activity
+// feed is disposable, so the consumer logs failures instead of retrying and
+// request latency is unaffected.
 type Service struct {
 	history *Repository
 }

@@ -1,12 +1,10 @@
 package attachments
 
 import (
-	"context"
 	"strconv"
 
-	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/tasks"
-	"go.uber.org/zap"
 )
 
 // FieldAttachment is the activity-feed payload key under which attachment
@@ -31,50 +29,25 @@ func attachmentPayload(task *tasks.Task, attachment *Attachment) map[string]*str
 	return payload
 }
 
-// recordAdded best-effort appends the upload event after the attachment write
-// committed; failures are logged, never surfaced.
-func (s *Service) recordAdded(
-	ctx context.Context,
-	task *tasks.Task,
-	uploaderID int64,
-	attachment *Attachment,
-) {
-	if err := s.historySvc.Record(ctx, history.EntryBase{
-		SubjectType: tasks.SubjectTypeTask,
-		SubjectID:   task.ID,
-		ActorID:     uploaderID,
-		Action:      history.ActionAttachmentAdded,
-		Payload:     attachmentPayload(task, attachment),
-	}); err != nil {
-		s.logger.Warn("failed to record history entry",
-			zap.String("action", string(history.ActionAttachmentAdded)),
-			zap.Int64("subject_id", task.ID),
-			zap.String("file_name", attachment.FileName),
-			zap.Error(err),
-		)
-	}
+// publishAdded broadcasts the confirmed upload after the write has committed.
+func (s *Service) publishAdded(task *tasks.Task, uploaderID int64, attachment *Attachment) {
+	s.hub.Publish(events.Event{
+		Type:      events.TypeAttachmentAdded,
+		TaskID:    task.ID,
+		CommentID: 0,
+		ActorID:   uploaderID,
+		Payload:   attachmentPayload(task, attachment),
+	})
 }
 
-// recordRemoved best-effort appends the deletion event after the attachment
-// write committed; failures are logged, never surfaced.
-func (s *Service) recordRemoved(
-	ctx context.Context,
-	task *tasks.Task,
-	actorID int64,
-	attachment *Attachment,
-) {
-	if err := s.historySvc.Record(ctx, history.EntryBase{
-		SubjectType: tasks.SubjectTypeTask,
-		SubjectID:   task.ID,
-		ActorID:     actorID,
-		Action:      history.ActionAttachmentRemoved,
-		Payload:     attachmentPayload(task, attachment),
-	}); err != nil {
-		s.logger.Warn("failed to record history entry",
-			zap.String("action", string(history.ActionAttachmentRemoved)),
-			zap.Int64("subject_id", task.ID),
-			zap.String("file_name", attachment.FileName),
-			zap.Error(err),
-		)
-	}
+// publishRemoved broadcasts the attachment deletion after the write has
+// committed.
+func (s *Service) publishRemoved(task *tasks.Task, actorID int64, attachment *Attachment) {
+	s.hub.Publish(events.Event{
+		Type:      events.TypeAttachmentRemoved,
+		TaskID:    task.ID,
+		CommentID: 0,
+		ActorID:   actorID,
+		Payload:   attachmentPayload(task, attachment),
+	})
 }

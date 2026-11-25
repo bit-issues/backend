@@ -532,6 +532,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/events/stream": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Server-Sent Events stream of data changes. Each event carries\n` + "`" + `event: \u003ctype\u003e` + "`" + ` and a JSON ` + "`" + `data` + "`" + ` payload with resource\nidentifiers; clients refetch the affected resource instead of\napplying a partial payload. A ` + "`" + `: ping` + "`" + ` comment is sent every\nheartbeat interval (EVENTS__HEARTBEAT_INTERVAL, default 15s)\nto detect dead connections.",
+                "produces": [
+                    "text/event-stream"
+                ],
+                "tags": [
+                    "Events"
+                ],
+                "summary": "Open the live events stream",
+                "responses": {
+                    "200": {
+                        "description": "event stream (text/event-stream)",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/fiberfx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/oauth/bitbucket/authorize": {
             "get": {
                 "security": [
