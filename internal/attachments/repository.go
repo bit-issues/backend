@@ -91,11 +91,17 @@ func (r *Repository) Confirm(ctx context.Context, id int64) (bool, error) {
 	return rows > 0, nil
 }
 
-// Delete removes an attachment row.
-func (r *Repository) Delete(ctx context.Context, id int64) error {
-	if _, err := r.db.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx); err != nil {
-		return fmt.Errorf("failed to delete attachment: %w", err)
+// Delete removes an attachment row and reports whether it actually deleted one.
+func (r *Repository) Delete(ctx context.Context, id int64) (bool, error) {
+	result, err := r.db.NewDelete().Model((*attachmentModel)(nil)).Where("id = ?", id).Exec(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete attachment: %w", err)
 	}
 
-	return nil
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	return rows > 0, nil
 }

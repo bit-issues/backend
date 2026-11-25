@@ -5,6 +5,7 @@
   import { isAuthenticated } from "$lib/stores/auth.svelte";
   import { trackRecentFromPath } from "$lib/stores/recent-projects.svelte";
   import { setOnUnauthorized } from "$lib/api/client";
+  import { startEventStream } from "$lib/api/events";
   import AppShell from "$lib/components/AppShell.svelte";
   import { Toaster } from "$lib/components/ui/sonner";
   import { untrack } from "svelte";
@@ -40,6 +41,12 @@
       navigate("/login");
     });
     initialized = true;
+  });
+
+  $effect(() => {
+    if (!isAuthenticated()) return;
+    const stop = startEventStream();
+    return stop;
   });
 
   $effect(() => {

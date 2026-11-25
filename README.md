@@ -79,6 +79,7 @@ Here's why BitIssues exists:
 - **Tasks** — full lifecycle with priority (trivial → blocker), status (new → closed), kind (bug, enhancement, task, proposal), assignees, and due dates
 - **Comments** — per-task discussion with markdown support
 - **Activity Feed** — per-task timeline merging comments, field-level changes and attachment events, newest-first
+- **Live Updates** — Server-Sent Events stream (`/api/v1/events/stream`) pushes comment, task, and attachment changes to open task pages in real time
 - **File Attachments** — two-phase upload via S3 presigned URLs (client uploads directly to storage, bypassing the server)
 - **JWT Authentication** — HS256 tokens with Argon2id password hashing
 - **WebAuthn/Passkey Authentication** — passwordless login via platform authenticators (fingerprint, Face ID, security keys)
@@ -242,6 +243,7 @@ All endpoints are under `/api/v1`. Full documentation is available via Swagger U
 | Activity    | `/tasks/:slug/:number/feed`  | JWT                           |
 | Comments    | `/tasks/:taskId/comments`    | JWT                           |
 | Attachments | `/tasks/:taskId/attachments` | JWT                           |
+| Events      | `/events/stream`             | JWT                           |
 | Passkeys    | `/auth/passkey`              | Public (login) / JWT (manage) |
 | Docs        | `/docs`                      | Public                        |
 
@@ -271,6 +273,7 @@ Configuration is loaded from environment variables with optional YAML override v
 | `WEBHOOKS__SECRET`            | —                           | HMAC-SHA256 secret for webhook payload verification |
 | `WEBHOOKS__BOT_USER_EMAIL`    | `bot@bitissues.local`       | Email of the bot that posts comments                |
 | `COMMITREF__ACTION_KEYWORDS`  | see `.env.example`          | Commit keyword → task status transition map (JSON)  |
+| `EVENTS__HEARTBEAT_INTERVAL`  | `15s`                       | SSE heartbeat / dead-connection detection interval  |
 | `OAUTH__CLIENT_ID`            | `empty (disabled)`          | Bitbucket OAuth consumer key                        |
 | `OAUTH__CLIENT_SECRET`        | `empty (disabled)`          | Bitbucket OAuth consumer secret                     |
 | `OAUTH__TOKEN_ENCRYPTION_KEY` | `empty (disabled)`          | AES-256 key for encrypting OAuth tokens at rest     |

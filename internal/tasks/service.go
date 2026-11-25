@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/projects"
-	"go.uber.org/zap"
 )
 
 const (
@@ -14,33 +13,26 @@ const (
 	MaxLimit     = 100
 )
 
-// Service implements the business logic for task management. Repository
-// mutations own their transaction and invoke an audit callback that appends
-// the matching activity-history event in that transaction.
+// Service implements the business logic for task management. After a
+// repository mutation commits, the service publishes an operation describing
+// the written values; history and other consumers subscribe to those events.
 type Service struct {
 	tasks       *Repository
 	projectsSvc *projects.Service
-	historySvc  *history.Service
-	logger      *zap.Logger
+	hub         *events.Hub
 }
 
 // NewService creates a new Service instance with the given dependencies.
-func NewService(
-	repo *Repository,
-	projectsSvc *projects.Service,
-	historySvc *history.Service,
-	logger *zap.Logger,
-) *Service {
+func NewService(repo *Repository, projectsSvc *projects.Service, hub *events.Hub) *Service {
 	return &Service{
 		tasks:       repo,
 		projectsSvc: projectsSvc,
-		historySvc:  historySvc,
-		logger:      logger,
+		hub:         hub,
 	}
 }
 
-// Create validates input, creates a new task with an auto-generated number
-// and records its creation in the history, atomically.
+// Create validates input and creates a new task with an auto-generated number,
+// publishing the creation operation after the write commits.
 func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 	if err := input.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid task input: %w", err)
@@ -59,24 +51,19 @@ func (s *Service) Create(ctx context.Context, input TaskInput) (*Task, error) {
 		return nil, err
 	}
 
-	s.recordCreated(ctx, task)
+	s.publishCreated(task)
 	return task, nil
 }
 
-// Import creates a task with explicit number, timestamps, and kind for
-// import, recording its creation in the history, atomically.
-// Bypasses auto-number generation and allows preserving original metadata.
+// Import creates a task with explicit number, timestamps, and kind for import.
+// Imported tasks are silent: they produce neither history rows nor stream
+// events. Bypasses auto-number generation and allows preserving original
+// metadata.
 func (s *Service) Import(
 	ctx context.Context,
 	input Task,
 ) (*Task, error) {
-	task, err := s.tasks.Import(ctx, input)
-	if err != nil {
-		return nil, err
-	}
-
-	s.recordCreated(ctx, task)
-	return task, nil
+	return s.tasks.Import(ctx, input)
 }
 
 // Exists checks if a task with the given ID exists.
@@ -105,9 +92,9 @@ func (s *Service) List(
 	return s.tasks.List(ctx, filter, sort, pagination)
 }
 
-// Update modifies an existing task with the provided data and records the
-// applied changes in the history, atomically. Returns the updated task or an
-// error if not found or validation fails.
+// Update modifies an existing task with the provided data and publishes the
+// applied changes. Returns the updated task or an error if not found or
+// validation fails.
 func (s *Service) Update(
 	ctx context.Context,
 	id int64,
@@ -131,7 +118,7 @@ func (s *Service) Update(
 		return nil, err
 	}
 
-	s.recordUpdated(ctx, task, actorID)
+	s.publishUpdated(task, actorID)
 
 	return task, nil
 }

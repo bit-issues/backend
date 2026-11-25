@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/bit-issues/backend/internal/history"
+	"github.com/bit-issues/backend/internal/events"
 	"github.com/bit-issues/backend/internal/storage"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
@@ -23,7 +23,7 @@ type Service struct {
 	attachments *Repository
 
 	tasksSvc   *tasks.Service
-	historySvc *history.Service
+	hub        *events.Hub
 	storageSvc *storage.Service
 
 	logger *zap.Logger
@@ -33,7 +33,7 @@ func NewService(
 	config Config,
 	attachments *Repository,
 	tasksSvc *tasks.Service,
-	historySvc *history.Service,
+	hub *events.Hub,
 	storageSvc *storage.Service,
 	logger *zap.Logger,
 ) *Service {
@@ -47,7 +47,7 @@ func NewService(
 		attachments: attachments,
 
 		tasksSvc:   tasksSvc,
-		historySvc: historySvc,
+		hub:        hub,
 		storageSvc: storageSvc,
 
 		logger: logger,
@@ -163,8 +163,8 @@ func (s *Service) GetDownloadURL(ctx context.Context, id int64) (string, error) 
 	return downloadURL, nil
 }
 
-// ConfirmUpload marks a pending upload complete and records the event in the
-// history, atomically. Re-confirming an already uploaded attachment is a no-op.
+// ConfirmUpload marks a pending upload complete and publishes the operation.
+// Re-confirming an already uploaded attachment is a no-op.
 func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64) (*Attachment, error) {
 	attachment, err := s.attachments.GetByID(ctx, id)
 	if err != nil {
@@ -194,14 +194,14 @@ func (s *Service) ConfirmUpload(ctx context.Context, id int64, uploaderID int64)
 	attachment.Status = StatusUploaded
 
 	if flipped {
-		s.recordAdded(ctx, task, uploaderID, attachment)
+		s.publishAdded(task, uploaderID, attachment)
 	}
 
 	return attachment, nil
 }
 
-// Delete removes an attachment row and records the event in the history
-// atomically, then cleans up the stored object.
+// Delete removes an attachment row, publishes the operation, then cleans up
+// the stored object.
 func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error {
 	attachment, err := s.attachments.GetByID(ctx, id)
 	if err != nil {
@@ -217,11 +217,15 @@ func (s *Service) Delete(ctx context.Context, user *users.User, id int64) error 
 		return ErrUnauthorized
 	}
 
-	if delErr := s.attachments.Delete(ctx, id); delErr != nil {
-		return fmt.Errorf("failed to delete attachment: %w", delErr)
+	deleted, err := s.attachments.Delete(ctx, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete attachment: %w", err)
+	}
+	if !deleted {
+		return nil
 	}
 
-	s.recordRemoved(ctx, task, user.ID, attachment)
+	s.publishRemoved(task, user.ID, attachment)
 
 	if delErr := s.storageSvc.Delete(ctx, attachment.StorageKey); delErr != nil {
 		return fmt.Errorf("attachment metadata deleted, but object cleanup failed: %w", delErr)

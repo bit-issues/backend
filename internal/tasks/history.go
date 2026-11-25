@@ -1,11 +1,9 @@
 package tasks
 
 import (
-	"context"
 	"strconv"
 
-	"github.com/bit-issues/backend/internal/history"
-	"go.uber.org/zap"
+	"github.com/bit-issues/backend/internal/events"
 )
 
 // SubjectTypeTask is the activity-history subject type written for task
@@ -57,39 +55,25 @@ func formatAssignee(id *int64) *string {
 	return &value
 }
 
-// recordCreated best-effort appends the creation event after the task write
-// has committed; failures are logged, never surfaced - the task matters, the
-// feed does not.
-func (s *Service) recordCreated(ctx context.Context, task *Task) {
-	if err := s.historySvc.Record(ctx, history.EntryBase{
-		SubjectType: SubjectTypeTask,
-		SubjectID:   task.ID,
-		ActorID:     task.AuthorID,
-		Action:      history.ActionCreated,
-		Payload:     TaskPayload(task),
-	}); err != nil {
-		s.logger.Warn("failed to record history entry",
-			zap.String("action", string(history.ActionCreated)),
-			zap.Int64("subject_id", task.ID),
-			zap.Error(err),
-		)
-	}
+// publishCreated broadcasts the task creation after the write has committed.
+func (s *Service) publishCreated(task *Task) {
+	s.hub.Publish(events.Event{
+		Type:      events.TypeTaskCreated,
+		TaskID:    task.ID,
+		CommentID: 0,
+		ActorID:   task.AuthorID,
+		Payload:   TaskPayload(task),
+	})
 }
 
-// recordUpdated best-effort appends the update event after the write
-// committed, carrying the actual written values.
-func (s *Service) recordUpdated(ctx context.Context, task *Task, actorID int64) {
-	if err := s.historySvc.Record(ctx, history.EntryBase{
-		SubjectType: SubjectTypeTask,
-		SubjectID:   task.ID,
-		ActorID:     actorID,
-		Action:      history.ActionUpdated,
-		Payload:     TaskPayload(task),
-	}); err != nil {
-		s.logger.Warn("failed to record history entry",
-			zap.String("action", string(history.ActionUpdated)),
-			zap.Int64("subject_id", task.ID),
-			zap.Error(err),
-		)
-	}
+// publishUpdated broadcasts the task update after the write has committed,
+// carrying the actual written values.
+func (s *Service) publishUpdated(task *Task, actorID int64) {
+	s.hub.Publish(events.Event{
+		Type:      events.TypeTaskUpdated,
+		TaskID:    task.ID,
+		CommentID: 0,
+		ActorID:   actorID,
+		Payload:   TaskPayload(task),
+	})
 }

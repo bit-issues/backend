@@ -80,7 +80,7 @@
   }
 
   function cancelEdit() {
-    if (images.uploading) return;
+    if (saving || images.uploading) return;
     editing = false;
     editText = "";
   }
@@ -181,7 +181,7 @@
           size="sm"
           variant="ghost"
           onclick={cancelEdit}
-          disabled={images.uploading}
+          disabled={saving || images.uploading}
         >
           Cancel
         </Button>

@@ -20,6 +20,8 @@
   import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
   import type { AutoLinkContext } from "$lib/autolink";
   import { toast } from "$lib/toast";
+  import { onStreamEvent } from "$lib/api/events";
+  import { createLatestRequestGuard } from "$lib/latest-request";
 
   let { params = {} }: { params?: Record<string, string> } = $props();
   let slug = $derived(params.slug || "");
@@ -41,6 +43,7 @@
   let assigning = false;
   let ready = $state(false);
   let mutationRevision = 0;
+  let pendingResync = false;
 
   let currentUserId = $derived(getUser()?.id);
 
@@ -76,6 +79,7 @@
     task = null;
     ready = false;
     taskId = 0;
+    pendingResync = false;
 
     getTaskByProjectAndNumber(currentSlug, currentNumber)
       .then((t) => {
@@ -86,6 +90,13 @@
         assigneeId = t.assignee?.id ?? null;
         ready = true;
         touchProject({ id: t.project.id, name: t.project.name });
+
+        if (pendingResync) {
+          pendingResync = false;
+          void refreshTask().catch((e) => {
+            console.error("event-driven task refresh failed", e);
+          });
+        }
       })
       .catch((e) => {
         if (currentSlug !== slug || currentNumber !== number) return;
@@ -108,7 +119,6 @@
           mutationRevision += 1;
           task = updated;
           assigneeId = updated.assignee?.id ?? null;
-          feedRefreshKey += 1;
         })
         .catch((e: any) => {
           toast.error(e.message || "Failed to update assignee");
@@ -133,16 +143,36 @@
     }
   }
 
-  async function refreshTask() {
+  // Refetches the whole task through two guards: the latest-request token
+  // drops superseded fetches so concurrent refetches cannot apply out of
+  // order, and mutationRevision drops a response that would clobber a
+  // mutation landed after the fetch started. Status is only synced when the
+  // user has no pending selection. Always settles: superseded requests drop
+  // their response instead of leaving the caller awaiting.
+  const refreshGuard = createLatestRequestGuard();
+
+  async function refreshTask(): Promise<void> {
     const currentSlug = slug;
     const currentNumber = number;
     const revision = mutationRevision;
-    const refreshed = await getTaskByProjectAndNumber(
-      currentSlug,
-      currentNumber,
-    );
+    const token = refreshGuard.next();
+
+    let refreshed: TaskDetails;
+    try {
+      refreshed = await getTaskByProjectAndNumber(currentSlug, currentNumber);
+    } catch (e) {
+      if (refreshGuard.isLatest(token)) throw e;
+      return;
+    }
+
+    if (!refreshGuard.isLatest(token)) return;
     if (currentSlug !== slug || currentNumber !== number) return;
-    if (revision !== mutationRevision) return;
+    if (revision !== mutationRevision) {
+      void refreshTask().catch((e) => {
+        console.error("event-driven task refresh failed", e);
+      });
+      return;
+    }
 
     const hasPendingStatus = selectedStatus !== task?.status;
     task = refreshed;
@@ -152,6 +182,41 @@
     assigneeId = refreshed.assignee?.id ?? null;
   }
 
+  // Live updates: the subscription starts before the initial GET so events
+  // arriving while the task loads are not lost; those trigger one resync once
+  // the task is installed. Matching task events refetch the task, while the
+  // activity feed waits for the history consumer's write confirmation.
+  $effect(() => {
+    const currentId = taskId;
+
+    return onStreamEvent((event) => {
+      if (event.type === "stream.connected") {
+        feedRefreshKey += 1;
+        if (currentId) {
+          refreshTask().catch((e) => {
+            console.error("event-driven task refresh failed", e);
+          });
+        } else {
+          pendingResync = true;
+        }
+        return;
+      }
+      if (event.type === "history.recorded") {
+        if (currentId && event.task_id === currentId) feedRefreshKey += 1;
+        return;
+      }
+      if (!currentId) {
+        pendingResync = true;
+        return;
+      }
+      if (event.task_id === currentId) {
+        refreshTask().catch((e) => {
+          console.error("event-driven task refresh failed", e);
+        });
+      }
+    });
+  });
+
   async function handleDeleteAttachment(attachmentId: number) {
     await deleteAttachment(taskId, attachmentId);
     mutationRevision += 1;
@@ -159,7 +224,6 @@
       ...task!,
       attachments: task!.attachments.filter((a) => a.id !== attachmentId),
     };
-    feedRefreshKey += 1;
   }
 
   async function handleStatusChange() {
@@ -172,7 +236,6 @@
       mutationRevision += 1;
       task = { ...updated };
       statusComment = "";
-      feedRefreshKey += 1;
     } catch (e: any) {
       toast.error(e.message || "Failed to update status");
     } finally {
@@ -382,11 +445,14 @@
                   created_at: confirmed.uploaded_at,
                   updated_at: confirmed.uploaded_at,
                 };
+                mutationRevision += 1;
+                const attachments = task!.attachments;
                 task = {
                   ...task!,
-                  attachments: [...task!.attachments, att],
+                  attachments: attachments.some((a) => a.id === att.id)
+                    ? attachments.map((a) => (a.id === att.id ? att : a))
+                    : [...attachments, att],
                 };
-                feedRefreshKey += 1;
               }}
             />
           </Card.CardContent>
