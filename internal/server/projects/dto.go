@@ -3,6 +3,7 @@ package projects
 import (
 	"github.com/bit-issues/backend/internal/projects"
 	"github.com/bit-issues/backend/internal/server/dto"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/samber/lo"
 )
 
@@ -19,9 +20,9 @@ type ProjectUpdateRequest struct {
 	RepoURL *string `json:"repo_url,omitempty" validate:"omitempty,url" example:"https://bitbucket.org/company/backend"`
 }
 
-// ProjectResponse represents the API response for a single project.
+// ProjectResponse embeds the shared client-go project wire type.
 type ProjectResponse struct {
-	dto.Project
+	clientgo.Project
 }
 
 func NewProjectResponse(p *projects.Project) ProjectResponse {

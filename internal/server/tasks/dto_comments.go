@@ -6,6 +6,7 @@ import (
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 )
 
 // CommentCreateRequest represents the request body for creating a new comment.
@@ -22,22 +23,11 @@ type CommentUpdateRequest struct {
 	Content string `json:"content" validate:"required,min=1,max=10000"`
 }
 
-// CommentResponse represents the API response for a single comment.
-//
-//	@Description	Full comment details with author information.
-type CommentResponse struct {
-	ID        int64         `json:"id"`
-	Author    dto.UserBrief `json:"author"`
-	Content   string        `json:"content"`
-	CreatedAt string        `json:"created_at"`
-	UpdatedAt string        `json:"updated_at"`
-}
-
-// toCommentResponse converts a domain Comment to an API response.
+// toCommentResponse converts a domain Comment to the shared wire response.
 // It enriches the author field from the pre-fetched users map.
 // If the user is not found, only the ID is populated (stub).
-func toCommentResponse(comment *comments.Comment, usersMap map[int64]users.User) CommentResponse {
-	return CommentResponse{
+func toCommentResponse(comment *comments.Comment, usersMap map[int64]users.User) clientgo.CommentResponse {
+	return clientgo.CommentResponse{
 		ID:        comment.ID,
 		Author:    *dto.ResolveUserBrief(&comment.AuthorID, usersMap),
 		Content:   comment.Content,
@@ -46,9 +36,9 @@ func toCommentResponse(comment *comments.Comment, usersMap map[int64]users.User)
 	}
 }
 
-// toCommentsList converts a list of comments to an API response.
-func toCommentsList(items []comments.Comment, usersMap map[int64]users.User) []CommentResponse {
-	comments := make([]CommentResponse, 0, len(items))
+// toCommentsList converts a list of comments to shared wire responses.
+func toCommentsList(items []comments.Comment, usersMap map[int64]users.User) []clientgo.CommentResponse {
+	comments := make([]clientgo.CommentResponse, 0, len(items))
 	for _, item := range items {
 		comments = append(comments, toCommentResponse(&item, usersMap))
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/internal/webauthn"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -131,7 +132,7 @@ func (h *Handler) handlePasskeyLoginBegin(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		object	true	"WebAuthn credential assertion response (raw)"
-//	@Success		200		{object}	auth.LoginResponse
+//	@Success		200		{object}	clientgo.LoginResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		403		{object}	fiberfx.ErrorResponse
 //	@Router			/auth/passkey/login/complete [post]
@@ -155,7 +156,7 @@ func (h *Handler) handlePasskeyLoginComplete(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
-	return c.JSON(auth.LoginResponse{
+	return c.JSON(clientgo.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         auth.ToUserResponseDTO(user),

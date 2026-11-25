@@ -20,7 +20,7 @@ import (
 //	@Security		BearerAuth
 //	@Param			task_id	path		int64					true	"Task ID"
 //	@Param			request	body		CommentCreateRequest	true	"Comment creation data"
-//	@Success		201		{object}	CommentResponse
+//	@Success		201		{object}	clientgo.CommentResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -69,7 +69,7 @@ func (h *Handler) createComment(c *fiber.Ctx, req *CommentCreateRequest) error {
 //	@Param			task_id	path		int64					true	"Task ID"
 //	@Param			id		path		int64					true	"Comment ID"
 //	@Param			request	body		CommentUpdateRequest	true	"Comment update data"
-//	@Success		200		{object}	CommentResponse
+//	@Success		200		{object}	clientgo.CommentResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		403		{object}	fiberfx.ErrorResponse

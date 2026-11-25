@@ -34,6 +34,8 @@ require (
 	golang.org/x/sync v0.22.0
 )
 
+require github.com/capcom6/go-restkit v0.0.2-0.20261122001925-99eb78fe0c2a // indirect
+
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
@@ -41,6 +43,7 @@ require (
 	github.com/andybalholm/brotli v1.2.1 // indirect
 	github.com/ansrivas/fiberprometheus/v2 v2.17.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bit-issues/client-go v0.0.0-20261124044531-faf8f021da2b
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect

@@ -97,7 +97,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginRequest"
+                            "$ref": "#/definitions/clientgo.LoginRequest"
                         }
                     }
                 ],
@@ -105,7 +105,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Login successful",
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginResponse"
+                            "$ref": "#/definitions/clientgo.LoginResponse"
                         }
                     },
                     "401": {
@@ -143,7 +143,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.LogoutRequest"
+                            "$ref": "#/definitions/clientgo.LogoutRequest"
                         }
                     }
                 ],
@@ -340,7 +340,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/auth.LoginResponse"
+                            "$ref": "#/definitions/clientgo.LoginResponse"
                         }
                     },
                     "400": {
@@ -460,7 +460,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RefreshRequest"
+                            "$ref": "#/definitions/clientgo.RefreshRequest"
                         }
                     }
                 ],
@@ -468,7 +468,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Token pair refreshed",
                         "schema": {
-                            "$ref": "#/definitions/auth.RefreshResponse"
+                            "$ref": "#/definitions/clientgo.RefreshResponse"
                         }
                     },
                     "401": {
@@ -514,7 +514,7 @@ const docTemplate = `{
                     "201": {
                         "description": "User created successfully",
                         "schema": {
-                            "$ref": "#/definitions/auth.UserResponseDTO"
+                            "$ref": "#/definitions/clientgo.UserResponseDTO"
                         }
                     },
                     "400": {
@@ -1351,7 +1351,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskListResponse"
+                            "$ref": "#/definitions/clientgo.TaskListResponse"
                         }
                     },
                     "401": {
@@ -1394,7 +1394,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskDetailsResponse"
+                            "$ref": "#/definitions/clientgo.TaskDetailsResponse"
                         }
                     },
                     "400": {
@@ -1456,7 +1456,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskListResponse"
+                            "$ref": "#/definitions/clientgo.TaskListResponse"
                         }
                     },
                     "401": {
@@ -1500,7 +1500,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskDetailsResponse"
+                            "$ref": "#/definitions/clientgo.TaskDetailsResponse"
                         }
                     },
                     "400": {
@@ -1614,7 +1614,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskDetailsResponse"
+                            "$ref": "#/definitions/clientgo.TaskDetailsResponse"
                         }
                     },
                     "400": {
@@ -1676,7 +1676,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskDetailsResponse"
+                            "$ref": "#/definitions/clientgo.TaskDetailsResponse"
                         }
                     },
                     "400": {
@@ -2053,7 +2053,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/tasks.CommentResponse"
+                            "$ref": "#/definitions/clientgo.CommentResponse"
                         }
                     },
                     "400": {
@@ -2126,7 +2126,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.CommentResponse"
+                            "$ref": "#/definitions/clientgo.CommentResponse"
                         }
                     },
                     "400": {
@@ -2495,73 +2495,6 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.LoginRequest": {
-            "description": "User login credentials.",
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "auth.LoginResponse": {
-            "description": "Successful login response containing JWT token, refresh token, and user info.",
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/auth.UserResponseDTO"
-                }
-            }
-        },
-        "auth.LogoutRequest": {
-            "description": "Request to invalidate a refresh token on logout.",
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "auth.RefreshRequest": {
-            "description": "Request to refresh an access token using a refresh token.",
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "auth.RefreshResponse": {
-            "description": "Response containing a new access token and a rotated refresh token.",
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
         "auth.RegisterRequest": {
             "description": "User registration request with email and password.",
             "type": "object",
@@ -2580,34 +2513,94 @@ const docTemplate = `{
                 }
             }
         },
-        "auth.UserResponseDTO": {
-            "description": "User data returned in API responses (password excluded).",
+        "clientgo.AttachmentResponse": {
             "type": "object",
             "properties": {
-                "created_at": {
+                "download_url": {
                     "type": "string"
                 },
-                "email": {
+                "file_name": {
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
-                "name": {
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "uploaded_at": {
                     "type": "string"
                 },
-                "role": {
-                    "$ref": "#/definitions/users.Role"
+                "uploaded_by": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
+                }
+            }
+        },
+        "clientgo.CommentResponse": {
+            "description": "Full comment details with author information.",
+            "type": "object",
+            "properties": {
+                "author": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
                 },
-                "status": {
-                    "$ref": "#/definitions/users.Status"
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
                 },
                 "updated_at": {
                     "type": "string"
                 }
             }
         },
-        "dto.Project": {
+        "clientgo.LoginRequest": {
+            "description": "User login credentials.",
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.LoginResponse": {
+            "description": "Successful login response containing JWT token, refresh token, and user info.",
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/clientgo.UserResponseDTO"
+                }
+            }
+        },
+        "clientgo.LogoutRequest": {
+            "description": "Request to invalidate a refresh token on logout.",
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.Project": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2629,6 +2622,194 @@ const docTemplate = `{
                 "updated_at": {
                     "type": "string",
                     "example": "2026-04-02T09:00:00Z"
+                }
+            }
+        },
+        "clientgo.RefreshRequest": {
+            "description": "Request to refresh an access token using a refresh token.",
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.RefreshResponse": {
+            "description": "Response containing a new access token and a rotated refresh token.",
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.TaskDetailsResponse": {
+            "type": "object",
+            "properties": {
+                "assignee": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
+                },
+                "attachments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.AttachmentResponse"
+                    }
+                },
+                "author": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
+                },
+                "comments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.CommentResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "priority": {
+                    "type": "string"
+                },
+                "project": {
+                    "$ref": "#/definitions/clientgo.Project"
+                },
+                "project_slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.TaskListResponse": {
+            "description": "Paginated list of tasks with total count.",
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.TaskResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "clientgo.TaskResponse": {
+            "description": "Full task details with nested author and assignee information.",
+            "type": "object",
+            "properties": {
+                "assignee": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
+                },
+                "author": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "kind": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "priority": {
+                    "type": "string"
+                },
+                "project_slug": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.UserBrief": {
+            "description": "Minimal user information for task relationships.",
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.UserResponseDTO": {
+            "description": "User data returned in API responses (password excluded).",
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },
@@ -3181,7 +3362,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "uploaded_by": {
-                    "$ref": "#/definitions/dto.UserBrief"
+                    "$ref": "#/definitions/clientgo.UserBrief"
                 }
             }
         },
@@ -3190,29 +3371,6 @@ const docTemplate = `{
             "properties": {
                 "download_url": {
                     "type": "string"
-                }
-            }
-        },
-        "tasks.AttachmentResponse": {
-            "type": "object",
-            "properties": {
-                "download_url": {
-                    "type": "string"
-                },
-                "file_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "size_bytes": {
-                    "type": "integer"
-                },
-                "uploaded_at": {
-                    "type": "string"
-                },
-                "uploaded_by": {
-                    "$ref": "#/definitions/dto.UserBrief"
                 }
             }
         },
@@ -3260,27 +3418,6 @@ const docTemplate = `{
                     "type": "string",
                     "maxLength": 10000,
                     "minLength": 1
-                }
-            }
-        },
-        "tasks.CommentResponse": {
-            "description": "Full comment details with author information.",
-            "type": "object",
-            "properties": {
-                "author": {
-                    "$ref": "#/definitions/dto.UserBrief"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },
@@ -3397,125 +3534,6 @@ const docTemplate = `{
                 "title": {
                     "type": "string",
                     "maxLength": 255
-                }
-            }
-        },
-        "tasks.TaskDetailsResponse": {
-            "type": "object",
-            "properties": {
-                "assignee": {
-                    "$ref": "#/definitions/dto.UserBrief"
-                },
-                "attachments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tasks.AttachmentResponse"
-                    }
-                },
-                "author": {
-                    "$ref": "#/definitions/dto.UserBrief"
-                },
-                "comments": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tasks.CommentResponse"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "due_date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "kind": {
-                    "type": "string"
-                },
-                "number": {
-                    "type": "integer"
-                },
-                "priority": {
-                    "type": "string"
-                },
-                "project": {
-                    "$ref": "#/definitions/dto.Project"
-                },
-                "project_slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "tasks.TaskListResponse": {
-            "description": "Paginated list of tasks with total count.",
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tasks.TaskResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "tasks.TaskResponse": {
-            "description": "Full task details with nested author and assignee information.",
-            "type": "object",
-            "properties": {
-                "assignee": {
-                    "$ref": "#/definitions/dto.UserBrief"
-                },
-                "author": {
-                    "$ref": "#/definitions/dto.UserBrief"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "due_date": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "kind": {
-                    "type": "string"
-                },
-                "number": {
-                    "type": "integer"
-                },
-                "priority": {
-                    "type": "string"
-                },
-                "project_slug": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
         },

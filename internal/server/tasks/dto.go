@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/samber/lo"
 )
 
@@ -76,6 +77,24 @@ type TaskCreateRequest struct {
 	DueDate     *string `json:"due_date,omitempty"    validate:"omitempty,datetime=2006-01-02"`
 }
 
+// toTaskCreateInput converts a TaskCreateRequest DTO to a domain TaskInput.
+func (req TaskCreateRequest) toTaskInput(authorID int64) tasks.TaskInput {
+	priority := tasks.Priority(req.Priority)
+	kind := tasks.Kind(req.Kind)
+
+	return tasks.TaskInput{
+		ProjectSlug: req.ProjectSlug,
+		Title:       req.Title,
+		Description: req.Description,
+		Priority:    lo.CoalesceOrEmpty(priority, tasks.PriorityMinor),
+		Status:      tasks.StatusNew, // API always creates as "New"
+		Kind:        lo.CoalesceOrEmpty(kind, tasks.KindTask),
+		AuthorID:    authorID,
+		AssigneeID:  req.AssigneeID,
+		DueDate:     req.DueDate,
+	}
+}
+
 // TaskUpdateRequest represents the request body for updating a task.
 // All fields are optional to support partial updates.
 //
@@ -89,90 +108,6 @@ type TaskUpdateRequest struct {
 	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=0"`
 	DueDate     *string `json:"due_date,omitempty"    validate:"omitzero,datetime=2006-01-02"`
 	Comment     *string `json:"comment,omitempty"     validate:"omitempty,max=10000"`
-}
-
-// TaskResponse represents the API response for a single task.
-//
-//	@Description	Full task details with nested author and assignee information.
-type TaskResponse struct {
-	ID          int64          `json:"id"`
-	ProjectSlug string         `json:"project_slug"`
-	Number      int            `json:"number"`
-	Title       string         `json:"title"`
-	Description string         `json:"description,omitempty"`
-	Priority    string         `json:"priority"`
-	Status      string         `json:"status"`
-	Kind        string         `json:"kind,omitempty"`
-	Author      dto.UserBrief  `json:"author"`
-	Assignee    *dto.UserBrief `json:"assignee,omitempty"`
-	DueDate     *string        `json:"due_date,omitempty"`
-	CreatedAt   string         `json:"created_at"`
-	UpdatedAt   string         `json:"updated_at"`
-}
-
-// newTaskResponse converts a domain Task to a TaskResponse DTO.
-// It enriches author and assignee fields from the pre-fetched users map.
-// If a user is not found in the map, only the ID is populated (stub).
-func newTaskResponse(task *tasks.Task, usersMap map[int64]users.User) TaskResponse {
-	return TaskResponse{
-		ID:          task.ID,
-		ProjectSlug: task.ProjectSlug,
-		Number:      task.Number,
-		Title:       task.Title,
-		Description: task.Description,
-		Priority:    string(task.Priority),
-		Status:      string(task.Status),
-		Kind:        string(task.Kind),
-		Author:      *dto.ResolveUserBrief(&task.AuthorID, usersMap),
-		Assignee:    dto.ResolveUserBrief(task.AssigneeID, usersMap),
-		DueDate:     task.DueDate,
-		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   task.UpdatedAt.Format(time.RFC3339),
-	}
-}
-
-type TaskDetailsResponse struct {
-	TaskResponse
-
-	Project     *dto.Project         `json:"project"`
-	Comments    []CommentResponse    `json:"comments"`
-	Attachments []AttachmentResponse `json:"attachments"`
-}
-
-func newTaskDetailsResponse(
-	task *tasks.Task,
-	usersMap map[int64]users.User,
-	comments []comments.Comment,
-	attachmentList []attachments.AttachmentWithURL,
-	project *dto.Project,
-) *TaskDetailsResponse {
-	return &TaskDetailsResponse{
-		TaskResponse: newTaskResponse(task, usersMap),
-		Project:      project,
-		Comments:     toCommentsList(comments, usersMap),
-		Attachments:  toAttachmentsList(attachmentList, usersMap),
-	}
-}
-
-// TaskListResponse represents the API response for a list of tasks.
-//
-//	@Description	Paginated list of tasks with total count.
-type TaskListResponse struct {
-	Items []TaskResponse `json:"items"`
-	Total int            `json:"total"`
-}
-
-// toTaskListResponse converts a list of domain Tasks to TaskListResponse DTO.
-func toTaskListResponse(items []tasks.Task, usersMap map[int64]users.User, total int) *TaskListResponse {
-	return &TaskListResponse{
-		Items: lo.Map(
-			items,
-			func(t tasks.Task, _ int) TaskResponse {
-				return newTaskResponse(&t, usersMap)
-			},
-		),
-		Total: total,
-	}
 }
 
 // toTaskUpdate converts a TaskUpdateRequest DTO to a domain TaskUpdate.
@@ -210,20 +145,72 @@ func (req TaskUpdateRequest) toTaskUpdate() tasks.TaskUpdate {
 	}
 }
 
-// toTaskCreateInput converts a TaskCreateRequest DTO to a domain TaskInput.
-func (req TaskCreateRequest) toTaskInput(authorID int64) tasks.TaskInput {
-	priority := tasks.Priority(req.Priority)
-	kind := tasks.Kind(req.Kind)
+// taskDetailsJSON keeps the established REST key order (comments before
+// attachments) while carrying the shared clientgo wire payload. The shared
+// TaskDetailsResponse declares attachments first; serialization order changes
+// the response bytes, so the handler marshals through this backend wrapper.
+type taskDetailsJSON struct {
+	clientgo.TaskResponse
 
-	return tasks.TaskInput{
-		ProjectSlug: req.ProjectSlug,
-		Title:       req.Title,
-		Description: req.Description,
-		Priority:    lo.CoalesceOrEmpty(priority, tasks.PriorityMinor),
-		Status:      tasks.StatusNew, // API always creates as "New"
-		Kind:        lo.CoalesceOrEmpty(kind, tasks.KindTask),
-		AuthorID:    authorID,
-		AssigneeID:  req.AssigneeID,
-		DueDate:     req.DueDate,
+	Project     *clientgo.Project             `json:"project"`
+	Comments    []clientgo.CommentResponse    `json:"comments"`
+	Attachments []clientgo.AttachmentResponse `json:"attachments"`
+}
+
+// newTaskResponse converts a domain Task to the shared clientgo wire response.
+// It enriches author and assignee fields from the pre-fetched users map.
+// If a user is not found in the map, only the ID is populated (stub).
+func newTaskResponse(task *tasks.Task, usersMap map[int64]users.User) clientgo.TaskResponse {
+	return clientgo.TaskResponse{
+		ID:          task.ID,
+		ProjectSlug: task.ProjectSlug,
+		Number:      task.Number,
+		Title:       task.Title,
+		Description: task.Description,
+		Priority:    string(task.Priority),
+		Status:      string(task.Status),
+		Kind:        string(task.Kind),
+		Author:      *dto.ResolveUserBrief(&task.AuthorID, usersMap),
+		Assignee:    dto.ResolveUserBrief(task.AssigneeID, usersMap),
+		DueDate:     task.DueDate,
+		CreatedAt:   task.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   task.UpdatedAt.Format(time.RFC3339),
+	}
+}
+
+func newTaskDetailsResponse(
+	task *tasks.Task,
+	usersMap map[int64]users.User,
+	comments []comments.Comment,
+	attachmentList []attachments.AttachmentWithURL,
+	project *clientgo.Project,
+) *clientgo.TaskDetailsResponse {
+	return &clientgo.TaskDetailsResponse{
+		TaskResponse: newTaskResponse(task, usersMap),
+		Project:      project,
+		Comments:     toCommentsList(comments, usersMap),
+		Attachments:  toAttachmentsList(attachmentList, usersMap),
+	}
+}
+
+func taskDetailsJSONFrom(response *clientgo.TaskDetailsResponse) *taskDetailsJSON {
+	return &taskDetailsJSON{
+		TaskResponse: response.TaskResponse,
+		Project:      response.Project,
+		Comments:     response.Comments,
+		Attachments:  response.Attachments,
+	}
+}
+
+// toTaskListResponse converts a list of domain Tasks to the shared wire response.
+func toTaskListResponse(items []tasks.Task, usersMap map[int64]users.User, total int) *clientgo.TaskListResponse {
+	return &clientgo.TaskListResponse{
+		Items: lo.Map(
+			items,
+			func(t tasks.Task, _ int) clientgo.TaskResponse {
+				return newTaskResponse(&t, usersMap)
+			},
+		),
+		Total: total,
 	}
 }

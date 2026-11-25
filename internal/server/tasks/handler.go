@@ -15,6 +15,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/tasks"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-playground/validator/v10"
@@ -115,7 +116,7 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Param			priorities	query		[]string	false	"Filter by priority (comma-separated)"
 //	@Param			search		query		string		false	"Full-text search across title and description"
 //	@Param			sort		query		string		false	"Sort field (e.g., created_at, -priority)"	default(created_at)
-//	@Success		200			{object}	TaskListResponse
+//	@Success		200			{object}	clientgo.TaskListResponse
 //	@Failure		401			{object}	fiberfx.ErrorResponse
 //	@Router			/tasks [get]
 //
@@ -149,7 +150,7 @@ func (h *Handler) list(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			id	path		int64	true	"Task ID"
-//	@Success		200	{object}	TaskDetailsResponse
+//	@Success		200	{object}	clientgo.TaskDetailsResponse
 //	@Failure		400	{object}	fiberfx.ErrorResponse
 //	@Failure		401	{object}	fiberfx.ErrorResponse
 //	@Failure		404	{object}	fiberfx.ErrorResponse
@@ -184,7 +185,7 @@ func (h *Handler) get(c *fiber.Ctx) error {
 //	@Security		BearerAuth
 //	@Param			slug	path		string	true	"Project slug"
 //	@Param			number	path		int		true	"Task number within project"
-//	@Success		200		{object}	TaskDetailsResponse
+//	@Success		200		{object}	clientgo.TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -219,7 +220,7 @@ func (h *Handler) getByProjectAndNumber(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			request	body		TaskCreateRequest	true	"Task creation data"
-//	@Success		201		{object}	TaskDetailsResponse
+//	@Success		201		{object}	clientgo.TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -258,7 +259,7 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 //	@Security		BearerAuth
 //	@Param			id		path		int64				true	"Task ID"
 //	@Param			request	body		TaskUpdateRequest	true	"Task update data"
-//	@Success		200		{object}	TaskDetailsResponse
+//	@Success		200		{object}	clientgo.TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -343,7 +344,7 @@ func (h *Handler) delete(c *fiber.Ctx) error {
 //	@Security		BearerAuth
 //	@Param			limit	query		int	false	"Page limit (max 100)"	default(20)
 //	@Param			offset	query		int	false	"Page offset"			default(0)
-//	@Success		200		{object}	TaskListResponse
+//	@Success		200		{object}	clientgo.TaskListResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Router			/tasks/me [get]
 //
@@ -418,7 +419,7 @@ func (h *Handler) prepareListResponse(
 	ctx context.Context,
 	tasks []tasks.Task,
 	total int,
-) (*TaskListResponse, error) {
+) (*clientgo.TaskListResponse, error) {
 	// Fetch users for author and assignee enrichment
 	usersMap, err := h.fetchUsersForTasks(ctx, tasks, nil)
 	if err != nil {
@@ -431,7 +432,7 @@ func (h *Handler) prepareListResponse(
 func (h *Handler) prepareDetailsResponse(
 	ctx context.Context,
 	task *tasks.Task,
-) (*TaskDetailsResponse, error) {
+) (*taskDetailsJSON, error) {
 	commentsList, _, err := h.commentsSvc.List(
 		ctx,
 		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
@@ -454,7 +455,7 @@ func (h *Handler) prepareDetailsResponse(
 	}
 
 	// Fetch project for repo_url and other metadata
-	var projectResp *dto.Project
+	var projectResp *clientgo.Project
 	proj, err := h.projectsSvc.GetBySlug(ctx, task.ProjectSlug)
 	if err != nil {
 		h.logger.Warn("failed to fetch project for task", zap.String("project_slug", task.ProjectSlug), zap.Error(err))
@@ -462,7 +463,7 @@ func (h *Handler) prepareDetailsResponse(
 		projectResp = dto.ToProject(proj)
 	}
 
-	return newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp), nil
+	return taskDetailsJSONFrom(newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp)), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.

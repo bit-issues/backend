@@ -7,6 +7,7 @@ import (
 	"github.com/bit-issues/backend/internal/jwt"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-playground/validator/v10"
@@ -52,10 +53,10 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RegisterRequest			true	"Registration request"
-//	@Success		201		{object}	UserResponseDTO			"User created successfully"
-//	@Failure		400		{object}	fiberfx.ErrorResponse	"Validation error"
-//	@Failure		409		{object}	fiberfx.ErrorResponse	"Email already exists"
+//	@Param			request	body		RegisterRequest				true	"Registration request"
+//	@Success		201		{object}	clientgo.UserResponseDTO	"User created successfully"
+//	@Failure		400		{object}	fiberfx.ErrorResponse		"Validation error"
+//	@Failure		409		{object}	fiberfx.ErrorResponse		"Email already exists"
 //	@Router			/auth/register [post]
 func (h *Handler) handleRegister(c *fiber.Ctx, req *RegisterRequest) error {
 	user, err := h.usersSvc.Register(c.Context(), users.UserInput{
@@ -77,12 +78,12 @@ func (h *Handler) handleRegister(c *fiber.Ctx, req *RegisterRequest) error {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		LoginRequest			true	"Login credentials"
-//	@Success		200		{object}	LoginResponse			"Login successful"
+//	@Param			request	body		clientgo.LoginRequest	true	"Login credentials"
+//	@Success		200		{object}	clientgo.LoginResponse	"Login successful"
 //	@Failure		401		{object}	fiberfx.ErrorResponse	"Invalid credentials"
 //	@Failure		403		{object}	fiberfx.ErrorResponse	"Account not active"
 //	@Router			/auth/login [post]
-func (h *Handler) handleLogin(c *fiber.Ctx, req *LoginRequest) error {
+func (h *Handler) handleLogin(c *fiber.Ctx, req *clientgo.LoginRequest) error {
 	user, err := h.usersSvc.Login(c.Context(), req.Email, req.Password)
 	if err != nil {
 		return fmt.Errorf("failed to login user: %w", err)
@@ -93,7 +94,7 @@ func (h *Handler) handleLogin(c *fiber.Ctx, req *LoginRequest) error {
 		return fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
-	return c.JSON(LoginResponse{
+	return c.JSON(clientgo.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         ToUserResponseDTO(user),
@@ -107,12 +108,12 @@ func (h *Handler) handleLogin(c *fiber.Ctx, req *LoginRequest) error {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RefreshRequest			true	"Refresh token payload"
-//	@Success		200		{object}	RefreshResponse			"Token pair refreshed"
-//	@Failure		401		{object}	fiberfx.ErrorResponse	"Invalid refresh token"
-//	@Failure		403		{object}	fiberfx.ErrorResponse	"Account not active"
+//	@Param			request	body		clientgo.RefreshRequest		true	"Refresh token payload"
+//	@Success		200		{object}	clientgo.RefreshResponse	"Token pair refreshed"
+//	@Failure		401		{object}	fiberfx.ErrorResponse		"Invalid refresh token"
+//	@Failure		403		{object}	fiberfx.ErrorResponse		"Account not active"
 //	@Router			/auth/refresh [post]
-func (h *Handler) handleRefresh(c *fiber.Ctx, req *RefreshRequest) error {
+func (h *Handler) handleRefresh(c *fiber.Ctx, req *clientgo.RefreshRequest) error {
 	userID, err := h.jwtSvc.ValidateRefreshToken(c.Context(), req.RefreshToken)
 	if err != nil {
 		return fmt.Errorf("failed to validate refresh token: %w", err)
@@ -132,7 +133,7 @@ func (h *Handler) handleRefresh(c *fiber.Ctx, req *RefreshRequest) error {
 		return fmt.Errorf("failed to rotate token pair: %w", err)
 	}
 
-	return c.JSON(RefreshResponse{
+	return c.JSON(clientgo.RefreshResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
@@ -145,10 +146,10 @@ func (h *Handler) handleRefresh(c *fiber.Ctx, req *RefreshRequest) error {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body	LogoutRequest	true	"Refresh token payload"
+//	@Param			request	body	clientgo.LogoutRequest	true	"Refresh token payload"
 //	@Success		204		"Refresh token revoked"
 //	@Router			/auth/logout [post]
-func (h *Handler) handleLogout(c *fiber.Ctx, req *LogoutRequest) error {
+func (h *Handler) handleLogout(c *fiber.Ctx, req *clientgo.LogoutRequest) error {
 	if err := h.jwtSvc.RevokeRefreshToken(c.Context(), req.RefreshToken); err != nil {
 		// If the token is already revoked or invalid, still return success
 		if errors.Is(err, jwt.ErrRefreshTokenRevoked) || errors.Is(err, jwt.ErrInvalidToken) {
