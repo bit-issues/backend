@@ -12,12 +12,9 @@
   import { Button } from "$lib/components/ui/button";
   import { Separator } from "$lib/components/ui/separator";
   import * as Card from "$lib/components/ui/card";
-  import { parse } from "marked";
-  import DOMPurify from "dompurify";
+  import { renderMarkdown } from "$lib/markdown";
   import type { TaskDetails, Attachment } from "$lib/types/api";
   import { STATUSES } from "$lib/types/api";
-  import { processAutoLinks } from "$lib/autolink";
-  import { resolveAttachmentRefs } from "$lib/resolve-attachment-refs";
   import type { AutoLinkContext } from "$lib/autolink";
   import { toast } from "$lib/toast";
   import { onStreamEvent } from "$lib/api/events";
@@ -57,15 +54,10 @@
 
   let renderedDescription = $derived(
     task?.description
-      ? DOMPurify.sanitize(
-          parse(
-            processAutoLinks(
-              resolveAttachmentRefs(task.description, attachmentUrls),
-              autoLinkCtx,
-            ),
-            { async: false },
-          ) as string,
-        )
+      ? renderMarkdown(task.description, {
+          attachmentsMap: attachmentUrls,
+          autoLinkCtx,
+        })
       : "",
   );
 
@@ -299,7 +291,7 @@
             Description
           </h2>
           {#if task.description}
-            <div class="prose prose-sm dark:prose-invert max-w-none">
+            <div class="prose prose-sm max-w-none">
               {@html renderedDescription}
             </div>
           {:else}
