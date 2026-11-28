@@ -8,6 +8,7 @@ import (
 	"github.com/bit-issues/backend/internal/comments"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
@@ -18,16 +19,16 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			task_id	path		int64					true	"Task ID"
-//	@Param			request	body		CommentCreateRequest	true	"Comment creation data"
-//	@Success		201		{object}	CommentResponse
+//	@Param			task_id	path		int64							true	"Task ID"
+//	@Param			request	body		clientgo.CommentCreateRequest	true	"Comment creation data"
+//	@Success		201		{object}	clientgo.CommentResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
 //	@Router			/tasks/{task_id}/comments [post]
 //
 // createComment creates a new comment on a task.
-func (h *Handler) createComment(c *fiber.Ctx, req *CommentCreateRequest) error {
+func (h *Handler) createComment(c *fiber.Ctx, req *clientgo.CommentCreateRequest) error {
 	// Extract task ID from URL params
 	taskID, err := strconv.ParseInt(c.Params("task_id"), 10, 64)
 	if err != nil {
@@ -66,10 +67,10 @@ func (h *Handler) createComment(c *fiber.Ctx, req *CommentCreateRequest) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			task_id	path		int64					true	"Task ID"
-//	@Param			id		path		int64					true	"Comment ID"
-//	@Param			request	body		CommentUpdateRequest	true	"Comment update data"
-//	@Success		200		{object}	CommentResponse
+//	@Param			task_id	path		int64							true	"Task ID"
+//	@Param			id		path		int64							true	"Comment ID"
+//	@Param			request	body		clientgo.CommentUpdateRequest	true	"Comment update data"
+//	@Success		200		{object}	clientgo.CommentResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		403		{object}	fiberfx.ErrorResponse
@@ -77,7 +78,7 @@ func (h *Handler) createComment(c *fiber.Ctx, req *CommentCreateRequest) error {
 //	@Router			/tasks/{task_id}/comments/{id} [put]
 //
 // updateComment modifies an existing comment.
-func (h *Handler) updateComment(c *fiber.Ctx, req *CommentUpdateRequest) error {
+func (h *Handler) updateComment(c *fiber.Ctx, req *clientgo.CommentUpdateRequest) error {
 	// Extract task ID from URL params
 	taskID, err := strconv.ParseInt(c.Params("task_id"), 10, 64)
 	if err != nil {

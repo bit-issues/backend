@@ -300,13 +300,8 @@ func (f TaskFilter) applyDateFilters(query *bun.SelectQuery) *bun.SelectQuery {
 
 func (f TaskFilter) applySearchFilter(query *bun.SelectQuery) *bun.SelectQuery {
 	if f.Search != nil && *f.Search != "" {
-		clean := strings.Map(func(r rune) rune {
-			if strings.ContainsRune(`+-<>()~*"@`, r) {
-				return -1
-			}
-			return r
-		}, *f.Search)
-		clean = strings.TrimSpace(clean)
+		// Cross-reference: sanitizeSearch below, backed by testdata/search_strip_vectors.json.
+		clean := sanitizeSearch(*f.Search)
 		if clean != "" {
 			terms := strings.Fields(clean)
 			for i, t := range terms {
@@ -349,4 +344,17 @@ type Pagination = db.Pagination[*pagination]
 
 func NewPagination(limit, offset int) *Pagination {
 	return db.NewPagination[*pagination](limit, offset)
+}
+
+// sanitizeSearch strips boolean-mode operators and trims surrounding spaces.
+// The canonical vector set is testdata/search_strip_vectors.json; the CLI (task-3)
+// ships a byte-identical copy so cross-repo drift fails search_vectors_test.go.
+func sanitizeSearch(search string) string {
+	clean := strings.Map(func(r rune) rune {
+		if strings.ContainsRune(`+-<>()~*"@`, r) {
+			return -1
+		}
+		return r
+	}, search)
+	return strings.TrimSpace(clean)
 }

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "description": "Canonical boolean-mode search strip set shared with the CLI (task-3). One case per stripped character plus representative searches.",
+  "stripped_characters": ["+", "-", "<", ">", "(", ")", "~", "*", "\"", "@"],
+  "cases": [
+    {"name": "c_plus_plus_accepted", "input": "C++", "expected": "C", "accepted": true},
+    {"name": "plus_only_rejected", "input": "++", "expected": "", "accepted": false},
+    {"name": "minus", "input": "a-b", "expected": "ab", "accepted": true},
+    {"name": "angle_brackets", "input": "<a><b>", "expected": "ab", "accepted": true},
+    {"name": "parentheses", "input": "(a)(b)", "expected": "ab", "accepted": true},
+    {"name": "tilde", "input": "~a~", "expected": "a", "accepted": true},
+    {"name": "asterisk", "input": "a*b", "expected": "ab", "accepted": true},
+    {"name": "double_quote", "input": "\"a\"", "expected": "a", "accepted": true},
+    {"name": "at_sign", "input": "@foo", "expected": "foo", "accepted": true},
+    {"name": "at_only_rejected", "input": "@@@", "expected": "", "accepted": false},
+    {"name": "trim_spaces", "input": "  a b  ", "expected": "a b", "accepted": true},
+    {"name": "mixed_operators", "input": "C++(gui)~test~", "expected": "Cguitest", "accepted": true},
+    {"name": "empty", "input": "", "expected": "", "accepted": false}
+  ]
+}

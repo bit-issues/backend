@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -17,7 +18,7 @@ import (
 //	@Param			number	path		int		true	"Task number within project"
 //	@Param			limit	query		int		false	"Page limit (max 100)"								default(20)
 //	@Param			offset	query		int		false	"Page offset (offset+limit must not exceed 5000)"	default(0)
-//	@Success		200		{object}	FeedResponse
+//	@Success		200		{object}	clientgo.FeedResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -32,7 +33,7 @@ func (h *Handler) feed(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid task number")
 	}
 
-	query := new(FeedQuery)
+	query := new(clientgo.FeedQuery)
 	query.Limit = 20
 	if parseErr := h.QueryParserValidator(c, query); parseErr != nil {
 		return fmt.Errorf("failed to parse query: %w", parseErr)

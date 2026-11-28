@@ -7,6 +7,7 @@ import (
 	"github.com/bit-issues/backend/internal/oauth"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
@@ -80,7 +81,7 @@ func (h *Handler) callback(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{object}	AuthorizeResponse
+//	@Success		200	{object}	clientgo.AuthorizeResponse
 //	@Failure		401	{object}	fiberfx.ErrorResponse
 //	@Failure		403	{object}	fiberfx.ErrorResponse
 //	@Router			/oauth/bitbucket/authorize [get]
@@ -98,7 +99,7 @@ func (h *Handler) authorize(c *fiber.Ctx) error {
 	}
 
 	c.Set(fiber.HeaderCacheControl, "no-cache")
-	return c.JSON(AuthorizeResponse{URL: url})
+	return c.JSON(clientgo.AuthorizeResponse{URL: url})
 }
 
 //	@Summary		Bitbucket OAuth connection status
@@ -107,7 +108,7 @@ func (h *Handler) authorize(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{object}	StatusResponse
+//	@Success		200	{object}	clientgo.StatusResponse
 //	@Failure		401	{object}	fiberfx.ErrorResponse
 //	@Failure		403	{object}	fiberfx.ErrorResponse
 //	@Router			/oauth/bitbucket/status [get]
@@ -125,7 +126,7 @@ func (h *Handler) status(c *fiber.Ctx) error {
 		// (e.g. Bitbucket rejected the grant), means there is no usable
 		// connection: report disconnected rather than erroring.
 		if errors.Is(err, oauth.ErrNotFound) || errors.Is(err, oauth.ErrTokenIssueFailed) {
-			return c.JSON(StatusResponse{
+			return c.JSON(clientgo.StatusResponse{
 				Connected:   false,
 				ConnectedAt: nil,
 				ExpiresAt:   nil,

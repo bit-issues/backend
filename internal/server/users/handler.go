@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-playground/validator/v10"
@@ -61,7 +62,7 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Param			role	query		users.Role				false	"Filter by role"
 //	@Param			limit	query		int						false	"Page limit"	default(20)
 //	@Param			offset	query		int						false	"Page offset"	default(0)
-//	@Success		200		{object}	ListResponse			"Users list"
+//	@Success		200		{object}	clientgo.ListResponse	"Users list"
 //	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
 //	@Failure		403		{object}	fiberfx.ErrorResponse	"Forbidden"
 //	@Router			/users [get]
@@ -75,8 +76,8 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 	// Get users from service
 	usersList, total, err := h.usersSvc.List(
 		c.Context(),
-		filter.Status,
-		filter.Role,
+		toUserStatus(filter.Status),
+		toUserRole(filter.Role),
 		users.NewPagination(filter.Limit, filter.Offset),
 	)
 	if err != nil {
@@ -97,7 +98,7 @@ func (h *Handler) handleList(c *fiber.Ctx) error {
 //	@Param			query	query		string					true	"Search query"
 //	@Param			limit	query		int						false	"Page limit"	default(20)
 //	@Param			offset	query		int						false	"Page offset"	default(0)
-//	@Success		200		{object}	dto.UserBriefList		"Active users list"
+//	@Success		200		{object}	clientgo.UserBriefList	"Active users list"
 //	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
 //	@Router			/users/search [get]
 func (h *Handler) handleSearch(c *fiber.Ctx) error {
@@ -126,15 +127,15 @@ func (h *Handler) handleSearch(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			id		path		int64					true	"User ID"
-//	@Param			request	body		UpdateRequest			true	"Update data"
-//	@Success		200		{object}	GetResponse				"Updated user"
-//	@Failure		400		{object}	fiberfx.ErrorResponse	"Validation error"
-//	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
-//	@Failure		403		{object}	fiberfx.ErrorResponse	"Forbidden"
-//	@Failure		404		{object}	fiberfx.ErrorResponse	"User not found"
+//	@Param			id		path		int64						true	"User ID"
+//	@Param			request	body		clientgo.UpdateRequest		true	"Update data"
+//	@Success		200		{object}	clientgo.UserResponseDTO	"Updated user"
+//	@Failure		400		{object}	fiberfx.ErrorResponse		"Validation error"
+//	@Failure		401		{object}	fiberfx.ErrorResponse		"Unauthorized"
+//	@Failure		403		{object}	fiberfx.ErrorResponse		"Forbidden"
+//	@Failure		404		{object}	fiberfx.ErrorResponse		"User not found"
 //	@Router			/users/{id} [patch]
-func (h *Handler) handleUpdate(c *fiber.Ctx, req *UpdateRequest) error {
+func (h *Handler) handleUpdate(c *fiber.Ctx, req *clientgo.UpdateRequest) error {
 	// Parse user ID from path
 	idStr := c.Params("id")
 	userID, err := strconv.ParseInt(idStr, 10, 64)
@@ -151,7 +152,7 @@ func (h *Handler) handleUpdate(c *fiber.Ctx, req *UpdateRequest) error {
 	if updErr := h.usersSvc.Update(
 		c.Context(),
 		userID,
-		users.UserUpdate{Status: req.Status, Role: req.Role},
+		users.UserUpdate{Status: toUserStatus(req.Status), Role: toUserRole(req.Role)},
 	); updErr != nil {
 		if errors.Is(updErr, users.ErrNotFound) {
 			return fiber.NewError(fiber.StatusNotFound, updErr.Error())

@@ -10,6 +10,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
 	"github.com/bit-issues/backend/internal/webauthn"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -79,7 +80,7 @@ func (h *Handler) handlePasskeyRegisterBegin(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			request	body		object	true	"WebAuthn credential creation response (raw)"
-//	@Success		201		{object}	CredentialResponse
+//	@Success		201		{object}	clientgo.CredentialResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Router			/auth/passkey/register/complete [post]
@@ -99,7 +100,7 @@ func (h *Handler) handlePasskeyRegisterComplete(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to complete passkey registration: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(CredentialResponse{
+	return c.Status(fiber.StatusCreated).JSON(clientgo.CredentialResponse{
 		ID:        cred.ID,
 		Name:      cred.Name,
 		CreatedAt: cred.CreatedAt,
@@ -131,7 +132,7 @@ func (h *Handler) handlePasskeyLoginBegin(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			request	body		object	true	"WebAuthn credential assertion response (raw)"
-//	@Success		200		{object}	auth.LoginResponse
+//	@Success		200		{object}	clientgo.LoginResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		403		{object}	fiberfx.ErrorResponse
 //	@Router			/auth/passkey/login/complete [post]
@@ -155,7 +156,7 @@ func (h *Handler) handlePasskeyLoginComplete(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
-	return c.JSON(auth.LoginResponse{
+	return c.JSON(clientgo.LoginResponse{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		User:         auth.ToUserResponseDTO(user),
@@ -169,7 +170,7 @@ func (h *Handler) handlePasskeyLoginComplete(c *fiber.Ctx) error {
 //	@Tags			Passkeys
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Success		200	{object}	[]CredentialResponse
+//	@Success		200	{object}	[]clientgo.CredentialResponse
 //	@Failure		401	{object}	fiberfx.ErrorResponse
 //	@Router			/auth/passkey/credentials [get]
 func (h *Handler) handleListPasskeyCredentials(c *fiber.Ctx) error {
@@ -183,9 +184,9 @@ func (h *Handler) handleListPasskeyCredentials(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to list passkey credentials: %w", err)
 	}
 
-	resp := make([]CredentialResponse, 0, len(creds))
+	resp := make([]clientgo.CredentialResponse, 0, len(creds))
 	for _, cred := range creds {
-		resp = append(resp, CredentialResponse{
+		resp = append(resp, clientgo.CredentialResponse{
 			ID:        cred.ID,
 			Name:      cred.Name,
 			CreatedAt: cred.CreatedAt,
@@ -202,8 +203,8 @@ func (h *Handler) handleListPasskeyCredentials(c *fiber.Ctx) error {
 //	@Tags			Passkeys
 //	@Accept			json
 //	@Security		BearerAuth
-//	@Param			id		path	int64			true	"Credential ID"
-//	@Param			request	body	RenameRequest	true	"New name"
+//	@Param			id		path	int64					true	"Credential ID"
+//	@Param			request	body	clientgo.RenameRequest	true	"New name"
 //	@Success		204
 //	@Failure		400	{object}	fiberfx.ErrorResponse
 //	@Failure		401	{object}	fiberfx.ErrorResponse
@@ -220,7 +221,7 @@ func (h *Handler) handleRenamePasskeyCredential(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid credential id")
 	}
 
-	var req RenameRequest
+	var req clientgo.RenameRequest
 	if bodyErr := h.BodyParserValidator(c, &req); bodyErr != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
 	}
