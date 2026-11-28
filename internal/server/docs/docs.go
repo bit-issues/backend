@@ -48,7 +48,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.ChangePasswordRequest"
+                            "$ref": "#/definitions/clientgo.ChangePasswordRequest"
                         }
                     }
                 ],
@@ -175,7 +175,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/passkey.CredentialResponse"
+                                "$ref": "#/definitions/clientgo.CredentialResponse"
                             }
                         }
                     },
@@ -263,7 +263,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/passkey.RenameRequest"
+                            "$ref": "#/definitions/clientgo.RenameRequest"
                         }
                     }
                 ],
@@ -422,7 +422,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/passkey.CredentialResponse"
+                            "$ref": "#/definitions/clientgo.CredentialResponse"
                         }
                     },
                     "400": {
@@ -506,7 +506,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/auth.RegisterRequest"
+                            "$ref": "#/definitions/clientgo.RegisterRequest"
                         }
                     }
                 ],
@@ -585,7 +585,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/oauth.AuthorizeResponse"
+                            "$ref": "#/definitions/clientgo.AuthorizeResponse"
                         }
                     },
                     "401": {
@@ -696,7 +696,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/oauth.StatusResponse"
+                            "$ref": "#/definitions/clientgo.StatusResponse"
                         }
                     },
                     "401": {
@@ -758,7 +758,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/projects.ProjectListResponse"
+                            "$ref": "#/definitions/clientgo.ProjectListResponse"
                         }
                     },
                     "401": {
@@ -793,7 +793,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/projects.ProjectRequest"
+                            "$ref": "#/definitions/clientgo.ProjectRequest"
                         }
                     }
                 ],
@@ -801,7 +801,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/projects.ProjectResponse"
+                            "$ref": "#/definitions/clientgo.Project"
                         }
                     },
                     "400": {
@@ -862,7 +862,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/projects.ProjectResponse"
+                            "$ref": "#/definitions/clientgo.Project"
                         }
                     },
                     "400": {
@@ -972,7 +972,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/projects.ProjectUpdateRequest"
+                            "$ref": "#/definitions/clientgo.ProjectUpdateRequest"
                         }
                     }
                 ],
@@ -980,7 +980,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/projects.ProjectResponse"
+                            "$ref": "#/definitions/clientgo.Project"
                         }
                     },
                     "400": {
@@ -1386,7 +1386,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskCreateRequest"
+                            "$ref": "#/definitions/clientgo.TaskCreateRequest"
                         }
                     }
                 ],
@@ -1606,7 +1606,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/tasks.TaskUpdateRequest"
+                            "$ref": "#/definitions/clientgo.TaskUpdateRequest"
                         }
                     }
                 ],
@@ -1752,7 +1752,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.FeedResponse"
+                            "$ref": "#/definitions/clientgo.FeedResponse"
                         }
                     },
                     "400": {
@@ -1809,7 +1809,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/tasks.AttachmentUploadRequest"
+                            "$ref": "#/definitions/clientgo.AttachmentUploadRequest"
                         }
                     }
                 ],
@@ -1817,7 +1817,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/tasks.AttachmentUploadResponse"
+                            "$ref": "#/definitions/clientgo.AttachmentUploadResponse"
                         }
                     },
                     "400": {
@@ -1927,7 +1927,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.AttachmentConfirmResponse"
+                            "$ref": "#/definitions/clientgo.AttachmentResponse"
                         }
                     },
                     "400": {
@@ -1988,7 +1988,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/tasks.AttachmentDownloadResponse"
+                            "$ref": "#/definitions/clientgo.AttachmentDownloadResponse"
                         }
                     },
                     "400": {
@@ -2045,7 +2045,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/tasks.CommentCreateRequest"
+                            "$ref": "#/definitions/clientgo.CommentCreateRequest"
                         }
                     }
                 ],
@@ -2118,7 +2118,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/tasks.CommentUpdateRequest"
+                            "$ref": "#/definitions/clientgo.CommentUpdateRequest"
                         }
                     }
                 ],
@@ -2275,7 +2275,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Users list",
                         "schema": {
-                            "$ref": "#/definitions/users.ListResponse"
+                            "$ref": "#/definitions/clientgo.ListResponse"
                         }
                     },
                     "401": {
@@ -2338,7 +2338,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Active users list",
                         "schema": {
-                            "$ref": "#/definitions/dto.UserBriefList"
+                            "$ref": "#/definitions/clientgo.UserBriefList"
                         }
                     },
                     "401": {
@@ -2384,7 +2384,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.UpdateRequest"
+                            "$ref": "#/definitions/clientgo.UpdateRequest"
                         }
                     }
                 ],
@@ -2392,7 +2392,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Updated user",
                         "schema": {
-                            "$ref": "#/definitions/users.GetResponse"
+                            "$ref": "#/definitions/clientgo.UserResponseDTO"
                         }
                     },
                     "400": {
@@ -2477,39 +2477,11 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "auth.ChangePasswordRequest": {
-            "description": "Request to change user's password (requires old password for verification).",
+        "clientgo.AttachmentDownloadResponse": {
             "type": "object",
-            "required": [
-                "new_password",
-                "old_password"
-            ],
             "properties": {
-                "new_password": {
-                    "type": "string",
-                    "maxLength": 72,
-                    "minLength": 8
-                },
-                "old_password": {
+                "download_url": {
                     "type": "string"
-                }
-            }
-        },
-        "auth.RegisterRequest": {
-            "description": "User registration request with email and password.",
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "maxLength": 72,
-                    "minLength": 8
                 }
             }
         },
@@ -2536,6 +2508,80 @@ const docTemplate = `{
                 }
             }
         },
+        "clientgo.AttachmentUploadRequest": {
+            "type": "object",
+            "required": [
+                "file_name",
+                "size_bytes"
+            ],
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "size_bytes": {
+                    "type": "integer",
+                    "minimum": 1
+                }
+            }
+        },
+        "clientgo.AttachmentUploadResponse": {
+            "type": "object",
+            "properties": {
+                "file_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.AuthorizeResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string",
+                    "example": "https://bitbucket.org/site/oauth2/authorize?client_id=...\u0026response_type=code\u0026scope=webhook\u0026state=...\u0026redirect_uri=..."
+                }
+            }
+        },
+        "clientgo.ChangePasswordRequest": {
+            "description": "Request to change user's password (requires old password for verification).",
+            "type": "object",
+            "required": [
+                "new_password",
+                "old_password"
+            ],
+            "properties": {
+                "new_password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                },
+                "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.CommentCreateRequest": {
+            "description": "Comment creation request with content.",
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "minLength": 1
+                }
+            }
+        },
         "clientgo.CommentResponse": {
             "description": "Full comment details with author information.",
             "type": "object",
@@ -2554,6 +2600,104 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "clientgo.CommentUpdateRequest": {
+            "description": "Comment update request with content.",
+            "type": "object",
+            "required": [
+                "content"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string",
+                    "maxLength": 10000,
+                    "minLength": 1
+                }
+            }
+        },
+        "clientgo.CredentialResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.FeedResponse": {
+            "description": "Paginated activity feed with total count.",
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.HistoryEntryResponse"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "clientgo.HistoryChangeResponse": {
+            "description": "Field-level task change with old and new values.",
+            "type": "object",
+            "properties": {
+                "field": {
+                    "type": "string"
+                },
+                "new_value": {
+                    "type": "string"
+                },
+                "old_value": {
+                    "type": "string"
+                }
+            }
+        },
+        "clientgo.HistoryEntryResponse": {
+            "description": "Task history entry with actor and field changes.",
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "actor": {
+                    "$ref": "#/definitions/clientgo.UserBrief"
+                },
+                "changes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.HistoryChangeResponse"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "clientgo.ListResponse": {
+            "description": "Paginated response containing users list and total count.",
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.UserResponseDTO"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 42
                 }
             }
         },
@@ -2625,6 +2769,51 @@ const docTemplate = `{
                 }
             }
         },
+        "clientgo.ProjectListResponse": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.Project"
+                    }
+                },
+                "total": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        },
+        "clientgo.ProjectRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "repo_url"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Backend Service"
+                },
+                "repo_url": {
+                    "type": "string",
+                    "example": "https://bitbucket.org/company/backend"
+                }
+            }
+        },
+        "clientgo.ProjectUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "example": "Backend Service"
+                },
+                "repo_url": {
+                    "type": "string",
+                    "example": "https://bitbucket.org/company/backend"
+                }
+            }
+        },
         "clientgo.RefreshRequest": {
             "description": "Request to refresh an access token using a refresh token.",
             "type": "object",
@@ -2646,6 +2835,110 @@ const docTemplate = `{
                 },
                 "refresh_token": {
                     "type": "string"
+                }
+            }
+        },
+        "clientgo.RegisterRequest": {
+            "description": "User registration request with email and password.",
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
+                }
+            }
+        },
+        "clientgo.RenameRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "minLength": 1
+                }
+            }
+        },
+        "clientgo.StatusResponse": {
+            "type": "object",
+            "properties": {
+                "connected": {
+                    "type": "boolean"
+                },
+                "connected_at": {
+                    "type": "string",
+                    "example": "2026-08-24T12:00:00Z"
+                },
+                "expires_at": {
+                    "type": "string",
+                    "example": "2026-08-24T14:00:00Z"
+                },
+                "scopes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "webhook"
+                    ]
+                }
+            }
+        },
+        "clientgo.TaskCreateRequest": {
+            "description": "Task creation request with title, description, priority, assignee, and due date.",
+            "type": "object",
+            "required": [
+                "project_slug",
+                "title"
+            ],
+            "properties": {
+                "assignee_id": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 10000
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "enum": [
+                        "Bug",
+                        "Enhancement",
+                        "Task",
+                        "Proposal"
+                    ]
+                },
+                "priority": {
+                    "type": "string",
+                    "enum": [
+                        "Trivial",
+                        "Minor",
+                        "Major",
+                        "Critical",
+                        "Blocker"
+                    ]
+                },
+                "project_slug": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255
                 }
             }
         },
@@ -2768,6 +3061,88 @@ const docTemplate = `{
                 }
             }
         },
+        "clientgo.TaskUpdateRequest": {
+            "description": "Task update request with optional fields for partial updates.",
+            "type": "object",
+            "properties": {
+                "assignee_id": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "comment": {
+                    "type": "string",
+                    "maxLength": 10000
+                },
+                "description": {
+                    "type": "string",
+                    "maxLength": 10000
+                },
+                "due_date": {
+                    "type": "string"
+                },
+                "kind": {
+                    "type": "string",
+                    "default": "Task",
+                    "enum": [
+                        "Bug",
+                        "Enhancement",
+                        "Task",
+                        "Proposal"
+                    ]
+                },
+                "priority": {
+                    "type": "string",
+                    "default": "Minor",
+                    "enum": [
+                        "Trivial",
+                        "Minor",
+                        "Major",
+                        "Critical",
+                        "Blocker"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "New",
+                        "Open",
+                        "In Progress",
+                        "Resolved",
+                        "Closed",
+                        "Reopened",
+                        "Invalid",
+                        "Duplicate",
+                        "Wontfix",
+                        "On Hold"
+                    ]
+                },
+                "title": {
+                    "type": "string",
+                    "maxLength": 255
+                }
+            }
+        },
+        "clientgo.UpdateRequest": {
+            "description": "Admin can update user status (active/blocked/pending) and role (admin/user).",
+            "type": "object",
+            "properties": {
+                "role": {
+                    "type": "string",
+                    "enum": [
+                        "admin",
+                        "user"
+                    ]
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "active",
+                        "blocked"
+                    ]
+                }
+            }
+        },
         "clientgo.UserBrief": {
             "description": "Minimal user information for task relationships.",
             "type": "object",
@@ -2783,6 +3158,20 @@ const docTemplate = `{
                 },
                 "role": {
                     "type": "string"
+                }
+            }
+        },
+        "clientgo.UserBriefList": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/clientgo.UserBrief"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -2813,38 +3202,6 @@ const docTemplate = `{
                 }
             }
         },
-        "dto.UserBrief": {
-            "description": "Minimal user information for task relationships.",
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "string"
-                }
-            }
-        },
-        "dto.UserBriefList": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/dto.UserBrief"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "fiberfx.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -2854,137 +3211,6 @@ const docTemplate = `{
                 "details": {},
                 "message": {
                     "type": "string"
-                }
-            }
-        },
-        "oauth.AuthorizeResponse": {
-            "type": "object",
-            "properties": {
-                "url": {
-                    "type": "string",
-                    "example": "https://bitbucket.org/site/oauth2/authorize?client_id=...\u0026response_type=code\u0026scope=webhook\u0026state=...\u0026redirect_uri=..."
-                }
-            }
-        },
-        "oauth.StatusResponse": {
-            "type": "object",
-            "properties": {
-                "connected": {
-                    "type": "boolean"
-                },
-                "connected_at": {
-                    "type": "string",
-                    "example": "2026-08-24T12:00:00Z"
-                },
-                "expires_at": {
-                    "type": "string",
-                    "example": "2026-08-24T14:00:00Z"
-                },
-                "scopes": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    },
-                    "example": [
-                        "webhook"
-                    ]
-                }
-            }
-        },
-        "passkey.CredentialResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "passkey.RenameRequest": {
-            "type": "object",
-            "required": [
-                "name"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "maxLength": 255,
-                    "minLength": 1
-                }
-            }
-        },
-        "projects.ProjectListResponse": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/projects.ProjectResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer",
-                    "example": 1
-                }
-            }
-        },
-        "projects.ProjectRequest": {
-            "type": "object",
-            "required": [
-                "name",
-                "repo_url"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "example": "Backend Service"
-                },
-                "repo_url": {
-                    "type": "string",
-                    "example": "https://bitbucket.org/company/backend"
-                }
-            }
-        },
-        "projects.ProjectResponse": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string",
-                    "example": "2026-04-01T08:00:00Z"
-                },
-                "id": {
-                    "type": "string",
-                    "example": "backend-service"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Backend Service"
-                },
-                "repo_url": {
-                    "type": "string",
-                    "example": "https://bitbucket.org/company/backend"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2026-04-02T09:00:00Z"
-                }
-            }
-        },
-        "projects.ProjectUpdateRequest": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "example": "Backend Service"
-                },
-                "repo_url": {
-                    "type": "string",
-                    "example": "https://bitbucket.org/company/backend"
                 }
             }
         },
@@ -3342,381 +3568,6 @@ const docTemplate = `{
                 "VerificationPreferred",
                 "VerificationDiscouraged"
             ]
-        },
-        "tasks.AttachmentConfirmResponse": {
-            "type": "object",
-            "properties": {
-                "download_url": {
-                    "type": "string"
-                },
-                "file_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "size_bytes": {
-                    "type": "integer"
-                },
-                "uploaded_at": {
-                    "type": "string"
-                },
-                "uploaded_by": {
-                    "$ref": "#/definitions/clientgo.UserBrief"
-                }
-            }
-        },
-        "tasks.AttachmentDownloadResponse": {
-            "type": "object",
-            "properties": {
-                "download_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "tasks.AttachmentUploadRequest": {
-            "type": "object",
-            "required": [
-                "file_name",
-                "size_bytes"
-            ],
-            "properties": {
-                "file_name": {
-                    "type": "string"
-                },
-                "size_bytes": {
-                    "type": "integer",
-                    "minimum": 1
-                }
-            }
-        },
-        "tasks.AttachmentUploadResponse": {
-            "type": "object",
-            "properties": {
-                "file_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "size_bytes": {
-                    "type": "integer"
-                },
-                "upload_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "tasks.CommentCreateRequest": {
-            "description": "Comment creation request with content.",
-            "type": "object",
-            "required": [
-                "content"
-            ],
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "maxLength": 10000,
-                    "minLength": 1
-                }
-            }
-        },
-        "tasks.CommentUpdateRequest": {
-            "description": "Comment update request with content.",
-            "type": "object",
-            "required": [
-                "content"
-            ],
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "maxLength": 10000,
-                    "minLength": 1
-                }
-            }
-        },
-        "tasks.FeedResponse": {
-            "description": "Paginated activity feed with total count.",
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tasks.HistoryEntryResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
-        "tasks.HistoryChangeResponse": {
-            "description": "Field-level task change with old and new values.",
-            "type": "object",
-            "properties": {
-                "field": {
-                    "type": "string"
-                },
-                "new_value": {
-                    "type": "string"
-                },
-                "old_value": {
-                    "type": "string"
-                }
-            }
-        },
-        "tasks.HistoryEntryResponse": {
-            "description": "Task history entry with actor and field changes.",
-            "type": "object",
-            "properties": {
-                "action": {
-                    "type": "string"
-                },
-                "actor": {
-                    "$ref": "#/definitions/dto.UserBrief"
-                },
-                "changes": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/tasks.HistoryChangeResponse"
-                    }
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                }
-            }
-        },
-        "tasks.TaskCreateRequest": {
-            "description": "Task creation request with title, description, priority, assignee, and due date.",
-            "type": "object",
-            "required": [
-                "project_slug",
-                "title"
-            ],
-            "properties": {
-                "assignee_id": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 10000
-                },
-                "due_date": {
-                    "type": "string"
-                },
-                "kind": {
-                    "type": "string",
-                    "enum": [
-                        "Bug",
-                        "Enhancement",
-                        "Task",
-                        "Proposal"
-                    ]
-                },
-                "priority": {
-                    "type": "string",
-                    "enum": [
-                        "Trivial",
-                        "Minor",
-                        "Major",
-                        "Critical",
-                        "Blocker"
-                    ]
-                },
-                "project_slug": {
-                    "type": "string",
-                    "maxLength": 255
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 255
-                }
-            }
-        },
-        "tasks.TaskUpdateRequest": {
-            "description": "Task update request with optional fields for partial updates.",
-            "type": "object",
-            "properties": {
-                "assignee_id": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "comment": {
-                    "type": "string",
-                    "maxLength": 10000
-                },
-                "description": {
-                    "type": "string",
-                    "maxLength": 10000
-                },
-                "due_date": {
-                    "type": "string"
-                },
-                "kind": {
-                    "type": "string",
-                    "default": "Task",
-                    "enum": [
-                        "Bug",
-                        "Enhancement",
-                        "Task",
-                        "Proposal"
-                    ]
-                },
-                "priority": {
-                    "type": "string",
-                    "default": "Minor",
-                    "enum": [
-                        "Trivial",
-                        "Minor",
-                        "Major",
-                        "Critical",
-                        "Blocker"
-                    ]
-                },
-                "status": {
-                    "type": "string",
-                    "enum": [
-                        "New",
-                        "Open",
-                        "In Progress",
-                        "Resolved",
-                        "Closed",
-                        "Reopened",
-                        "Invalid",
-                        "Duplicate",
-                        "Wontfix",
-                        "On Hold"
-                    ]
-                },
-                "title": {
-                    "type": "string",
-                    "maxLength": 255
-                }
-            }
-        },
-        "users.GetResponse": {
-            "description": "User data returned in admin API responses (password excluded).",
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string",
-                    "example": "2026-04-06T10:00:00Z"
-                },
-                "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                },
-                "id": {
-                    "type": "integer",
-                    "example": 42
-                },
-                "name": {
-                    "type": "string",
-                    "example": "user"
-                },
-                "role": {
-                    "enum": [
-                        "admin",
-                        "user"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/users.Role"
-                        }
-                    ],
-                    "example": "user"
-                },
-                "status": {
-                    "enum": [
-                        "pending",
-                        "active",
-                        "blocked"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/users.Status"
-                        }
-                    ],
-                    "example": "active"
-                },
-                "updated_at": {
-                    "type": "string",
-                    "example": "2026-04-06T10:00:00Z"
-                }
-            }
-        },
-        "users.ListResponse": {
-            "description": "Paginated response containing users list and total count.",
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/users.GetResponse"
-                    }
-                },
-                "total": {
-                    "type": "integer",
-                    "example": 42
-                }
-            }
-        },
-        "users.Role": {
-            "type": "string",
-            "enum": [
-                "admin",
-                "user"
-            ],
-            "x-enum-varnames": [
-                "RoleAdmin",
-                "RoleUser"
-            ]
-        },
-        "users.Status": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "active",
-                "blocked"
-            ],
-            "x-enum-varnames": [
-                "StatusPending",
-                "StatusActive",
-                "StatusBlocked"
-            ]
-        },
-        "users.UpdateRequest": {
-            "description": "Admin can update user status (active/blocked/pending) and role (admin/user).",
-            "type": "object",
-            "properties": {
-                "role": {
-                    "enum": [
-                        "admin",
-                        "user"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/users.Role"
-                        }
-                    ]
-                },
-                "status": {
-                    "enum": [
-                        "pending",
-                        "active",
-                        "blocked"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/users.Status"
-                        }
-                    ]
-                }
-            }
         },
         "webauthncose.COSEAlgorithmIdentifier": {
             "type": "integer",

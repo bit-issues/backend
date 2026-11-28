@@ -13,20 +13,9 @@ import (
 	"github.com/samber/lo"
 )
 
-// TaskListQuery represents pagination and sorting query parameters.
-type TaskListQuery struct {
-	dto.PaginationQuery
-	dto.SortQuery
+type taskListQuery clientgo.TaskListQuery
 
-	Project    *string `query:"project"    validate:"omitempty,max=255"`
-	Author     *int64  `query:"author"     validate:"omitempty,min=1"`
-	Assignee   *int64  `query:"assignee"   validate:"omitempty,min=0"`
-	Statuses   *string `query:"statuses"`
-	Priorities *string `query:"priorities"`
-	Search     *string `query:"search"     validate:"omitempty,max=255"`
-}
-
-func (q *TaskListQuery) toFilter() tasks.TaskFilter {
+func (q *taskListQuery) toFilter() tasks.TaskFilter {
 	statuses := []tasks.Status{}
 	if q.Statuses != nil {
 		statuses = lo.Map(
@@ -60,25 +49,14 @@ func (q *TaskListQuery) toFilter() tasks.TaskFilter {
 	}
 }
 
-func (q *TaskListQuery) toPagination() *tasks.Pagination {
+func (q *taskListQuery) toPagination() *tasks.Pagination {
 	return tasks.NewPagination(q.Limit, q.Offset)
 }
 
-// TaskCreateRequest represents the request body for creating a new task.
-//
-//	@Description	Task creation request with title, description, priority, assignee, and due date.
-type TaskCreateRequest struct {
-	ProjectSlug string  `json:"project_slug"          validate:"required,max=255"`
-	Title       string  `json:"title"                 validate:"required,max=255"`
-	Description string  `json:"description,omitempty" validate:"max=10000"`
-	Priority    string  `json:"priority,omitempty"    validate:"omitempty,oneof=Trivial Minor Major Critical Blocker"`
-	Kind        string  `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"`
-	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=1"`
-	DueDate     *string `json:"due_date,omitempty"    validate:"omitempty,datetime=2006-01-02"`
-}
+type taskCreateRequest clientgo.TaskCreateRequest
 
-// toTaskCreateInput converts a TaskCreateRequest DTO to a domain TaskInput.
-func (req TaskCreateRequest) toTaskInput(authorID int64) tasks.TaskInput {
+// toTaskInput converts the shared task creation request to a domain TaskInput.
+func (req *taskCreateRequest) toTaskInput(authorID int64) tasks.TaskInput {
 	priority := tasks.Priority(req.Priority)
 	kind := tasks.Kind(req.Kind)
 
@@ -95,27 +73,14 @@ func (req TaskCreateRequest) toTaskInput(authorID int64) tasks.TaskInput {
 	}
 }
 
-// TaskUpdateRequest represents the request body for updating a task.
-// All fields are optional to support partial updates.
-//
-//	@Description	Task update request with optional fields for partial updates.
-type TaskUpdateRequest struct {
-	Title       *string `json:"title,omitempty"       validate:"omitempty,max=255"`
-	Description *string `json:"description,omitempty" validate:"omitempty,max=10000"`
-	Priority    *string `json:"priority,omitempty"    validate:"omitempty,oneof=Trivial Minor Major Critical Blocker"                                                default:"Minor"`
-	Status      *string `json:"status,omitempty"      validate:"omitempty,oneof=New Open 'In Progress' Resolved Closed Reopened Invalid Duplicate Wontfix 'On Hold'"`
-	Kind        *string `json:"kind,omitempty"        validate:"omitempty,oneof=Bug Enhancement Task Proposal"                                                       default:"Task"`
-	AssigneeID  *int64  `json:"assignee_id,omitempty" validate:"omitempty,min=0"`
-	DueDate     *string `json:"due_date,omitempty"    validate:"omitzero,datetime=2006-01-02"`
-	Comment     *string `json:"comment,omitempty"     validate:"omitempty,max=10000"`
-}
+type taskUpdateRequest clientgo.TaskUpdateRequest
 
-// toTaskUpdate converts a TaskUpdateRequest DTO to a domain TaskUpdate.
+// toTaskUpdate converts the shared task update request to a domain TaskUpdate.
 // The domain layer uses pointer-to-pointer types to distinguish between:
 // - nil (field not provided/unchanged)
 // - *nil (set to zero value/null)
 // - *value (set to specific value).
-func (req TaskUpdateRequest) toTaskUpdate() tasks.TaskUpdate {
+func (req *taskUpdateRequest) toTaskUpdate() tasks.TaskUpdate {
 	var priority *tasks.Priority
 	if req.Priority != nil {
 		p := tasks.Priority(*req.Priority)
@@ -143,18 +108,6 @@ func (req TaskUpdateRequest) toTaskUpdate() tasks.TaskUpdate {
 		AssigneeID:  req.AssigneeID,
 		DueDate:     req.DueDate,
 	}
-}
-
-// taskDetailsJSON keeps the established REST key order (comments before
-// attachments) while carrying the shared clientgo wire payload. The shared
-// TaskDetailsResponse declares attachments first; serialization order changes
-// the response bytes, so the handler marshals through this backend wrapper.
-type taskDetailsJSON struct {
-	clientgo.TaskResponse
-
-	Project     *clientgo.Project             `json:"project"`
-	Comments    []clientgo.CommentResponse    `json:"comments"`
-	Attachments []clientgo.AttachmentResponse `json:"attachments"`
 }
 
 // newTaskResponse converts a domain Task to the shared clientgo wire response.
@@ -190,15 +143,6 @@ func newTaskDetailsResponse(
 		Project:      project,
 		Comments:     toCommentsList(comments, usersMap),
 		Attachments:  toAttachmentsList(attachmentList, usersMap),
-	}
-}
-
-func taskDetailsJSONFrom(response *clientgo.TaskDetailsResponse) *taskDetailsJSON {
-	return &taskDetailsJSON{
-		TaskResponse: response.TaskResponse,
-		Project:      response.Project,
-		Comments:     response.Comments,
-		Attachments:  response.Attachments,
 	}
 }
 

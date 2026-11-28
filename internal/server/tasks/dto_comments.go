@@ -9,20 +9,6 @@ import (
 	clientgo "github.com/bit-issues/client-go"
 )
 
-// CommentCreateRequest represents the request body for creating a new comment.
-//
-//	@Description	Comment creation request with content.
-type CommentCreateRequest struct {
-	Content string `json:"content" validate:"required,min=1,max=10000"`
-}
-
-// CommentUpdateRequest represents the request body for updating a comment.
-//
-//	@Description	Comment update request with content.
-type CommentUpdateRequest struct {
-	Content string `json:"content" validate:"required,min=1,max=10000"`
-}
-
 // toCommentResponse converts a domain Comment to the shared wire response.
 // It enriches the author field from the pre-fetched users map.
 // If the user is not found, only the ID is populated (stub).

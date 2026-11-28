@@ -9,33 +9,8 @@ import (
 	clientgo "github.com/bit-issues/client-go"
 )
 
-type AttachmentUploadRequest struct {
-	FileName  string `json:"file_name"  validate:"required"`
-	SizeBytes uint64 `json:"size_bytes" validate:"required,min=1"`
-}
-
-type AttachmentUploadResponse struct {
-	ID        int64  `json:"id"`
-	FileName  string `json:"file_name"`
-	SizeBytes uint64 `json:"size_bytes"`
-	UploadURL string `json:"upload_url"`
-}
-
-type AttachmentConfirmResponse struct {
-	ID          int64              `json:"id"`
-	FileName    string             `json:"file_name"`
-	SizeBytes   uint64             `json:"size_bytes"`
-	DownloadURL string             `json:"download_url"`
-	UploadedAt  string             `json:"uploaded_at"`
-	UploadedBy  clientgo.UserBrief `json:"uploaded_by"`
-}
-
-type AttachmentDownloadResponse struct {
-	DownloadURL string `json:"download_url"`
-}
-
-func toUploadResponse(result *attachments.UploadResult) AttachmentUploadResponse {
-	return AttachmentUploadResponse{
+func toUploadResponse(result *attachments.UploadResult) clientgo.AttachmentUploadResponse {
+	return clientgo.AttachmentUploadResponse{
 		ID:        result.Attachment.ID,
 		FileName:  result.Attachment.FileName,
 		SizeBytes: result.Attachment.SizeBytes,
@@ -47,8 +22,8 @@ func toConfirmResponse(
 	attachment *attachments.Attachment,
 	downloadURL string,
 	usersMap map[int64]users.User,
-) AttachmentConfirmResponse {
-	return AttachmentConfirmResponse{
+) clientgo.AttachmentResponse {
+	return clientgo.AttachmentResponse{
 		ID:          attachment.ID,
 		FileName:    attachment.FileName,
 		SizeBytes:   attachment.SizeBytes,

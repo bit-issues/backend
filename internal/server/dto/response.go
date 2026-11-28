@@ -9,17 +9,8 @@ import (
 	"github.com/samber/lo"
 )
 
-// UserBrief is the shared client-go wire type. The alias keeps existing
-// dto.UserBrief references (e.g. history responses) compiling without a duplicate.
-type UserBrief = clientgo.UserBrief
-
-type UserBriefList struct {
-	Items []UserBrief `json:"items"`
-	Total int         `json:"total"`
-}
-
-func ToUserBrief(u *users.User) UserBrief {
-	return UserBrief{
+func ToUserBrief(u *users.User) clientgo.UserBrief {
+	return clientgo.UserBrief{
 		ID:        u.ID,
 		Name:      u.Name,
 		Role:      string(u.Role),
@@ -27,7 +18,7 @@ func ToUserBrief(u *users.User) UserBrief {
 	}
 }
 
-func ResolveUserBrief(id *int64, lookup map[int64]users.User) *UserBrief {
+func ResolveUserBrief(id *int64, lookup map[int64]users.User) *clientgo.UserBrief {
 	if id == nil {
 		return nil
 	}
@@ -36,7 +27,7 @@ func ResolveUserBrief(id *int64, lookup map[int64]users.User) *UserBrief {
 		return lo.ToPtr(ToUserBrief(&u))
 	}
 
-	return &UserBrief{
+	return &clientgo.UserBrief{
 		ID:        *id,
 		Name:      "",
 		Role:      "",
@@ -44,9 +35,9 @@ func ResolveUserBrief(id *int64, lookup map[int64]users.User) *UserBrief {
 	}
 }
 
-func ToUserBriefList(items []users.User, total int) UserBriefList {
-	return UserBriefList{
-		Items: lo.Map(items, func(u users.User, _ int) UserBrief { return ToUserBrief(&u) }),
+func ToUserBriefList(items []users.User, total int) clientgo.UserBriefList {
+	return clientgo.UserBriefList{
+		Items: lo.Map(items, func(u users.User, _ int) clientgo.UserBrief { return ToUserBrief(&u) }),
 		Total: total,
 	}
 }

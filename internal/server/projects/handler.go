@@ -9,6 +9,7 @@ import (
 	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/go-core-fx/fiberfx/handler"
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-playground/validator/v10"
@@ -76,13 +77,13 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Param			limit	query		int		false	"Page limit (max 100)"	default(20)
 //	@Param			offset	query		int		false	"Page offset"			default(0)
 //	@Param			search	query		string	false	"Search by project name or slug (case-insensitive)"
-//	@Success		200		{object}	ProjectListResponse
+//	@Success		200		{object}	clientgo.ProjectListResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Router			/projects [get]
 //
 // list retrieves a paginated list of all projects.
 func (h *Handler) list(c *fiber.Ctx) error {
-	query := dto.PaginationQuery{
+	query := clientgo.PaginationQuery{
 		Limit:  0,
 		Offset: 0,
 	}
@@ -113,7 +114,7 @@ func (h *Handler) list(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Security		BearerAuth
 //	@Param			slug	path		string	true	"Project ID"
-//	@Success		200		{object}	ProjectResponse
+//	@Success		200		{object}	clientgo.Project
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -129,7 +130,7 @@ func (h *Handler) get(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get project: %w", err)
 	}
 
-	return c.JSON(NewProjectResponse(project))
+	return c.JSON(dto.ToProject(project))
 }
 
 //	@Summary		Create a new project
@@ -138,8 +139,8 @@ func (h *Handler) get(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			request	body		ProjectRequest	true	"Project creation data"
-//	@Success		201		{object}	ProjectResponse
+//	@Param			request	body		clientgo.ProjectRequest	true	"Project creation data"
+//	@Success		201		{object}	clientgo.Project
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		403		{object}	fiberfx.ErrorResponse
@@ -147,7 +148,7 @@ func (h *Handler) get(c *fiber.Ctx) error {
 //	@Router			/projects [post]
 //
 // post creates a new project (admin only).
-func (h *Handler) post(c *fiber.Ctx, req *ProjectRequest) error {
+func (h *Handler) post(c *fiber.Ctx, req *projectRequest) error {
 	// Convert DTO to domain input
 	input := req.toProjectInput()
 
@@ -157,7 +158,7 @@ func (h *Handler) post(c *fiber.Ctx, req *ProjectRequest) error {
 		return fmt.Errorf("failed to create project: %w", err)
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(NewProjectResponse(project))
+	return c.Status(fiber.StatusCreated).JSON(dto.ToProject(project))
 }
 
 //	@Summary		Update a project
@@ -166,9 +167,9 @@ func (h *Handler) post(c *fiber.Ctx, req *ProjectRequest) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			slug	path		string					true	"Project ID"
-//	@Param			request	body		ProjectUpdateRequest	true	"Project update data"
-//	@Success		200		{object}	ProjectResponse
+//	@Param			slug	path		string							true	"Project ID"
+//	@Param			request	body		clientgo.ProjectUpdateRequest	true	"Project update data"
+//	@Success		200		{object}	clientgo.Project
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		403		{object}	fiberfx.ErrorResponse
@@ -177,7 +178,7 @@ func (h *Handler) post(c *fiber.Ctx, req *ProjectRequest) error {
 //	@Router			/projects/{slug} [patch]
 //
 // patch updates an existing project (admin only).
-func (h *Handler) patch(c *fiber.Ctx, req *ProjectUpdateRequest) error {
+func (h *Handler) patch(c *fiber.Ctx, req *projectUpdateRequest) error {
 	slug := c.Params("slug")
 
 	// Convert DTO to domain update
@@ -189,7 +190,7 @@ func (h *Handler) patch(c *fiber.Ctx, req *ProjectUpdateRequest) error {
 		return fmt.Errorf("failed to update project: %w", err)
 	}
 
-	return c.JSON(NewProjectResponse(project))
+	return c.JSON(dto.ToProject(project))
 }
 
 //	@Summary		Delete a project

@@ -53,12 +53,12 @@ func (h *Handler) Register(r fiber.Router) {
 //	@Tags			Authentication
 //	@Accept			json
 //	@Produce		json
-//	@Param			request	body		RegisterRequest				true	"Registration request"
+//	@Param			request	body		clientgo.RegisterRequest	true	"Registration request"
 //	@Success		201		{object}	clientgo.UserResponseDTO	"User created successfully"
 //	@Failure		400		{object}	fiberfx.ErrorResponse		"Validation error"
 //	@Failure		409		{object}	fiberfx.ErrorResponse		"Email already exists"
 //	@Router			/auth/register [post]
-func (h *Handler) handleRegister(c *fiber.Ctx, req *RegisterRequest) error {
+func (h *Handler) handleRegister(c *fiber.Ctx, req *clientgo.RegisterRequest) error {
 	user, err := h.usersSvc.Register(c.Context(), users.UserInput{
 		Email:    req.Email,
 		Password: req.Password,
@@ -169,13 +169,13 @@ func (h *Handler) handleLogout(c *fiber.Ctx, req *clientgo.LogoutRequest) error 
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			request	body	ChangePasswordRequest	true	"New password data"
+//	@Param			request	body	clientgo.ChangePasswordRequest	true	"New password data"
 //	@Success		204		"Password changed successfully"
 //	@Failure		400		{object}	fiberfx.ErrorResponse	"Validation error"
 //	@Failure		401		{object}	fiberfx.ErrorResponse	"Unauthorized"
 //	@Failure		403		{object}	fiberfx.ErrorResponse	"Forbidden"
 //	@Router			/auth/change-password [post]
-func (h *Handler) handleChangePassword(c *fiber.Ctx, req *ChangePasswordRequest) error {
+func (h *Handler) handleChangePassword(c *fiber.Ctx, req *clientgo.ChangePasswordRequest) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
 		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized")

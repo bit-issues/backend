@@ -5,26 +5,13 @@ import (
 	"time"
 
 	"github.com/bit-issues/backend/internal/oauth"
+	clientgo "github.com/bit-issues/client-go"
 )
 
-// AuthorizeResponse is the JSON body of the authorize endpoint.
-type AuthorizeResponse struct {
-	URL string `json:"url" example:"https://bitbucket.org/site/oauth2/authorize?client_id=...&response_type=code&scope=webhook&state=...&redirect_uri=..."`
-}
-
-// StatusResponse reports the current OAuth connection state. Optional fields
-// are omitted when the connection is absent.
-type StatusResponse struct {
-	Connected   bool     `json:"connected"`
-	ConnectedAt *string  `json:"connected_at,omitempty" example:"2026-08-24T12:00:00Z"`
-	ExpiresAt   *string  `json:"expires_at,omitempty"   example:"2026-08-24T14:00:00Z"`
-	Scopes      []string `json:"scopes,omitempty"       example:"webhook"`
-}
-
 // NewStatusResponse maps a stored OAuth token to the status DTO.
-func NewStatusResponse(token *oauth.Token) StatusResponse {
+func NewStatusResponse(token *oauth.Token) clientgo.StatusResponse {
 	if token == nil {
-		return StatusResponse{
+		return clientgo.StatusResponse{
 			Connected:   false,
 			ConnectedAt: nil,
 			ExpiresAt:   nil,
@@ -32,7 +19,7 @@ func NewStatusResponse(token *oauth.Token) StatusResponse {
 		}
 	}
 
-	response := StatusResponse{
+	response := clientgo.StatusResponse{
 		Connected:   true,
 		ConnectedAt: nil,
 		ExpiresAt:   nil,

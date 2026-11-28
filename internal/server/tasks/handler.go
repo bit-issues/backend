@@ -122,7 +122,7 @@ func (h *Handler) Register(r fiber.Router) {
 //
 // list retrieves a paginated list of tasks with optional filtering.
 func (h *Handler) list(c *fiber.Ctx) error {
-	query := new(TaskListQuery)
+	query := new(taskListQuery)
 	if err := h.QueryParserValidator(c, query); err != nil {
 		return fmt.Errorf("failed to parse query: %w", err)
 	}
@@ -219,7 +219,7 @@ func (h *Handler) getByProjectAndNumber(c *fiber.Ctx) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			request	body		TaskCreateRequest	true	"Task creation data"
+//	@Param			request	body		clientgo.TaskCreateRequest	true	"Task creation data"
 //	@Success		201		{object}	clientgo.TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
@@ -227,7 +227,7 @@ func (h *Handler) getByProjectAndNumber(c *fiber.Ctx) error {
 //	@Router			/tasks [post]
 //
 // post creates a new task.
-func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
+func (h *Handler) post(c *fiber.Ctx, req *taskCreateRequest) error {
 	// Get current user from JWT context
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
@@ -257,8 +257,8 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			id		path		int64				true	"Task ID"
-//	@Param			request	body		TaskUpdateRequest	true	"Task update data"
+//	@Param			id		path		int64						true	"Task ID"
+//	@Param			request	body		clientgo.TaskUpdateRequest	true	"Task update data"
 //	@Success		200		{object}	clientgo.TaskDetailsResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
@@ -266,7 +266,7 @@ func (h *Handler) post(c *fiber.Ctx, req *TaskCreateRequest) error {
 //	@Router			/tasks/{id} [patch]
 //
 // patch updates an existing task.
-func (h *Handler) patch(c *fiber.Ctx, req *TaskUpdateRequest) error {
+func (h *Handler) patch(c *fiber.Ctx, req *taskUpdateRequest) error {
 	user, ok := jwtauth.GetUser(c)
 	if !ok {
 		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized")
@@ -355,7 +355,7 @@ func (h *Handler) myTasks(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusUnauthorized, "unauthorized")
 	}
 
-	query := new(TaskListQuery)
+	query := new(taskListQuery)
 	if err := h.QueryParserValidator(c, query); err != nil {
 		return fmt.Errorf("failed to parse query: %w", err)
 	}
@@ -432,7 +432,7 @@ func (h *Handler) prepareListResponse(
 func (h *Handler) prepareDetailsResponse(
 	ctx context.Context,
 	task *tasks.Task,
-) (*taskDetailsJSON, error) {
+) (*clientgo.TaskDetailsResponse, error) {
 	commentsList, _, err := h.commentsSvc.List(
 		ctx,
 		comments.CommentFilter{TaskID: &task.ID, AuthorID: nil},
@@ -463,7 +463,7 @@ func (h *Handler) prepareDetailsResponse(
 		projectResp = dto.ToProject(proj)
 	}
 
-	return taskDetailsJSONFrom(newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp)), nil
+	return newTaskDetailsResponse(task, usersMap, commentsList, attachmentList, projectResp), nil
 }
 
 // errorsHandler is a middleware that converts service errors to appropriate HTTP responses.

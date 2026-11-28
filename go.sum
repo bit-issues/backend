@@ -10,8 +10,8 @@ github.com/ansrivas/fiberprometheus/v2 v2.17.0 h1:p0gqs5LsSCWGoSFF44fCJkyU+XcE6T
 github.com/ansrivas/fiberprometheus/v2 v2.17.0/go.mod h1:giWBvbFSHOHG8N2wjYhQG23oc/2pF9v1mN8CdZs5Z2g=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bit-issues/client-go v0.0.0-20261124044531-faf8f021da2b h1:QYAKq9ia9NEKf7IGv4HZrkXbh2f/7QDNTvhh8UUjpaI=
-github.com/bit-issues/client-go v0.0.0-20261124044531-faf8f021da2b/go.mod h1:skw0w+D4bVDrcEz465Ne+U+WKmS20mUBCOPx0DimoU4=
+github.com/bit-issues/client-go v0.0.2-0.20261128014833-58a5eae35438 h1:joTDRd8DCd4K7/Pf8kyL7ZWRlxi2WazU2rs2zJfU0mg=
+github.com/bit-issues/client-go v0.0.2-0.20261128014833-58a5eae35438/go.mod h1:skw0w+D4bVDrcEz465Ne+U+WKmS20mUBCOPx0DimoU4=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=
 github.com/bsm/gomega v1.27.10 h1:yeMWxP2pV2fG3FgAODIY8EiRE3dy0aeFYt4l7wh6yKA=

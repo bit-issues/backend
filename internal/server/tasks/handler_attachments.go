@@ -8,6 +8,7 @@ import (
 	"github.com/bit-issues/backend/internal/attachments"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/users"
+	clientgo "github.com/bit-issues/client-go"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/zap"
 )
@@ -20,13 +21,13 @@ import (
 //	@Accept			json
 //	@Produce		json
 //	@Security		BearerAuth
-//	@Param			task_id	path		int64					true	"Task ID"
-//	@Param			request	body		AttachmentUploadRequest	true	"Upload details"
-//	@Success		201		{object}	AttachmentUploadResponse
+//	@Param			task_id	path		int64								true	"Task ID"
+//	@Param			request	body		clientgo.AttachmentUploadRequest	true	"Upload details"
+//	@Success		201		{object}	clientgo.AttachmentUploadResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Router			/tasks/{task_id}/attachments [post]
-func (h *Handler) attachmentInitUpload(c *fiber.Ctx, req *AttachmentUploadRequest) error {
+func (h *Handler) attachmentInitUpload(c *fiber.Ctx, req *clientgo.AttachmentUploadRequest) error {
 	taskID, err := strconv.ParseInt(c.Params("task_id"), 10, 64)
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "invalid task ID")
@@ -59,7 +60,7 @@ func (h *Handler) attachmentInitUpload(c *fiber.Ctx, req *AttachmentUploadReques
 //	@Security		BearerAuth
 //	@Param			task_id	path		int64	true	"Task ID"
 //	@Param			id		path		int64	true	"Attachment ID"
-//	@Success		200		{object}	AttachmentConfirmResponse
+//	@Success		200		{object}	clientgo.AttachmentResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -104,7 +105,7 @@ func (h *Handler) attachmentConfirmUpload(c *fiber.Ctx) error {
 //	@Security		BearerAuth
 //	@Param			task_id	path		int64	true	"Task ID"
 //	@Param			id		path		int64	true	"Attachment ID"
-//	@Success		200		{object}	AttachmentDownloadResponse
+//	@Success		200		{object}	clientgo.AttachmentDownloadResponse
 //	@Failure		400		{object}	fiberfx.ErrorResponse
 //	@Failure		401		{object}	fiberfx.ErrorResponse
 //	@Failure		404		{object}	fiberfx.ErrorResponse
@@ -124,7 +125,7 @@ func (h *Handler) attachmentGetDownloadURL(c *fiber.Ctx) error {
 		return fmt.Errorf("failed to get download url: %w", err)
 	}
 
-	return c.JSON(AttachmentDownloadResponse{DownloadURL: downloadURL})
+	return c.JSON(clientgo.AttachmentDownloadResponse{DownloadURL: downloadURL})
 }
 
 // attachmentDelete deletes an attachment.
