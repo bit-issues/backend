@@ -1,8 +1,11 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/bit-issues/backend/internal/server/auth"
 	"github.com/bit-issues/backend/internal/server/docs"
+	"github.com/bit-issues/backend/internal/server/dto"
 	"github.com/bit-issues/backend/internal/server/events"
 	"github.com/bit-issues/backend/internal/server/middlewares/jwtauth"
 	"github.com/bit-issues/backend/internal/server/oauth"
@@ -18,6 +21,7 @@ import (
 	"github.com/go-core-fx/fiberfx/openapi"
 	"github.com/go-core-fx/fiberfx/validation"
 	"github.com/go-core-fx/logger"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
@@ -27,6 +31,14 @@ func Module() fx.Option {
 	return fx.Module(
 		"server",
 		logger.WithNamedLogger("server"),
+
+		fx.Decorate(func(v *validator.Validate) (*validator.Validate, error) {
+			if err := dto.RegisterValidations(v); err != nil {
+				return nil, fmt.Errorf("register DTO validations: %w", err)
+			}
+
+			return v, nil
+		}),
 
 		fx.Provide(func(log *zap.Logger) fiberfx.Options {
 			opts := fiberfx.Options{}

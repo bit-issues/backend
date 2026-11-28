@@ -2761,10 +2761,12 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Backend Service"
                 },
                 "repo_url": {
                     "type": "string",
+                    "maxLength": 512,
                     "example": "https://bitbucket.org/company/backend"
                 }
             }
@@ -2799,10 +2801,12 @@ const docTemplate = `{
             "properties": {
                 "name": {
                     "type": "string",
+                    "maxLength": 255,
                     "example": "Backend Service"
                 },
                 "repo_url": {
                     "type": "string",
+                    "maxLength": 512,
                     "example": "https://bitbucket.org/company/backend"
                 }
             }
@@ -3257,8 +3261,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "content": {
+                    "description": "Content allows at most 65,535 characters and 65,535 UTF-8 bytes.",
                     "type": "string",
-                    "maxLength": 10000,
+                    "maxLength": 65535,
                     "minLength": 1
                 }
             }
@@ -3292,8 +3297,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "content": {
+                    "description": "Content allows at most 65,535 characters and 65,535 UTF-8 bytes.",
                     "type": "string",
-                    "maxLength": 10000,
+                    "maxLength": 65535,
                     "minLength": 1
                 }
             }
@@ -3365,8 +3371,9 @@ const docTemplate = `{
                     "minimum": 1
                 },
                 "description": {
+                    "description": "Description allows at most 65,535 characters and 65,535 UTF-8 bytes.",
                     "type": "string",
-                    "maxLength": 10000
+                    "maxLength": 65535
                 },
                 "due_date": {
                     "type": "string"
@@ -3528,12 +3535,14 @@ const docTemplate = `{
                     "minimum": 0
                 },
                 "comment": {
+                    "description": "Comment allows at most 65,535 characters and 65,535 UTF-8 bytes.",
                     "type": "string",
-                    "maxLength": 10000
+                    "maxLength": 65535
                 },
                 "description": {
+                    "description": "Description allows at most 65,535 characters and 65,535 UTF-8 bytes.",
                     "type": "string",
-                    "maxLength": 10000
+                    "maxLength": 65535
                 },
                 "due_date": {
                     "type": "string"

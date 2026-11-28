@@ -12,7 +12,7 @@ import (
 
 const (
 	// MaxContentLength is the maximum length of comment content.
-	MaxContentLength = 10000
+	MaxContentLength = 65535
 )
 
 // Comment represents a complete comment entity with all fields.

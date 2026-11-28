@@ -12,14 +12,16 @@ import (
 //
 //	@Description	Comment creation request with content.
 type CommentCreateRequest struct {
-	Content string `json:"content" validate:"required,min=1,max=10000"`
+	// Content allows at most 65,535 characters and 65,535 UTF-8 bytes.
+	Content string `json:"content" validate:"required,min=1,maxbytes=65535,max=65535"`
 }
 
 // CommentUpdateRequest represents the request body for updating a comment.
 //
 //	@Description	Comment update request with content.
 type CommentUpdateRequest struct {
-	Content string `json:"content" validate:"required,min=1,max=10000"`
+	// Content allows at most 65,535 characters and 65,535 UTF-8 bytes.
+	Content string `json:"content" validate:"required,min=1,maxbytes=65535,max=65535"`
 }
 
 // CommentResponse represents the API response for a single comment.
